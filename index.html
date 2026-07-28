@@ -828,14 +828,14 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
 .sn-cloud .sc-meta{flex:1;min-width:0;}
 .sn-cloud .sc-meta b{display:block;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .sn-cloud .sc-meta small{display:block;font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.sn-cloud .sc-st{font-size:11.5px;color:var(--text2);padding-top:8px;line-height:1.45;display:flex;align-items:flex-start;gap:7px;}
-.sn-cloud .sc-st::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--text3);flex:none;margin-top:5px;box-shadow:0 0 0 3px transparent;}
+.sn-cloud .sc-st{font-size:11.5px;color:var(--text2);padding-top:8px;line-height:1.45;display:flex;align-items:center;gap:8px;}
+.sn-cloud .sc-st::before{content:"";display:block;box-sizing:border-box;width:7px;height:7px;min-width:7px;min-height:7px;max-width:7px;max-height:7px;aspect-ratio:1/1;border-radius:50%;background:var(--text3);flex:0 0 7px;align-self:center;margin:0;padding:0;border:3px solid transparent;background-clip:padding-box;}
 .sn-cloud .sc-st.ok{color:var(--text);font-weight:500;}
-.sn-cloud .sc-st.ok::before{background:var(--ok);box-shadow:0 0 0 3px rgba(70,161,113,.16);}
+.sn-cloud .sc-st.ok::before{background:var(--ok);border-color:rgba(70,161,113,.18);}
 .sn-cloud .sc-st.warn{color:var(--text);font-weight:500;}
-.sn-cloud .sc-st.warn::before{background:var(--amber);box-shadow:0 0 0 3px rgba(213,128,59,.16);}
+.sn-cloud .sc-st.warn::before{background:var(--amber);border-color:rgba(213,128,59,.18);}
 .sn-cloud .sc-st.err{color:var(--text);font-weight:500;}
-.sn-cloud .sc-st.err::before{background:var(--red);box-shadow:0 0 0 3px rgba(229,100,88,.16);}
+.sn-cloud .sc-st.err::before{background:var(--red);border-color:rgba(229,100,88,.18);}
 .sn-cloud .sc-actions{display:flex;gap:6px;padding-top:10px;flex-wrap:wrap;}
 .sn-cloud .sc-actions .btn{min-height:34px;padding:4px 12px;font-size:12px;}
 .cloud-banner{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translateX(-50%);z-index:370;width:min(440px,calc(100vw - 28px));display:none;align-items:flex-start;gap:10px;padding:12px 14px;background:#fff;border:1px solid var(--line2);border-radius:var(--r-xl);box-shadow:var(--sh-3);}
@@ -1092,7 +1092,7 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.2 · 로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.3 · 로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -5368,7 +5368,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     measurementId:"G-899TTNC45F"
   };
   const ALLOWED_EMAIL="yundda2@gmail.com";
-  const PUSH_DEBOUNCE_MS=900;
+  const PUSH_DEBOUNCE_MS=450;
 
   const ui={
     name:()=>document.getElementById("scName"),
@@ -5386,8 +5386,9 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
 
   let app=null, auth=null, db=null, user=null;
   let pushTimer=null, pushing=false, pulling=false;
-  let unsubSettings=null, dayUnsubs={};
+  let unsubSettings=null, unsubSync=null, dayUnsubs={};
   let ready=false;
+  let lastPushTs=0;
 
   function setStatus(msg, kind){
     const el=ui.status(); if(!el) return;
@@ -5539,21 +5540,25 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
       updatedAt: ts
     }, {merge:true});
     batch.set(p.metaRunning, {running: snap.running||null, updatedAt: ts}, {merge:true});
+    // lightweight multi-device wake signal (other devices listen and pull)
+    batch.set(db.collection("users").doc(uid).collection("meta").doc("sync"), {
+      updatedAt: ts,
+      rev: ts
+    }, {merge:true});
     const days=snap.days||{};
-    const existing=await p.days.get();
-    const keep={};
     for(const k in days){
-      keep[k]=true;
       const d=days[k]||{};
+      // always stamp ts so deletes/edits overwrite remote arrays promptly
       batch.set(p.days.doc(k), {
         events:d.events||[],
         todos:d.todos||[],
         routines:d.routines||[],
-        updatedAt: d.updatedAt||ts
+        updatedAt: ts
       }, {merge:true});
     }
-    // do not mass-delete unknown remote days in debounce pushes; only full sync path may prune
+    // do not mass-delete unknown remote day docs here; full sync path may prune
     await batch.commit();
+    lastPushTs=ts;
     return ts;
   }
 
@@ -5569,6 +5574,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
       updatedAt:ts
     }, {merge:true});
     await p.metaRunning.set({running:snap.running||null, updatedAt:ts}, {merge:true});
+    await db.collection("users").doc(uid).collection("meta").doc("sync").set({updatedAt:ts, rev:ts}, {merge:true});
     const days=snap.days||{};
     const existing=await p.days.get();
     const remoteIds={};
@@ -5590,6 +5596,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
 
   function stopListeners(){
     if(unsubSettings){ try{unsubSettings();}catch(e){} unsubSettings=null; }
+    if(unsubSync){ try{unsubSync();}catch(e){} unsubSync=null; }
     for(const k in dayUnsubs){ try{dayUnsubs[k]();}catch(e){} }
     dayUnsubs={};
   }
@@ -5597,15 +5604,27 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
   function startListeners(uid){
     stopListeners();
     const p=userPaths(uid);
-    // Lightweight: on settings change, pull full cloud snapshot (personal app, small data)
-    unsubSettings=p.settings.onSnapshot(function(){
-      if(pushing||pulling) return;
+    function onRemoteTick(){
+      if(pushing||pulling||!ready) return;
       pullAndMerge(uid, {fromListener:true}).catch(function(err){
         setStatus("동기화 수신 실패: "+(err&&err.message||err), "err");
       });
+    }
+    // settings + meta/sync: either change wakes other devices to pull full snapshot
+    unsubSettings=p.settings.onSnapshot(function(snap){
+      if(!snap || !snap.exists) return;
+      const d=snap.data()||{};
+      if(d.updatedAt && lastPushTs && d.updatedAt===lastPushTs) return; // echo of our own push
+      onRemoteTick();
     }, function(err){
       setStatus("실시간 동기화 오류: "+(err&&err.message||err), "err");
     });
+    unsubSync=db.collection("users").doc(uid).collection("meta").doc("sync").onSnapshot(function(snap){
+      if(!snap || !snap.exists) return;
+      const d=snap.data()||{};
+      if(d.updatedAt && lastPushTs && d.updatedAt===lastPushTs) return;
+      onRemoteTick();
+    }, function(){ /* non-fatal */ });
   }
 
   async function pullAndMerge(uid, opts){
@@ -5669,6 +5688,10 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
       const snap=localSnapshot();
       snap.updatedAt=Date.now();
       state._localUpdatedAt=snap.updatedAt;
+      // keep localStorage clock aligned so later pulls compare correctly
+      try{
+        localStorage.setItem(LS_KEY,JSON.stringify({settings:state.settings,days:state.days,running:state.running,updatedAt:state._localUpdatedAt}));
+      }catch(e){}
       await writeCloud(user.uid, snap);
       setStatus("동기화됨 · "+new Date(snap.updatedAt).toLocaleString("ko-KR"), "ok");
     }catch(err){
@@ -5774,6 +5797,16 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
       if(u) onSignedIn(u);
       else onSignedOut();
     });
+    // multi-device: when returning to this tab/app or network, pull latest without manual button
+    function resumePull(){
+      if(!user||!ready||pushing||pulling) return;
+      pullAndMerge(user.uid, {fromListener:true}).catch(function(){});
+    }
+    document.addEventListener("visibilitychange", function(){
+      if(document.visibilityState==="visible") resumePull();
+    });
+    window.addEventListener("focus", resumePull);
+    window.addEventListener("online", resumePull);
   }
 
   window.tgCloud={
