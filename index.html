@@ -5368,7 +5368,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     measurementId:"G-899TTNC45F"
   };
   const ALLOWED_EMAIL="yundda2@gmail.com";
-  const PUSH_DEBOUNCE_MS=900;
+  const PUSH_DEBOUNCE_MS=450;
 
   const ui={
     name:()=>document.getElementById("scName"),
@@ -5386,8 +5386,9 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
 
   let app=null, auth=null, db=null, user=null;
   let pushTimer=null, pushing=false, pulling=false;
-  let unsubSettings=null, dayUnsubs={};
+  let unsubSettings=null, unsubSync=null, dayUnsubs={};
   let ready=false;
+  let lastPushTs=0;
 
   function setStatus(msg, kind){
     const el=ui.status(); if(!el) return;
@@ -5539,21 +5540,25 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
       updatedAt: ts
     }, {merge:true});
     batch.set(p.metaRunning, {running: snap.running||null, updatedAt: ts}, {merge:true});
+    // lightweight multi-device wake signal (other devices listen and pull)
+    batch.set(db.collection("users").doc(uid).collection("meta").doc("sync"), {
+      updatedAt: ts,
+      rev: ts
+    }, {merge:true});
     const days=snap.days||{};
-    const existing=await p.days.get();
-    const keep={};
     for(const k in days){
-      keep[k]=true;
       const d=days[k]||{};
+      // always stamp ts so deletes/edits overwrite remote arrays promptly
       batch.set(p.days.doc(k), {
         events:d.events||[],
         todos:d.todos||[],
         routines:d.routines||[],
-        updatedAt: d.updatedAt||ts
+        updatedAt: ts
       }, {merge:true});
     }
-    // do not mass-delete unknown remote days in debounce pushes; only full sync path may prune
+    // do not mass-delete unknown remote day docs here; full sync path may prune
     await batch.commit();
+    lastPushTs=ts;
     return ts;
   }
 
@@ -5569,6 +5574,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
       updatedAt:ts
     }, {merge:true});
     await p.metaRunning.set({running:snap.running||null, updatedAt:ts}, {merge:true});
+    await db.collection("users").doc(uid).collection("meta").doc("sync").set({updatedAt:ts, rev:ts}, {merge:true});
     const days=snap.days||{};
     const existing=await p.days.get();
     const remoteIds={};
@@ -5590,6 +5596,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
 
   function stopListeners(){
     if(unsubSettings){ try{unsubSettings();}catch(e){} unsubSettings=null; }
+    if(unsubSync){ try{unsubSync();}catch(e){} unsubSync=null; }
     for(const k in dayUnsubs){ try{dayUnsubs[k]();}catch(e){} }
     dayUnsubs={};
   }
@@ -5597,15 +5604,27 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
   function startListeners(uid){
     stopListeners();
     const p=userPaths(uid);
-    // Lightweight: on settings change, pull full cloud snapshot (personal app, small data)
-    unsubSettings=p.settings.onSnapshot(function(){
-      if(pushing||pulling) return;
+    function onRemoteTick(){
+      if(pushing||pulling||!ready) return;
       pullAndMerge(uid, {fromListener:true}).catch(function(err){
         setStatus("동기화 수신 실패: "+(err&&err.message||err), "err");
       });
+    }
+    // settings + meta/sync: either change wakes other devices to pull full snapshot
+    unsubSettings=p.settings.onSnapshot(function(snap){
+      if(!snap || !snap.exists) return;
+      const d=snap.data()||{};
+      if(d.updatedAt && lastPushTs && d.updatedAt===lastPushTs) return; // echo of our own push
+      onRemoteTick();
     }, function(err){
       setStatus("실시간 동기화 오류: "+(err&&err.message||err), "err");
     });
+    unsubSync=db.collection("users").doc(uid).collection("meta").doc("sync").onSnapshot(function(snap){
+      if(!snap || !snap.exists) return;
+      const d=snap.data()||{};
+      if(d.updatedAt && lastPushTs && d.updatedAt===lastPushTs) return;
+      onRemoteTick();
+    }, function(){ /* non-fatal */ });
   }
 
   async function pullAndMerge(uid, opts){
@@ -5669,6 +5688,10 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
       const snap=localSnapshot();
       snap.updatedAt=Date.now();
       state._localUpdatedAt=snap.updatedAt;
+      // keep localStorage clock aligned so later pulls compare correctly
+      try{
+        localStorage.setItem(LS_KEY,JSON.stringify({settings:state.settings,days:state.days,running:state.running,updatedAt:state._localUpdatedAt}));
+      }catch(e){}
       await writeCloud(user.uid, snap);
       setStatus("동기화됨 · "+new Date(snap.updatedAt).toLocaleString("ko-KR"), "ok");
     }catch(err){
@@ -5774,6 +5797,16 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
       if(u) onSignedIn(u);
       else onSignedOut();
     });
+    // multi-device: when returning to this tab/app or network, pull latest without manual button
+    function resumePull(){
+      if(!user||!ready||pushing||pulling) return;
+      pullAndMerge(user.uid, {fromListener:true}).catch(function(){});
+    }
+    document.addEventListener("visibilitychange", function(){
+      if(document.visibilityState==="visible") resumePull();
+    });
+    window.addEventListener("focus", resumePull);
+    window.addEventListener("online", resumePull);
   }
 
   window.tgCloud={
