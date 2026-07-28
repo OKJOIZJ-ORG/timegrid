@@ -12,6 +12,9 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="shortcut icon" href="icons/favicon.ico">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+<script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore-compat.js"></script>
 <title>TimeGrid</title>
 <style>
 :root{
@@ -817,6 +820,27 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
 .onb-step small{display:block; font-size:13px; color:var(--text2); line-height:1.5; padding-top:1px;}
 .onb-go{width:100%; min-height:46px; margin-top:14px; font-size:15px;}
 @media (prefers-reduced-motion: reduce){ .onb-card{animation:none;} }
+/* ---------- cloud account ---------- */
+.sn-cloud{margin:10px 0 4px;padding:12px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--soft);}
+.sn-cloud .sc-row{display:flex;align-items:center;gap:10px;}
+.sn-cloud .sc-av{width:36px;height:36px;border-radius:50%;background:var(--line2);object-fit:cover;flex:none;}
+.sn-cloud .sc-av.ph{display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:16px;font-weight:700;}
+.sn-cloud .sc-meta{flex:1;min-width:0;}
+.sn-cloud .sc-meta b{display:block;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sn-cloud .sc-meta small{display:block;font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sn-cloud .sc-st{font-size:11px;color:var(--text2);padding-top:8px;line-height:1.4;}
+.sn-cloud .sc-st.ok{color:var(--ok);}
+.sn-cloud .sc-st.warn{color:var(--amber);}
+.sn-cloud .sc-st.err{color:var(--red);}
+.sn-cloud .sc-actions{display:flex;gap:6px;padding-top:10px;flex-wrap:wrap;}
+.sn-cloud .sc-actions .btn{min-height:34px;padding:4px 12px;font-size:12px;}
+.cloud-banner{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translateX(-50%);z-index:370;width:min(440px,calc(100vw - 28px));display:none;align-items:flex-start;gap:10px;padding:12px 14px;background:#fff;border:1px solid var(--line2);border-radius:var(--r-xl);box-shadow:var(--sh-3);}
+.cloud-banner.show{display:flex;}
+.cloud-banner .cb-copy{flex:1;min-width:0;font-size:13px;line-height:1.45;}
+.cloud-banner .cb-copy b{display:block;padding-bottom:2px;}
+.cloud-banner .cb-actions{display:flex;flex-direction:column;gap:6px;flex:none;}
+.cloud-banner .btn{min-height:34px;padding:6px 12px;font-size:12px;}
+
 /* ---------- PWA update prompt ---------- */
 .pwa-update{position:fixed;left:50%;bottom:calc(78px + env(safe-area-inset-bottom));transform:translate(-50%,12px);z-index:360;width:min(440px,calc(100vw - 28px));display:flex;align-items:center;gap:12px;padding:12px 12px 12px 15px;background:#202124;color:#fff;border-radius:var(--r-xl);box-shadow:var(--sh-3);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;}
 .pwa-update.show{opacity:1;transform:translate(-50%,0);pointer-events:auto;}
@@ -1033,11 +1057,24 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
 <div class="side-overlay" id="sideOverlay"></div>
 <aside class="sidenav" id="sideNav" role="dialog" aria-label="설정 메뉴">
   <div class="sidenav-head">
-    <div class="sn-brand"><img class="sn-logo" src="brand/mark-96.png" alt=""><div class="sn-brand-t"><h3>TimeGrid</h3><span class="sn-tag">시간 기록 · 이 기기에 저장</span></div></div>
+    <div class="sn-brand"><img class="sn-logo" src="brand/mark-96.png" alt=""><div class="sn-brand-t"><h3>TimeGrid</h3><span class="sn-tag">시간 기록 · 로그인 시 클라우드 동기화</span></div></div>
     <button class="icon-btn" id="sideClose" aria-label="메뉴 닫기">✕</button>
   </div>
   <div class="sidenav-body">
     <div class="sn-today"><span class="sn-today-lb">오늘 기록</span><b class="sn-today-v" id="snTodayVal">0m</b></div>
+    <div class="sn-sec">계정 · 동기화</div>
+    <div class="sn-cloud" id="snCloud">
+      <div class="sc-row">
+        <div class="sc-av ph" id="scAv" aria-hidden="true">G</div>
+        <div class="sc-meta"><b id="scName">로그인 안 됨</b><small id="scEmail">이 기기 localStorage만 사용 중</small></div>
+      </div>
+      <div class="sc-st" id="scStatus">Google 로그인하면 세 기기에 같은 기록이 동기화됩니다.</div>
+      <div class="sc-actions">
+        <button type="button" class="btn dark" id="scLogin">Google로 로그인</button>
+        <button type="button" class="btn" id="scLogout" hidden>로그아웃</button>
+        <button type="button" class="btn" id="scSyncNow" hidden>지금 동기화</button>
+      </div>
+    </div>
     <div class="sn-sec">분류</div>
     <button class="sidenav-item" id="actsBtn">
       <span class="sn-ic" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 20 20"><circle cx="6" cy="6" r="3"/><circle cx="14" cy="6" r="3"/><circle cx="6" cy="14" r="3"/><circle cx="14" cy="14" r="3"/></svg></span>
@@ -1051,8 +1088,16 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot">TimeGrid v3.11 · 데이터는 이 기기의 브라우저에 저장됩니다</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12 · 로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
+
+<div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
+  <div class="cb-copy" id="cloudBannerCopy"></div>
+  <div class="cb-actions">
+    <button type="button" class="btn dark" id="cloudBannerOk">확인</button>
+    <button type="button" class="btn" id="cloudBannerAlt" hidden>다른 선택</button>
+  </div>
+</div>
 
 <div class="onb" id="onboard" hidden>
   <div class="onb-card" role="dialog" aria-label="시작 가이드">
@@ -1595,7 +1640,9 @@ function autoColorActs(areaName,skipSave){
 }
 function save(){
   if(DEMO) return;
-  try{localStorage.setItem(LS_KEY,JSON.stringify({settings:state.settings,days:state.days,running:state.running}));}catch(e){}
+  state._localUpdatedAt=Date.now();
+  try{localStorage.setItem(LS_KEY,JSON.stringify({settings:state.settings,days:state.days,running:state.running,updatedAt:state._localUpdatedAt}));}catch(e){}
+  if(window.tgCloud&&window.tgCloud.schedulePush) window.tgCloud.schedulePush();
 }
 function load(){
   try{
@@ -1615,6 +1662,7 @@ function load(){
       }
     }
     if(s.running) state.running=s.running;
+    if(s.updatedAt) state._localUpdatedAt=s.updatedAt;
   }catch(e){}
 }
 function ensureDay(dateStr){
@@ -5304,6 +5352,436 @@ if(document.body.dataset.tab) setTab(document.body.dataset.tab);
 if(document.body.dataset.open==="acts"){ renderManager(); openFsPanel($("#actsDlg")); }
 if(document.body.dataset.open==="edit"){ const d=ensureDay(state.viewDate); if(d.events[1]) openEvDlg(d.events[1]); }
 if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.dispatchEvent(new Event("focus")); }
+/* ================= Firebase Auth + Firestore sync ================= */
+(function(){
+  const FB_CONFIG={
+    apiKey:"AIzaSyB9zuqe0G7DjBNtb-EAtFfI0VVI5Bmeu_s",
+    authDomain:"timegrid-19809.firebaseapp.com",
+    projectId:"timegrid-19809",
+    storageBucket:"timegrid-19809.firebasestorage.app",
+    messagingSenderId:"1071066765115",
+    appId:"1:1071066765115:web:7241996d324d0021b4891e",
+    measurementId:"G-899TTNC45F"
+  };
+  const ALLOWED_EMAIL="yunnda2@gmail.com";
+  const PUSH_DEBOUNCE_MS=900;
+
+  const ui={
+    name:()=>document.getElementById("scName"),
+    email:()=>document.getElementById("scEmail"),
+    status:()=>document.getElementById("scStatus"),
+    av:()=>document.getElementById("scAv"),
+    login:()=>document.getElementById("scLogin"),
+    logout:()=>document.getElementById("scLogout"),
+    sync:()=>document.getElementById("scSyncNow"),
+    banner:()=>document.getElementById("cloudBanner"),
+    bannerCopy:()=>document.getElementById("cloudBannerCopy"),
+    bannerOk:()=>document.getElementById("cloudBannerOk"),
+    bannerAlt:()=>document.getElementById("cloudBannerAlt")
+  };
+
+  let app=null, auth=null, db=null, user=null;
+  let pushTimer=null, pushing=false, pulling=false;
+  let unsubSettings=null, dayUnsubs={};
+  let ready=false;
+
+  function setStatus(msg, kind){
+    const el=ui.status(); if(!el) return;
+    el.textContent=msg||"";
+    el.className="sc-st"+(kind?(" "+kind):"");
+  }
+  function paintUser(){
+    const n=ui.name(), e=ui.email(), av=ui.av();
+    const login=ui.login(), logout=ui.logout(), sync=ui.sync();
+    if(!n) return;
+    if(user){
+      n.textContent=user.displayName||"로그인됨";
+      e.textContent=user.email||"";
+      if(login) login.hidden=true;
+      if(logout) logout.hidden=false;
+      if(sync) sync.hidden=false;
+      if(av){
+        if(user.photoURL){
+          av.className="sc-av"; av.textContent="";
+          av.style.backgroundImage="url("+user.photoURL+")"; av.style.backgroundSize="cover";
+        }else{
+          av.className="sc-av ph"; av.style.backgroundImage="";
+          av.textContent=(user.displayName||user.email||"U").slice(0,1).toUpperCase();
+        }
+      }
+    }else{
+      n.textContent="로그인 안 됨";
+      e.textContent="이 기기 localStorage만 사용 중";
+      if(login) login.hidden=false;
+      if(logout) logout.hidden=true;
+      if(sync) sync.hidden=true;
+      if(av){ av.className="sc-av ph"; av.style.backgroundImage=""; av.textContent="G"; }
+      setStatus("Google 로그인하면 세 기기에 같은 기록이 동기화됩니다.");
+    }
+  }
+
+  function localSnapshot(){
+    return {
+      settings: state.settings,
+      days: state.days,
+      running: state.running,
+      updatedAt: state._localUpdatedAt || 0
+    };
+  }
+  function applySnapshot(s, opts){
+    opts=opts||{};
+    if(!s) return;
+    if(s.settings) state.settings=s.settings;
+    if(!state.settings.areas || !state.settings.areas.length){
+      state.settings.areas=DEFAULT_AREAS.map(a=>({...a}));
+      state.settings.version=2;
+    }
+    if(s.days) state.days=s.days;
+    for(const k in state.days){
+      const dd=state.days[k];
+      if(dd&&Array.isArray(dd.events)) for(const ev of dd.events){
+        if(ev&&ev.end==="00:00"&&ev.start&&ev.start!=="00:00") ev.end="24:00";
+      }
+    }
+    if("running" in s) state.running=s.running||null;
+    if(s.updatedAt) state._localUpdatedAt=s.updatedAt;
+    try{
+      localStorage.setItem(LS_KEY,JSON.stringify({settings:state.settings,days:state.days,running:state.running,updatedAt:state._localUpdatedAt||Date.now()}));
+    }catch(e){}
+    if(!opts.silent){
+      try{ renderAll(); }catch(e){}
+    }
+  }
+  function hasLocalData(){
+    const days=state.days||{};
+    for(const k in days){
+      const d=days[k];
+      if(d&&((d.events&&d.events.length)||(d.todos&&d.todos.length))) return true;
+    }
+    const acts=(state.settings&&state.settings.activities)||[];
+    // default seed alone is not "user data"
+    return false;
+  }
+  function localPayloadBytes(){
+    try{ return JSON.stringify(localSnapshot()).length; }catch(e){ return 0; }
+  }
+
+  function userPaths(uid){
+    return {
+      settings: db.collection("users").doc(uid).collection("settings").doc("main"),
+      days: db.collection("users").doc(uid).collection("days"),
+      metaRunning: db.collection("users").doc(uid).collection("meta").doc("running")
+    };
+  }
+
+  function showBanner(html, primaryLabel, onPrimary, altLabel, onAlt){
+    const b=ui.banner(), c=ui.bannerCopy(), ok=ui.bannerOk(), alt=ui.bannerAlt();
+    if(!b||!c||!ok) return;
+    c.innerHTML=html;
+    ok.textContent=primaryLabel||"확인";
+    ok.onclick=function(){ b.classList.remove("show"); if(onPrimary) onPrimary(); };
+    if(altLabel&&onAlt){
+      alt.hidden=false; alt.textContent=altLabel;
+      alt.onclick=function(){ b.classList.remove("show"); onAlt(); };
+    }else{
+      alt.hidden=true; alt.onclick=null;
+    }
+    b.classList.add("show");
+  }
+
+  async function readCloud(uid){
+    const p=userPaths(uid);
+    const settingsSnap=await p.settings.get();
+    const daysSnap=await p.days.get();
+    const runSnap=await p.metaRunning.get();
+    if(!settingsSnap.exists && daysSnap.empty) return null;
+    const settings=settingsSnap.exists? settingsSnap.data() : null;
+    const days={};
+    daysSnap.forEach(function(doc){
+      const data=doc.data()||{};
+      days[doc.id]={
+        events:data.events||[],
+        todos:data.todos||[],
+        routines:data.routines||[],
+        updatedAt:data.updatedAt||0
+      };
+    });
+    let updatedAt=0;
+    if(settings&&settings.updatedAt) updatedAt=Math.max(updatedAt, settings.updatedAt);
+    for(const k in days) updatedAt=Math.max(updatedAt, days[k].updatedAt||0);
+    const running=runSnap.exists? (runSnap.data().running||null) : null;
+    return {
+      settings: settings? {
+        version:settings.version||2,
+        areas:settings.areas||[],
+        activities:settings.activities||[],
+        routineDefs:settings.routineDefs||[]
+      } : state.settings,
+      days: days,
+      running: running,
+      updatedAt: updatedAt
+    };
+  }
+
+  async function writeCloud(uid, snap){
+    const p=userPaths(uid);
+    const ts=snap.updatedAt||Date.now();
+    const batch=db.batch();
+    batch.set(p.settings, {
+      version: (snap.settings&&snap.settings.version)||2,
+      areas: (snap.settings&&snap.settings.areas)||[],
+      activities: (snap.settings&&snap.settings.activities)||[],
+      routineDefs: (snap.settings&&snap.settings.routineDefs)||[],
+      updatedAt: ts
+    }, {merge:true});
+    batch.set(p.metaRunning, {running: snap.running||null, updatedAt: ts}, {merge:true});
+    const days=snap.days||{};
+    const existing=await p.days.get();
+    const keep={};
+    for(const k in days){
+      keep[k]=true;
+      const d=days[k]||{};
+      batch.set(p.days.doc(k), {
+        events:d.events||[],
+        todos:d.todos||[],
+        routines:d.routines||[],
+        updatedAt: d.updatedAt||ts
+      }, {merge:true});
+    }
+    // do not mass-delete unknown remote days in debounce pushes; only full sync path may prune
+    await batch.commit();
+    return ts;
+  }
+
+  async function writeCloudFull(uid, snap){
+    const p=userPaths(uid);
+    const ts=snap.updatedAt||Date.now();
+    // settings + running
+    await p.settings.set({
+      version:(snap.settings&&snap.settings.version)||2,
+      areas:(snap.settings&&snap.settings.areas)||[],
+      activities:(snap.settings&&snap.settings.activities)||[],
+      routineDefs:(snap.settings&&snap.settings.routineDefs)||[],
+      updatedAt:ts
+    }, {merge:true});
+    await p.metaRunning.set({running:snap.running||null, updatedAt:ts}, {merge:true});
+    const days=snap.days||{};
+    const existing=await p.days.get();
+    const remoteIds={};
+    existing.forEach(function(doc){ remoteIds[doc.id]=true; });
+    const ops=[];
+    for(const k in days){
+      const d=days[k]||{};
+      ops.push(p.days.doc(k).set({
+        events:d.events||[], todos:d.todos||[], routines:d.routines||[], updatedAt:d.updatedAt||ts
+      }, {merge:true}));
+      delete remoteIds[k];
+    }
+    for(const k in remoteIds){
+      ops.push(p.days.doc(k).delete());
+    }
+    await Promise.all(ops);
+    return ts;
+  }
+
+  function stopListeners(){
+    if(unsubSettings){ try{unsubSettings();}catch(e){} unsubSettings=null; }
+    for(const k in dayUnsubs){ try{dayUnsubs[k]();}catch(e){} }
+    dayUnsubs={};
+  }
+
+  function startListeners(uid){
+    stopListeners();
+    const p=userPaths(uid);
+    // Lightweight: on settings change, pull full cloud snapshot (personal app, small data)
+    unsubSettings=p.settings.onSnapshot(function(){
+      if(pushing||pulling) return;
+      pullAndMerge(uid, {fromListener:true}).catch(function(err){
+        setStatus("동기화 수신 실패: "+(err&&err.message||err), "err");
+      });
+    }, function(err){
+      setStatus("실시간 동기화 오류: "+(err&&err.message||err), "err");
+    });
+  }
+
+  async function pullAndMerge(uid, opts){
+    opts=opts||{};
+    if(pulling) return;
+    pulling=true;
+    try{
+      const cloud=await readCloud(uid);
+      const local=localSnapshot();
+      if(!cloud){
+        if(localPayloadBytes()>40){
+          // first login with local data
+          if(!opts.fromListener){
+            await new Promise(function(resolve){
+              showBanner(
+                "<b>이 기기 기록을 클라우드에 올릴까요?</b><span style=\"display:block;color:var(--text2);padding-top:4px\">다른 기기와 공유하려면 업로드가 필요합니다. 클라우드가 비어 있습니다.</span>",
+                "업로드",
+                async function(){
+                  try{
+                    setStatus("클라우드 업로드 중…");
+                    const ts=Date.now(); state._localUpdatedAt=ts;
+                    await writeCloudFull(uid, Object.assign({}, localSnapshot(), {updatedAt:ts}));
+                    setStatus("클라우드 업로드 완료", "ok");
+                    if(typeof toast==="function") toast("클라우드에 업로드했습니다");
+                  }catch(err){
+                    setStatus("업로드 실패: "+(err&&err.message||err), "err");
+                  }
+                  resolve();
+                },
+                "나중에",
+                function(){ setStatus("로컬만 사용 중 · 원할 때 지금 동기화", "warn"); resolve(); }
+              );
+            });
+          }
+        }else{
+          setStatus("클라우드 비어 있음 · 기록하면 동기화됩니다", "ok");
+        }
+        return;
+      }
+      const lu=local.updatedAt||0, cu=cloud.updatedAt||0;
+      if(cu>lu){
+        applySnapshot(cloud);
+        setStatus("클라우드에서 최신 기록 반영 · "+new Date(cu).toLocaleString("ko-KR"), "ok");
+      }else if(lu>cu && !opts.fromListener){
+        await writeCloudFull(uid, local);
+        setStatus("로컬 변경을 클라우드에 반영 · "+new Date(lu).toLocaleString("ko-KR"), "ok");
+      }else{
+        // equal or listener echo
+        if(!opts.fromListener) setStatus("동기화됨 · "+new Date(Math.max(lu,cu)).toLocaleString("ko-KR"), "ok");
+      }
+    }finally{
+      pulling=false;
+    }
+  }
+
+  async function pushNow(){
+    if(!user||!db||DEMO) return;
+    if(pushing) return;
+    pushing=true;
+    try{
+      const snap=localSnapshot();
+      snap.updatedAt=Date.now();
+      state._localUpdatedAt=snap.updatedAt;
+      await writeCloud(user.uid, snap);
+      setStatus("동기화됨 · "+new Date(snap.updatedAt).toLocaleString("ko-KR"), "ok");
+    }catch(err){
+      setStatus("동기화 실패: "+(err&&err.message||err), "err");
+    }finally{
+      pushing=false;
+    }
+  }
+
+  function schedulePush(){
+    if(!user||!ready) return;
+    if(pushTimer) clearTimeout(pushTimer);
+    pushTimer=setTimeout(function(){ pushNow(); }, PUSH_DEBOUNCE_MS);
+  }
+
+  async function onSignedIn(u){
+    const email=(u.email||"").toLowerCase();
+    if(email!==ALLOWED_EMAIL.toLowerCase()){
+      setStatus("허용되지 않은 계정입니다. 로그아웃합니다.", "err");
+      try{ await auth.signOut(); }catch(e){}
+      if(typeof toast==="function") toast("이 앱은 지정된 Google 계정만 사용할 수 있습니다");
+      return;
+    }
+    user=u;
+    paintUser();
+    setStatus("동기화 준비 중…");
+    try{
+      await pullAndMerge(u.uid, {});
+      startListeners(u.uid);
+      ready=true;
+      setStatus(ui.status().textContent.indexOf("실패")>=0? ui.status().textContent : ("로그인됨 · 동기화 활성"), "ok");
+    }catch(err){
+      setStatus("초기 동기화 실패: "+(err&&err.message||err), "err");
+    }
+  }
+
+  function onSignedOut(){
+    ready=false;
+    user=null;
+    stopListeners();
+    if(pushTimer){ clearTimeout(pushTimer); pushTimer=null; }
+    paintUser();
+  }
+
+  async function login(){
+    if(!auth){ setStatus("Firebase를 불러오지 못했습니다", "err"); return; }
+    try{
+      setStatus("Google 로그인 창 여는 중…");
+      const provider=new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({prompt:"select_account"});
+      // popup first; redirect fallback for strict browsers
+      try{
+        await auth.signInWithPopup(provider);
+      }catch(err){
+        const code=err&&err.code||"";
+        if(code==="auth/popup-blocked"||code==="auth/operation-not-supported-in-this-environment"){
+          await auth.signInWithRedirect(provider);
+          return;
+        }
+        throw err;
+      }
+    }catch(err){
+      if(err&&err.code==="auth/popup-closed-by-user"){ setStatus("로그인이 취소되었습니다", "warn"); return; }
+      setStatus("로그인 실패: "+(err&&err.message||err), "err");
+    }
+  }
+  async function logout(){
+    try{ await auth.signOut(); if(typeof toast==="function") toast("로그아웃했습니다"); }
+    catch(err){ setStatus("로그아웃 실패: "+(err&&err.message||err), "err"); }
+  }
+
+  function init(){
+    paintUser();
+    if(typeof firebase==="undefined"){
+      setStatus("오프라인 또는 Firebase SDK 로드 실패 · 로컬만 사용", "warn");
+      return;
+    }
+    try{
+      app=firebase.initializeApp(FB_CONFIG);
+      auth=firebase.auth();
+      db=firebase.firestore();
+      try{ db.enablePersistence({synchronizeTabs:true}); }catch(e){
+        // multi-tab or unsupported — ignore
+      }
+    }catch(err){
+      setStatus("Firebase 초기화 실패: "+(err&&err.message||err), "err");
+      return;
+    }
+    const loginBtn=ui.login(), logoutBtn=ui.logout(), syncBtn=ui.sync();
+    if(loginBtn) loginBtn.addEventListener("click", function(){ login(); });
+    if(logoutBtn) logoutBtn.addEventListener("click", function(){ logout(); });
+    if(syncBtn) syncBtn.addEventListener("click", function(){
+      if(!user) return;
+      setStatus("수동 동기화 중…");
+      pullAndMerge(user.uid, {}).then(function(){ return pushNow(); });
+    });
+    auth.getRedirectResult().catch(function(err){
+      if(err&&err.code&&err.code!=="auth/redirect-cancelled-by-user"){
+        setStatus("로그인 리다이렉트 오류: "+(err.message||err), "err");
+      }
+    });
+    auth.onAuthStateChanged(function(u){
+      if(u) onSignedIn(u);
+      else onSignedOut();
+    });
+  }
+
+  window.tgCloud={
+    schedulePush: schedulePush,
+    pushNow: pushNow,
+    user: function(){ return user; }
+  };
+
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
+})();
+
 /* ================= PWA service worker / safe update flow ================= */
 (function(){
   if (!("serviceWorker" in navigator) || location.protocol === "file:") return;
