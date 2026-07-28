@@ -522,9 +522,9 @@ dialog::backdrop{background:rgba(0,0,0,.25);}
 .sn-brand-t h3{font-size:16px; line-height:1.2;}
 .sn-tag{font-size:12px; color:var(--text3);}
 .sidenav-body{padding:12px; overflow-y:auto; flex:1;}
-.sn-today{display:flex; align-items:center; justify-content:space-between; background:var(--soft); border-radius:var(--r-lg); padding:12px 14px; margin-bottom:4px;}
+.sn-today{display:flex; align-items:center; justify-content:space-between; background:var(--soft); border:1px solid var(--line); border-radius:var(--r-lg); padding:12px 14px; margin-bottom:4px;}
 .sn-today-lb{font-size:13px; color:var(--text2);}
-.sn-today-v{font-size:15px; font-variant-numeric:tabular-nums;}
+.sn-today-v{font-size:15px; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; letter-spacing:-.01em;}
 .sn-sec{font-size:12px; font-weight:600; color:var(--text3); padding:14px 6px 6px;}
 .sidenav-item{display:flex; align-items:center; gap:12px; width:100%; text-align:left; padding:10px; min-height:56px; font-size:15px; border-radius:var(--r-lg); background:none; border:none; transition:background var(--dur-1) ease;}
 .sidenav-item:hover{background:var(--soft);}
@@ -828,10 +828,14 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
 .sn-cloud .sc-meta{flex:1;min-width:0;}
 .sn-cloud .sc-meta b{display:block;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .sn-cloud .sc-meta small{display:block;font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.sn-cloud .sc-st{font-size:11px;color:var(--text2);padding-top:8px;line-height:1.4;}
-.sn-cloud .sc-st.ok{color:var(--ok);}
-.sn-cloud .sc-st.warn{color:var(--amber);}
-.sn-cloud .sc-st.err{color:var(--red);}
+.sn-cloud .sc-st{font-size:11.5px;color:var(--text2);padding-top:8px;line-height:1.45;display:flex;align-items:flex-start;gap:7px;}
+.sn-cloud .sc-st::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--text3);flex:none;margin-top:5px;box-shadow:0 0 0 3px transparent;}
+.sn-cloud .sc-st.ok{color:var(--text);font-weight:500;}
+.sn-cloud .sc-st.ok::before{background:var(--ok);box-shadow:0 0 0 3px rgba(70,161,113,.16);}
+.sn-cloud .sc-st.warn{color:var(--text);font-weight:500;}
+.sn-cloud .sc-st.warn::before{background:var(--amber);box-shadow:0 0 0 3px rgba(213,128,59,.16);}
+.sn-cloud .sc-st.err{color:var(--text);font-weight:500;}
+.sn-cloud .sc-st.err::before{background:var(--red);box-shadow:0 0 0 3px rgba(229,100,88,.16);}
 .sn-cloud .sc-actions{display:flex;gap:6px;padding-top:10px;flex-wrap:wrap;}
 .sn-cloud .sc-actions .btn{min-height:34px;padding:4px 12px;font-size:12px;}
 .cloud-banner{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translateX(-50%);z-index:370;width:min(440px,calc(100vw - 28px));display:none;align-items:flex-start;gap:10px;padding:12px 14px;background:#fff;border:1px solid var(--line2);border-radius:var(--r-xl);box-shadow:var(--sh-3);}
@@ -1088,7 +1092,7 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12 · 로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.1 · 로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
