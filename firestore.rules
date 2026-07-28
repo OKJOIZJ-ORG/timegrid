@@ -6,7 +6,7 @@ service cloud.firestore {
     }
     function isAllowedUser() {
       return signedIn()
-        && request.auth.token.email == 'yunnda2@gmail.com'
+        && request.auth.token.email == 'yundda2@gmail.com'
         && request.auth.token.email_verified == true;
     }
     function isOwner(uid) {
