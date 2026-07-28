@@ -1092,7 +1092,7 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.1 · 로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.2 · 로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -5794,15 +5794,28 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
   const msg=document.getElementById("pwaUpdateMsg");
   let waitingWorker=null;
   let refreshing=false;
+  let applying=false;
 
   function runningNow(){ try{ return !!(state && state.running); }catch(e){ return false; } }
-  function showUpdate(worker){
-    waitingWorker=worker;
-    box.classList.add("show");
-    box.setAttribute("aria-hidden","false");
+  function hideUpdate(){
+    waitingWorker=null;
+    box.classList.remove("show");
+    box.setAttribute("aria-hidden","true");
+    btn.disabled=false;
+    msg.textContent="업데이트하면 최신 버전으로 전환됩니다.";
+  }
+  function paintBusy(){
+    if(!box.classList.contains("show") || applying) return;
     const busy=runningNow();
     btn.disabled=busy;
     msg.textContent=busy ? "측정 종료 후 안전하게 업데이트할 수 있어요." : "업데이트하면 최신 버전으로 전환됩니다.";
+  }
+  function showUpdate(worker){
+    if(!worker || applying || refreshing) return;
+    waitingWorker=worker;
+    box.classList.add("show");
+    box.setAttribute("aria-hidden","false");
+    paintBusy();
   }
   function watch(reg){
     if(reg.waiting) showUpdate(reg.waiting);
@@ -5815,21 +5828,35 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     });
     setInterval(()=>reg.update().catch(()=>{}),60*60*1000);
   }
-  btn.addEventListener("click",()=>{
+  function applyUpdate(){
+    if(applying || refreshing) return;
     if(runningNow()){
       btn.disabled=true;
       msg.textContent="측정 종료 후 안전하게 업데이트할 수 있어요.";
       return;
     }
-    if(waitingWorker){ btn.disabled=true; msg.textContent="업데이트 적용 중…"; waitingWorker.postMessage({type:"SKIP_WAITING"}); }
-  });
+    const w=waitingWorker;
+    if(!w){ hideUpdate(); location.reload(); return; }
+    applying=true;
+    btn.disabled=true;
+    msg.textContent="업데이트 적용 중…";
+    try{ w.postMessage({type:"SKIP_WAITING"}); }catch(e){}
+    // controllerchange may not fire if already controlling; force reload fallback
+    setTimeout(function(){
+      if(refreshing) return;
+      refreshing=true;
+      location.reload();
+    }, 900);
+  }
+  btn.addEventListener("click", applyUpdate);
   navigator.serviceWorker.addEventListener("controllerchange",()=>{
     if(refreshing) return;
     refreshing=true;
     location.reload();
   });
   window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js",{scope:"./"}).then(watch).catch(()=>{}));
-  setInterval(()=>{ if(waitingWorker) showUpdate(waitingWorker); },1000);
+  // only refresh busy lock while banner is visible — never re-open after apply
+  setInterval(paintBusy, 1000);
 })();
 
 </script>
