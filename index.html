@@ -327,7 +327,10 @@ main::-webkit-scrollbar, .tl::-webkit-scrollbar, .dlg-body::-webkit-scrollbar, d
   position:absolute; left:0; right:0; transform:translateY(-55%);
   font-size:14px; color:var(--text2); font-variant-numeric:tabular-nums; text-align:right; line-height:1;
 }
-.tl-content{flex:1; position:relative; touch-action:pan-y; user-select:none; -webkit-user-select:none;}
+.tl-content{flex:1; position:relative; touch-action:pan-y; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; -webkit-user-drag:none;}
+.tl-content,.tl-content *{-webkit-touch-callout:none; -webkit-user-select:none; user-select:none;}
+.tl-content.tl-dragging{touch-action:none;}
+.tl-content.tl-arming{cursor:crosshair;}
 .hline{position:absolute; left:0; right:0; border-top:1px solid var(--line);}
 .vline{position:absolute; top:0; bottom:0; border-left:1px dashed var(--line);}
 .seg{position:absolute; overflow:hidden; padding:0 8px 3px; line-height:1.25; display:flex; align-items:flex-end;}
@@ -908,14 +911,48 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
 /* ---------- wide screen (v3.12.42) ----------
    Phone + tablet: always full viewport width (no phone-shell gutters).
    Desktop ultra-wide with mouse only: soft content max for readability. */
-@media (min-width:1280px) and (hover:hover) and (pointer:fine){
+:root{--shell-max:840px;}
+@media (min-width:900px) and (hover:hover) and (pointer:fine){
   body{background:var(--soft);}
   .wrap{
-    max-width:min(840px, 100vw);
+    position:relative;
+    max-width:min(var(--shell-max), 100vw);
     background:#fff;
     box-shadow:0 0 0 1px var(--line), 0 18px 50px rgba(0,0,0,.07);
   }
+  body.shell-full{background:#fff;}
+  body.shell-full .wrap{max-width:none; box-shadow:none;}
+  body.shell-full .shell-edge{display:none;}
+  .shell-edge{
+    position:absolute; top:0; bottom:0; width:10px; z-index:80;
+    cursor:ew-resize; touch-action:none; user-select:none;
+  }
+  .shell-edge.l{left:-5px;}
+  .shell-edge.r{right:-5px;}
+  .shell-edge::after{
+    content:""; position:absolute; top:50%; width:3px; height:48px;
+    margin-top:-24px; border-radius:2px; background:transparent;
+    transition:background .15s ease, box-shadow .15s ease, opacity .15s ease;
+    opacity:0;
+  }
+  .shell-edge.l::after{left:3px;}
+  .shell-edge.r::after{right:3px;}
+  .shell-edge:hover::after, body.shell-resizing .shell-edge::after{
+    opacity:1; background:rgba(44,44,43,.28);
+    box-shadow:0 0 0 1px rgba(255,255,255,.55);
+  }
+  body.shell-resizing{cursor:ew-resize !important; user-select:none !important;}
+  body.shell-resizing *{cursor:ew-resize !important;}
+  .shell-wtip{
+    position:fixed; z-index:9999; pointer-events:none;
+    background:var(--text); color:#fff; font-size:12px; font-weight:600;
+    font-variant-numeric:tabular-nums; padding:5px 9px; border-radius:var(--r-sm);
+    box-shadow:0 4px 14px rgba(0,0,0,.18); transform:translate(-50%,-130%);
+    display:none;
+  }
+  body.shell-resizing .shell-wtip{display:block;}
 }
+@media (hover:none), (pointer:coarse){ .shell-edge,.shell-wtip{display:none !important;} }
 
 /* ---------- manager renewal ---------- */
 .mgr-intro{font-size:13px; color:var(--text2); background:var(--soft); border-radius:var(--r-md); padding:10px 12px; margin-bottom:6px; line-height:1.55;}
@@ -1330,7 +1367,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.42<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.43<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -2257,9 +2294,8 @@ function resolveActivity(name, areaName, create){
   return act;
 }
 function currentActivity(create){
-  const act=resolveActivity($("#actInput").value, $("#areaSelect").value, create);
-  if(!act && !$("#actInput").value.trim()) $("#actInput").focus();
-  return act;
+  /* 활동 미선택 시 입력칸 자동 포커스하지 않음 — 타임라인 탭이 키보드를 올리지 않게 */
+  return resolveActivity($("#actInput").value, $("#areaSelect").value, create);
 }
 
 /* ================= stopwatch / total ================= */
@@ -2740,52 +2776,40 @@ function renderPreview(){
     tlContent.appendChild(d);
   }
 }
-/* v3.12.15 touch intent split: tap=add/edit, swipe=scroll, long-press(320ms)+drag=range create */
-let tlTouch=null;
-function tlBeginDrag(e,isTouch){
-  drag={anchor:cellAt(e),cur:cellAt(e),startedOn:e.target.closest(".seg")||null,moved:false,touch:!!isTouch};
+/* v3.12.43 touch intent: tap=edit/add · vertical pan=scroll · horizontal drag=range create
+   (replaces long-press arm which fought scroll and triggered iOS callout menus) */
+let tlGesture=null;
+const TL_TAP_SLOP=14;
+const TL_AXIS_LOCK=10;
+const TL_H_DRAG=12;
+function tlSegFromEvent(e){
+  const t=e.target;
+  if(!t||!t.closest) return null;
+  return t.closest(".seg");
+}
+function tlBeginDrag(e,isTouch,startedOn){
+  const seg=startedOn!==undefined? startedOn : tlSegFromEvent(e);
+  drag={anchor:cellAt(e),cur:cellAt(e),startedOn:seg||null,moved:false,touch:!!isTouch,pid:e.pointerId};
+  tlContent.classList.add("tl-dragging");
+  if(isTouch) tlContent.classList.add("tl-arming");
   try{ tlContent.setPointerCapture(e.pointerId); }catch(_){}
 }
-function tlCancelTouch(){ if(tlTouch){ clearTimeout(tlTouch.timer); tlTouch=null; } }
-tlContent.addEventListener("pointerdown",e=>{
-  if(e.target.closest(".rt-strip,.rt-flag")) return;
-  if(e.pointerType==="touch"){
-    tlCancelTouch();
-    tlTouch={x:e.clientX,y:e.clientY,e:e,timer:setTimeout(()=>{
-      tlTouch=null;
-      tlBeginDrag(e,true);
-      tlContent.classList.add("tl-arming");
-      if(navigator.vibrate) navigator.vibrate(10);
-      renderPreview();
-    },320)};
-    return;
-  }
-  tlBeginDrag(e,false);
-  e.preventDefault();
-});
-tlContent.addEventListener("pointermove",e=>{
-  if(tlTouch&&!drag){
-    if(Math.hypot(e.clientX-tlTouch.x,e.clientY-tlTouch.y)>8) tlCancelTouch();
-    return;
-  }
-  if(!drag) return;
-  const c=cellAt(e);
-  if(c!==drag.cur){ drag.cur=c; drag.moved=true; renderPreview(); }
-});
-tlContent.addEventListener("touchmove",e=>{ if(drag&&drag.touch) e.preventDefault(); },{passive:false});
-function endDrag(){
-  if(!drag) return;
-  const d=drag; drag=null;
-  tlContent.classList.remove("tl-arming");
+function tlClearGesture(){
+  tlGesture=null;
+  tlContent.classList.remove("tl-arming","tl-dragging");
+}
+function tlResetDragVisual(){
+  drag=null;
+  tlContent.classList.remove("tl-arming","tl-dragging");
   tlContent.querySelectorAll(".preview").forEach(p=>p.remove());
+}
+function tlCommitRange(d){
   const day=ensureDay(state.viewDate);
-  if(!d.moved && d.startedOn && d.startedOn.dataset.evId){
-    const ev=day.events.find(x=>x.id===d.startedOn.dataset.evId);
-    if(ev) openEvDlg(ev);
+  const ctx=resolveStartContext(true);
+  if(!ctx){
+    if(typeof toast==="function") toast("활동을 먼저 선택하세요");
     return;
   }
-  const ctx=resolveStartContext(true);
-  if(!ctx) return;
   const act=ctx.act;
   act.lastUsed=Date.now();
   const a=Math.min(d.anchor,d.cur), b=Math.max(d.anchor,d.cur);
@@ -2796,14 +2820,98 @@ function endDrag(){
     if(s>=lim){ toast("현재 시각 이후 구간에는 기록을 추가할 수 없습니다"); return; }
     if(e>lim) e=lim;
   }
+  if(e<=s) return;
   addInterval(day,act.id,s,e,ctx.tags);
   save(); renderTimeline(); renderStats(); renderTotal(); renderTodos(); renderRoutines();
 }
+function tlHandleTap(d){
+  const day=ensureDay(state.viewDate);
+  if(d.startedOn && d.startedOn.dataset && d.startedOn.dataset.evId){
+    const ev=day.events.find(x=>x.id===d.startedOn.dataset.evId);
+    if(ev){ openEvDlg(ev); return; }
+  }
+  /* empty-cell tap → single 10min block */
+  tlCommitRange({anchor:d.anchor,cur:d.anchor});
+}
+function endDrag(){
+  if(!drag) return;
+  const d=drag;
+  tlResetDragVisual();
+  if(!d.moved){ tlHandleTap(d); return; }
+  tlCommitRange(d);
+}
+tlContent.addEventListener("contextmenu",e=>{ e.preventDefault(); });
+tlContent.addEventListener("pointerdown",e=>{
+  if(e.button!=null && e.button!==0) return;
+  if(e.target.closest(".rt-strip,.rt-flag,.now-bar")) return;
+  /* mouse/pen: immediate drag-create (desktop) */
+  if(e.pointerType!=="touch"){
+    tlClearGesture();
+    tlBeginDrag(e,false);
+    e.preventDefault();
+    return;
+  }
+  /* touch: pending until axis known — keep pan-y free until horizontal intent */
+  tlClearGesture();
+  tlResetDragVisual();
+  tlGesture={
+    x:e.clientX,y:e.clientY,t:Date.now(),e:e,
+    pid:e.pointerId,
+    mode:"pending",
+    startedOn:tlSegFromEvent(e)
+  };
+});
+tlContent.addEventListener("pointermove",e=>{
+  if(tlGesture && tlGesture.mode==="pending" && e.pointerId===tlGesture.pid){
+    const dx=e.clientX-tlGesture.x, dy=e.clientY-tlGesture.y;
+    const adx=Math.abs(dx), ady=Math.abs(dy);
+    if(adx<TL_AXIS_LOCK && ady<TL_AXIS_LOCK) return;
+    if(ady>adx){
+      /* vertical → native scroll; abandon app gesture */
+      tlGesture.mode="scroll";
+      return;
+    }
+    if(adx>=TL_H_DRAG){
+      tlGesture.mode="drag";
+      tlBeginDrag(tlGesture.e,true,tlGesture.startedOn);
+      if(navigator.vibrate) try{ navigator.vibrate(8); }catch(_){}
+      /* fall through to drag update below */
+    }else return;
+  }
+  if(tlGesture && tlGesture.mode==="scroll") return;
+  if(!drag) return;
+  if(drag.pid!=null && e.pointerId!==drag.pid) return;
+  const c=cellAt(e);
+  if(c!==drag.cur){ drag.cur=c; drag.moved=true; renderPreview(); }
+});
+tlContent.addEventListener("touchmove",e=>{
+  if(drag&&drag.touch) e.preventDefault();
+},{passive:false});
 tlContent.addEventListener("pointerup",e=>{
-  if(tlTouch){ const t=tlTouch; tlCancelTouch(); tlBeginDrag(t.e,true); }
+  if(tlGesture && e.pointerId===tlGesture.pid){
+    const g=tlGesture;
+    tlGesture=null;
+    if(g.mode==="scroll"){ tlResetDragVisual(); return; }
+    if(g.mode==="pending"){
+      /* pure tap */
+      const dist=Math.hypot(e.clientX-g.x,e.clientY-g.y);
+      if(dist<=TL_TAP_SLOP){
+        const fake={anchor:cellAt(g.e),cur:cellAt(g.e),startedOn:g.startedOn,moved:false,touch:true};
+        tlHandleTap(fake);
+      }
+      tlResetDragVisual();
+      return;
+    }
+    /* mode===drag: fall through to endDrag */
+  }
+  if(drag && drag.pid!=null && e.pointerId!==drag.pid) return;
   endDrag();
 });
-tlContent.addEventListener("pointercancel",()=>{tlCancelTouch(); drag=null; tlContent.classList.remove("tl-arming"); tlContent.querySelectorAll(".preview").forEach(p=>p.remove());});
+tlContent.addEventListener("pointercancel",e=>{
+  if(tlGesture && (e.pointerId==null || e.pointerId===tlGesture.pid)) tlGesture=null;
+  if(drag && drag.pid!=null && e.pointerId!=null && e.pointerId!==drag.pid) return;
+  tlResetDragVisual();
+});
 
 /* ================= event edit dialog ================= */
 let editingEvId=null;
@@ -5465,6 +5573,147 @@ function recoverStuckDrags(){
 }
 window.addEventListener("blur",recoverStuckDrags);
 document.addEventListener("visibilitychange",function(){ if(document.hidden) recoverStuckDrags(); });
+/* ================= PC shell width via edge drag (device-local) ================= */
+const SHELL_LS="timegrid-shell-max";
+const SHELL_MIN=480;
+function shellIsDesktop(){
+  try{
+    return window.matchMedia("(hover:hover) and (pointer:fine)").matches
+      && window.matchMedia("(min-width:900px)").matches;
+  }catch(e){ return false; }
+}
+function shellMaxCap(){
+  return Math.max(SHELL_MIN, Math.floor(window.innerWidth - 24));
+}
+function loadShellPref(){
+  try{
+    const v=localStorage.getItem(SHELL_LS);
+    if(v==="full") return "full";
+    const n=parseInt(v,10);
+    if(n>=SHELL_MIN && n<=2400) return n;
+  }catch(e){}
+  return 840;
+}
+function applyShellWidth(v,persist){
+  const root=document.documentElement;
+  const full=(v==="full");
+  const cap=shellMaxCap();
+  const px=full? null : Math.max(SHELL_MIN, Math.min(cap, parseInt(v,10)||840));
+  if(full){
+    document.body.classList.add("shell-full");
+    root.style.setProperty("--shell-max","100vw");
+  }else{
+    document.body.classList.remove("shell-full");
+    root.style.setProperty("--shell-max", px+"px");
+  }
+  if(persist!==false){
+    try{ localStorage.setItem(SHELL_LS, full? "full" : String(px)); }catch(e){}
+  }
+  if(typeof tlNoAnim!=="undefined"){
+    tlNoAnim=true;
+    try{ if(typeof renderTimeline==="function") renderTimeline(); }finally{ tlNoAnim=false; }
+  }
+  return full? "full" : px;
+}
+function ensureShellEdges(){
+  const wrap=document.querySelector(".wrap");
+  if(!wrap) return null;
+  let L=wrap.querySelector(".shell-edge.l");
+  let R=wrap.querySelector(".shell-edge.r");
+  if(!L){
+    L=document.createElement("div");
+    L.className="shell-edge l";
+    L.setAttribute("aria-hidden","true");
+    wrap.appendChild(L);
+  }
+  if(!R){
+    R=document.createElement("div");
+    R.className="shell-edge r";
+    R.setAttribute("aria-hidden","true");
+    wrap.appendChild(R);
+  }
+  let tip=document.getElementById("shellWtip");
+  if(!tip){
+    tip=document.createElement("div");
+    tip.id="shellWtip";
+    tip.className="shell-wtip";
+    document.body.appendChild(tip);
+  }
+  return {wrap:wrap, L:L, R:R, tip:tip};
+}
+function initShellWidth(){
+  const ui=ensureShellEdges();
+  if(!ui) return;
+  applyShellWidth(loadShellPref(), false);
+
+  let drag=null;
+  function onMove(e){
+    if(!drag) return;
+    /* Symmetric: distance from viewport center * 2 */
+    const cx=window.innerWidth/2;
+    const half=Math.abs(e.clientX - cx);
+    let w=Math.round(half*2);
+    w=Math.max(SHELL_MIN, Math.min(shellMaxCap(), w));
+    /* snap lightly to 10px for stable feel */
+    w=Math.round(w/2)*2;
+    applyShellWidth(w, false);
+    drag.w=w;
+    if(ui.tip){
+      ui.tip.textContent=w+"px";
+      ui.tip.style.left=e.clientX+"px";
+      ui.tip.style.top=Math.max(24, Math.min(window.innerHeight-24, e.clientY))+"px";
+    }
+  }
+  function onUp(){
+    if(!drag) return;
+    document.body.classList.remove("shell-resizing");
+    try{ if(drag.pid!=null) ui.wrap.releasePointerCapture(drag.pid); }catch(_){}
+    if(drag.w!=null) applyShellWidth(drag.w, true);
+    else applyShellWidth(loadShellPref(), false);
+    drag=null;
+    window.removeEventListener("pointermove", onMove, true);
+    window.removeEventListener("pointerup", onUp, true);
+    window.removeEventListener("pointercancel", onUp, true);
+  }
+  function startDrag(e, side){
+    if(!shellIsDesktop()) return;
+    if(e.button!=null && e.button!==0) return;
+    if(document.body.classList.contains("shell-full")){
+      /* leave full mode on first edge drag */
+      applyShellWidth(Math.min(840, shellMaxCap()), false);
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    drag={side:side, pid:e.pointerId, w:null};
+    document.body.classList.add("shell-resizing");
+    try{ ui.wrap.setPointerCapture(e.pointerId); }catch(_){}
+    if(ui.tip){
+      ui.tip.style.left=e.clientX+"px";
+      ui.tip.style.top=e.clientY+"px";
+    }
+    onMove(e);
+    window.addEventListener("pointermove", onMove, true);
+    window.addEventListener("pointerup", onUp, true);
+    window.addEventListener("pointercancel", onUp, true);
+  }
+  ui.L.addEventListener("pointerdown", function(e){ startDrag(e,"l"); });
+  ui.R.addEventListener("pointerdown", function(e){ startDrag(e,"r"); });
+  /* double-click edge → reset 840 */
+  function resetDefault(e){
+    if(!shellIsDesktop()) return;
+    e.preventDefault();
+    applyShellWidth(840, true);
+  }
+  ui.L.addEventListener("dblclick", resetDefault);
+  ui.R.addEventListener("dblclick", resetDefault);
+
+  window.addEventListener("resize", function(){
+    const cur=loadShellPref();
+    if(cur==="full") applyShellWidth("full", false);
+    else applyShellWidth(Math.min(cur, shellMaxCap()), false);
+  });
+}
+initShellWidth();
 function openSideNav(){ $("#sideNav").classList.add("open"); $("#sideOverlay").classList.add("open"); requestAnimationFrame(()=>$("#sideOverlay").classList.add("show")); }
 function closeSideNav(){ $("#sideNav").classList.remove("open"); $("#sideOverlay").classList.remove("show"); setTimeout(()=>$("#sideOverlay").classList.remove("open"),260); }
 function updateSnToday(){ const el=$("#snTodayVal"); if(el) el.textContent=fmtDur(dayDetail(ymd(new Date())).total); }
