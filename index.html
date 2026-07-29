@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#FFFFFF">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -18,7 +18,7 @@
 <title>TimeGrid</title>
 <style>
 :root{
-  --text:#2C2C2B; --text2:#8A8783; --text3:#B9B6B1;
+  --text:#2C2C2B; --text2:#7A7773; --text3:#A8A49F;
   --line:#F0EFED; --line2:#E6E5E3; --soft:#F9F8F7;
   --red:#E56458; --ok:#46A171; --amber:#D5803B;
   --r-sm:8px; --r-md:10px; --r-lg:12px; --r-xl:16px; --r-2xl:24px; --r-round:999px; --ecell:44px;
@@ -31,6 +31,7 @@
 body{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
   font-size:16px; line-height:1.5; color:var(--text); background:#fff;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; text-rendering:optimizeLegibility;
   height:100dvh; overflow:hidden;
 }
 button{font:inherit; color:inherit; cursor:pointer; background:none; border:none;}
@@ -48,12 +49,12 @@ input[type=color]::-moz-color-swatch{border:none; border-radius:50%;}
 /* ---------- custom color picker ---------- */
 .cp-field{flex:none;display:inline-flex;}
 .cp-sw{width:34px;height:34px;border-radius:50%;border:1px solid var(--line2);padding:0;cursor:pointer;flex:none;position:relative;box-shadow:inset 0 0 0 2px #fff;transition:transform .14s ease,box-shadow .18s ease;}
-.cp-sw:hover{transform:scale(1.06);}
+@media (hover: hover) and (pointer: fine){ .cp-sw:hover{transform:scale(1.06);} }
 .cp-sw.open{box-shadow:inset 0 0 0 2px #fff,0 0 0 2px var(--text);}
 .cp-pop{position:fixed;z-index:700;background:#fff;border:1px solid var(--line2);border-radius:var(--r-xl);box-shadow:var(--sh-3);padding:12px;width:236px;animation:acIn .16s ease;}
 .cp-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:7px;}
 .cp-cell{width:100%;aspect-ratio:1/1;border-radius:50%;cursor:pointer;border:none;padding:0;position:relative;transition:transform .12s ease;}
-.cp-cell:hover{transform:scale(1.18);}
+@media (hover: hover) and (pointer: fine){ .cp-cell:hover{transform:scale(1.18);} }
 .cp-cell.sel::after{content:"";position:absolute;inset:-3px;border-radius:50%;box-shadow:0 0 0 2px #fff,0 0 0 3.5px var(--text2);}
 .cp-div{height:1px;background:var(--line);margin:12px 0 11px;}
 .cp-custom{display:flex;align-items:center;gap:9px;max-width:100%;}
@@ -71,33 +72,35 @@ header{display:flex; align-items:center; justify-content:space-between; padding:
   width:44px; height:44px; display:flex; align-items:center; justify-content:center;
   border-radius:var(--r-md); font-size:22px; flex:none;
 }
-.icon-btn:hover{background:var(--soft);}
+@media (hover: hover) and (pointer: fine){ .icon-btn:hover{background:var(--soft);} }
 .datenav{position:absolute; left:50%; transform:translateX(-50%); display:flex; align-items:center; justify-content:center; gap:2px;}
 .datenav .arrow{width:44px; height:44px; border-radius:var(--r-md); font-size:13px; color:var(--text2);}
-.datenav .arrow:hover{background:var(--soft);}
+@media (hover: hover) and (pointer: fine){ .datenav .arrow:hover{background:var(--soft);} }
 .hdr-left{display:flex; align-items:center; gap:8px; flex:none; z-index:1;}
 .hdr-right{display:flex; align-items:center; gap:8px; flex:none; z-index:1;}
-#dateLabel{font-size:19px; font-weight:700; letter-spacing:-.01em; min-width:110px; text-align:center; cursor:pointer; border-radius:var(--r-sm); padding:2px 6px; transition:background var(--dur-1) ease;}
-#dateLabel:hover{background:var(--soft);}
+#dateLabel{font-size:19px; font-weight:700; letter-spacing:-.01em; min-width:110px; white-space:nowrap; text-align:center; cursor:pointer; border-radius:var(--r-sm); padding:2px 6px; transition:background var(--dur-1) ease;}
+@media (hover: hover) and (pointer: fine){ #dateLabel:hover{background:var(--soft);} }
 #calDlg{width:min(400px,92vw);}
 .cal-head h3{flex:1; text-align:center; font-size:16px;}
 .cal-nav{font-size:11px; color:var(--text2);}
 .cal-dow{display:grid; grid-template-columns:repeat(7,1fr); text-align:center; font-size:11px; color:var(--text3); padding-bottom:6px;}
 .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px;}
 .cal-cell{position:relative; aspect-ratio:1; border:none; background:none; border-radius:var(--r-md); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; font-size:14px; color:var(--text); transition:background var(--dur-1) ease;}
-.cal-cell:hover{background:var(--soft);}
+@media (hover: hover) and (pointer: fine){ .cal-cell:hover{background:var(--soft);} }
 .cal-cell.empty{pointer-events:none;}
 .cal-cell.sel{background:var(--text); color:#fff; border-radius:var(--r-xl);}
-.cal-cell.today .n{min-width:22px; height:22px; display:flex; align-items:center; justify-content:center; background:var(--red); color:#fff; border-radius:var(--r-sm); font-weight:700; font-size:12.5px; padding:0 5px;}
+.cal-cell.today .n{min-width:22px; height:22px; display:flex; align-items:center; justify-content:center; background:var(--red); color:#fff; border-radius:var(--r-sm); font-weight:700; font-size:12px; padding:0 5px;}
 .cal-cell .dur{min-height:10px; font-size:9px; line-height:10px; color:var(--text3); font-variant-numeric:tabular-nums; letter-spacing:-.2px; white-space:nowrap;}
 .cal-cell.sel .dur{color:rgba(255,255,255,.85);}
 .pill{
   min-height:36px; padding:4px 16px; border:1px solid var(--line2); border-radius:var(--r-round);
   font-size:14px; background:#fff;
 }
-.pill:hover{background:var(--soft);}
+@media (hover: hover) and (pointer: fine){ .pill:hover{background:var(--soft);} }
 .pill.dark{background:var(--text); border-color:var(--text); color:#fff; font-weight:600;}
-.pill.dark:hover{background:#000;}
+#swBtn.pill.dark{font-weight:400;}
+#swBtn.pill.dark.sw-ready{font-weight:600;}
+@media (hover: hover) and (pointer: fine){ .pill.dark:hover{background:#000;} }
 .pill.stop{background:var(--red); border-color:var(--red); color:#fff; font-weight:600;}
 
 /* ---------- layout (per-tab scroll) ---------- */
@@ -108,7 +111,7 @@ main{flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; position:relative
 .seg-wrap{padding:12px 16px 2px;}
 .seg-ctl{display:flex; background:var(--soft); border-radius:var(--r-lg); padding:3px; gap:2px;}
 .seg-ctl button{flex:1; padding:8px 0; font-size:14px; font-weight:600; color:var(--text2); border-radius:9px; background:none; border:none; transition:color .2s ease, background .2s ease, box-shadow .2s ease;}
-.seg-ctl button.active{background:#fff; color:var(--text); box-shadow:var(--sh-1);}
+.seg-ctl button.active{color:var(--text);}
 .hero-card{text-align:center; padding:14px 0 4px;}
 .hero-date{font-size:13px; color:var(--text3); padding-bottom:2px;}
 .hero-sub{display:flex; align-items:center; justify-content:center; gap:10px; font-size:13px; color:var(--text2); padding:4px 0 6px; min-height:22px;}
@@ -161,7 +164,7 @@ main{flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; position:relative
 .mcat button:active{transform:scale(.93);}
 .wk-mode{display:flex; background:var(--soft); border-radius:var(--r-md); padding:3px; gap:2px; margin-bottom:12px;}
 .wk-mode button{flex:1; padding:6px 0; font-size:12px; font-weight:600; color:var(--text2); border-radius:var(--r-sm); background:none; border:none; cursor:pointer; transition:color .2s ease, background .2s ease, box-shadow .2s ease;}
-.wk-mode button.active{background:#fff; color:var(--text); box-shadow:var(--sh-1);}
+.wk-mode button.active{color:var(--text);}
 .tl-head{position:sticky; top:0; background:#fff; z-index:10; padding-bottom:4px; flex-shrink:0;}
 .tl-head::after{content:""; display:block; height:4px;}
 .tl{position:relative; flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; padding-bottom:calc(84px + env(safe-area-inset-bottom));}
@@ -211,11 +214,27 @@ main::-webkit-scrollbar, .tl::-webkit-scrollbar, .dlg-body::-webkit-scrollbar, d
   width:auto; min-width:0; max-width:220px;
   padding-left:14px; padding-right:14px;
   field-sizing:content;
-  transition:width .18s cubic-bezier(.22,.61,.36,1);
+  box-sizing:border-box;
+  background:#fff;
+  font-weight:400;
+  transition:width .18s cubic-bezier(.22,.61,.36,1), background-color .18s ease, background-image .18s ease, border-color .18s ease, color .18s ease;
 }
+.sw-row #actInput.act-filled{
+  /* 형광펜 + 확정(측정 준비) 시에만 세미볼드 */
+  background-color:#fff !important;
+  background-image:linear-gradient(var(--act-fill), var(--act-fill)) !important;
+  border-color:transparent !important;
+  color:var(--text) !important;
+  caret-color:var(--text);
+  font-weight:600 !important;
+}
+.sw-row #actInput.act-filled::placeholder{color:transparent;}
 @media (prefers-reduced-motion: reduce){ .sw-row #actInput{transition:none;} }
-.sw-row .area-picker{font-size:15px; padding:4px 14px;}
-.sw-row .pill{min-height:40px; font-size:15px;}
+.sw-row .area-picker{font-size:15px; padding:4px 14px; font-weight:400;}
+.sw-row .area-picker.sw-ready{font-weight:600;}
+.sw-row .pill{min-height:40px; font-size:15px; font-weight:400;}
+.sw-row #swBtn.sw-ready{font-weight:600;}
+.sw-row #swBtn.pill.stop{font-weight:600;}
 @media (max-width:360px){
   .sw-row{gap:6px; padding-left:10px; padding-right:10px;}
   .sw-row .area-picker{font-size:14px; padding-left:10px; padding-right:10px;}
@@ -232,26 +251,31 @@ main::-webkit-scrollbar, .tl::-webkit-scrollbar, .dlg-body::-webkit-scrollbar, d
 .dot{width:8px; height:8px; border-radius:50%; flex:none;}
 .note-tgl{display:inline-flex; align-items:center; justify-content:center; gap:3px; width:72px; flex:none;
   min-height:40px; padding:4px 0; border:1px dashed var(--line2); border-radius:var(--r-round);
-  background:#fff; color:var(--text3); font-size:15px; cursor:pointer;
+  background:#fff; color:var(--text3); font-size:15px; font-weight:400; cursor:pointer;
   transition:border-color .18s ease,color .18s ease,background-color .18s ease,transform .12s ease;}
 .note-tgl .nt-sym{font-size:16px; font-weight:600; line-height:1; transform:translateY(-.5px);}
 .note-tgl .nt-txt{line-height:1;}
-.note-tgl:hover{border-color:var(--text3); color:var(--text2);}
+@media (hover: hover) and (pointer: fine){ .note-tgl:hover{border-color:var(--text3); color:var(--text2);} }
 .note-tgl:active{transform:scale(.97);}
-.note-tgl.on{border-style:solid; border-color:var(--red); color:var(--red); background:rgba(229,100,88,.08);}
-.note-tgl.on:hover{border-color:var(--red); color:var(--red);}
+.note-tgl.sw-ready{font-weight:600;}
+.note-tgl.on{border-style:solid; border-color:var(--red); color:var(--red); background:rgba(229,100,88,.08); font-weight:600;}
+.note-row #noteInput{font-weight:400;}
+.note-row #noteInput.sw-ready{font-weight:600;}
+.note-chip.sw-ready,.note-chip.sw-ready .nc-t{font-weight:600;}
+@media (hover: hover) and (pointer: fine){ .note-tgl.on:hover{border-color:var(--red); color:var(--red);} }
 .note-tgl:disabled{opacity:.5; cursor:default; pointer-events:none;}
 .note-row{padding-top:0; padding-bottom:0; max-height:0; opacity:0; transform:translateY(-6px); overflow:hidden;
   transition:max-height .3s cubic-bezier(.22,.61,.36,1), padding .3s cubic-bezier(.22,.61,.36,1), opacity .22s ease, transform .3s cubic-bezier(.22,.61,.36,1);}
 .note-row.open{max-height:64px; opacity:1; transform:none; padding-bottom:4px;}
 @media (prefers-reduced-motion: reduce){ .note-row{transition:none;} }
-.note-row input{width:246px;}
+.note-row input{width:auto;min-width:0;max-width:min(320px,calc(100vw - 32px));field-sizing:content;box-sizing:border-box;transition:width .18s cubic-bezier(.22,.61,.36,1);}
 .note-chip{display:inline-flex; align-items:center; gap:6px; min-height:40px; padding:4px 8px 4px 14px;
   border:1px solid var(--line2); border-radius:var(--r-round); background:var(--soft); font-size:15px; max-width:246px;}
 .note-chip .nc-k{font-size:11px; color:var(--text3); flex:none;}
 .note-chip .nc-t{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .note-chip .nc-x{border:0; background:none; color:var(--text3); cursor:pointer; font-size:12px; padding:2px 4px; flex:none;}
 .ac-row .k{font-size:11px; color:var(--text3); flex:none; border:1px solid var(--line2); border-radius:6px; padding:1px 5px;}
+.note-ac .ac-row{padding-right:16px;}
 .ac-row .tm{font-size:11px; color:var(--text3); flex:none; font-variant-numeric:tabular-nums;}
 
 /* ---------- autocomplete ---------- */
@@ -270,13 +294,13 @@ main::-webkit-scrollbar, .tl::-webkit-scrollbar, .dlg-body::-webkit-scrollbar, d
   display:flex; align-items:center; gap:8px; padding:7px 10px;
   border-radius:var(--r-md); font-size:14px; cursor:pointer;
 }
-.ac-row:hover{background:var(--soft);}
+@media (hover: hover) and (pointer: fine){ .ac-row:hover{background:var(--soft);} }
 .ac-row .nm{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .ac-row .ar{font-size:12px; color:var(--text3); flex:none;}
 .ac-row.new .nm{color:var(--text2);}
 /* ---------- area picker ---------- */
 .area-picker{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:4px 12px;border:1px solid var(--line2);border-radius:var(--r-round);background:#fff;cursor:pointer;user-select:none;font-size:14px;max-width:140px;transition:border-color .18s ease,box-shadow .18s ease,transform .12s ease;}
-.area-picker:hover{border-color:var(--text3);}
+@media (hover: hover) and (pointer: fine){ .area-picker:hover{border-color:var(--text3);} }
 .area-picker:active{transform:scale(.97);}
 .area-picker.sm{min-height:38px;padding:4px 10px;border-radius:var(--r-md);max-width:120px;}
 .area-picker .ap-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -284,7 +308,7 @@ main::-webkit-scrollbar, .tl::-webkit-scrollbar, .dlg-body::-webkit-scrollbar, d
 .area-picker.locked{opacity:.6;cursor:default;pointer-events:none;background:var(--soft);border-color:var(--line);}
 .area-picker.locked .ap-tri{display:none;}
 .area-picker.locked .ap-lock{font-size:11px;color:var(--text3);flex:none;margin-left:2px;}
-.ap-list{position:fixed;z-index:300;display:none;background:#fff;border:1px solid var(--line2);border-radius:var(--r-xl);box-shadow:var(--sh-2);max-height:248px;overflow:hidden;padding:6px;min-width:200px;animation:acIn .18s ease;}
+.ap-list{position:fixed;z-index:300;display:none;background:#fff;border:1px solid var(--line2);border-radius:var(--r-xl);box-shadow:var(--sh-2);max-height:248px;overflow:hidden;padding:6px;min-width:0;animation:acIn .18s ease;}
 .ap-scroll{max-height:236px; overflow-y:auto; scrollbar-width:none; -ms-overflow-style:none;}
 .ap-scroll::-webkit-scrollbar{display:none; width:0; height:0;}
 .ap-thumb{position:absolute; top:12px; right:3px; width:4px; border-radius:2px; background:#c8c8c8; opacity:0; transition:opacity .2s ease; pointer-events:none;}
@@ -297,19 +321,19 @@ main::-webkit-scrollbar, .tl::-webkit-scrollbar, .dlg-body::-webkit-scrollbar, d
 @keyframes acOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(-6px)}}
 
 /* ---------- timeline ---------- */
-.tl{display:flex; padding:20px 16px calc(84px + env(safe-area-inset-bottom));}
-.tl-labels{width:36px; position:relative; flex:none; padding-bottom:14px;}
+.tl{display:flex; --tl-pad-x:max(4px, env(safe-area-inset-left, 0px)); --tl-pad-r:max(8px, env(safe-area-inset-right, 0px)); --tl-lab-gap:4px; --tl-lab-w:1.5ch; padding:20px var(--tl-pad-r) calc(84px + env(safe-area-inset-bottom)) var(--tl-pad-x);}
+.tl-labels{width:var(--tl-lab-w); position:relative; flex:none; padding-bottom:14px; margin-right:var(--tl-lab-gap);}
 .tl-labels div{
-  position:absolute; right:10px; transform:translateY(-55%);
-  font-size:14px; color:var(--text2); font-variant-numeric:tabular-nums;
+  position:absolute; left:0; right:0; transform:translateY(-55%);
+  font-size:14px; color:var(--text2); font-variant-numeric:tabular-nums; text-align:right; line-height:1;
 }
-.tl-content{flex:1; position:relative; touch-action:none; user-select:none; -webkit-user-select:none;}
+.tl-content{flex:1; position:relative; touch-action:pan-y; user-select:none; -webkit-user-select:none;}
 .hline{position:absolute; left:0; right:0; border-top:1px solid var(--line);}
 .vline{position:absolute; top:0; bottom:0; border-left:1px dashed var(--line);}
 .seg{position:absolute; overflow:hidden; padding:0 8px 3px; line-height:1.25; display:flex; align-items:flex-end;}
 .seg .lbl{display:flex; align-items:baseline; gap:4px; width:100%; min-width:0;}
 .seg .lbl.r{justify-content:flex-end;}
-.seg .a{flex:none; font-size:10.5px; font-weight:600; white-space:nowrap; opacity:.85;}
+.seg .a{flex:none; font-size:11px; font-weight:600; white-space:nowrap; opacity:.85;}
 .seg .n{flex:0 1 auto; min-width:0; font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .now-bar{position:absolute; width:3px; border-radius:2px; background:#e0202e; z-index:6; transition:none; will-change:top,left; pointer-events:none;}
 .preview{position:absolute; border-radius:var(--r-md); background:rgba(44,44,43,.08); z-index:4; pointer-events:none;}
@@ -321,10 +345,10 @@ main::-webkit-scrollbar, .tl::-webkit-scrollbar, .dlg-body::-webkit-scrollbar, d
   border-bottom:1px solid var(--line); background:rgba(255,255,255,.88);
   backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); flex-shrink:0;}
 .tl-fs-head .spacer{flex:1;}
-.tl-fs-title{display:flex; align-items:baseline; gap:8px; font-weight:700; font-size:17px; letter-spacing:.2px;}
+.tl-fs-title{display:flex; align-items:baseline; gap:8px; font-weight:700; font-size:17px;}
 .tl-fs-title .tl-fs-sub{font-size:13px; font-weight:500; color:var(--text2);}
 .tl-fs-body{flex:1; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch;}
-.tl-fs-body .tl{padding:16px 16px calc(24px + env(safe-area-inset-bottom)); max-width:480px; margin:0 auto;}
+.tl-fs-body .tl{padding:16px var(--tl-pad-r) calc(24px + env(safe-area-inset-bottom)) var(--tl-pad-x); max-width:480px; margin:0 auto;}
 #tlFsSave{white-space:nowrap;}
 
 /* ---------- sections ---------- */
@@ -402,23 +426,23 @@ section.block h2 .sub{font-size:13px; font-weight:400; color:var(--text2); margi
 .check-item.done .name{color:var(--text3); text-decoration:line-through;}
 .check-item .tag{font-size:12px; padding:1px 9px; border-radius:var(--r-round); background:var(--soft); color:var(--text2); flex:none;}
 .check-item .del{color:var(--text2); font-size:15px; padding:6px 8px; border-radius:var(--r-sm);}
-.check-item .del:hover{background:var(--soft); color:var(--red);}
+@media (hover: hover) and (pointer: fine){ .check-item .del:hover{background:var(--soft); color:var(--red);} }
 .rt-strip{position:absolute; display:flex; align-items:center; height:14px; z-index:5; cursor:pointer; overflow:hidden; transition:filter var(--dur-1) ease, opacity var(--dur-1) ease;}
 .rt-strip.lead::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--rt-c,#A8A5A0); border-radius:3px 0 0 3px;}
-.rt-strip .lb{font-size:10.5px; font-weight:600; line-height:1; padding:0 6px 0 9px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;}
-.rt-strip:hover{filter:brightness(.95) saturate(1.2);}
+.rt-strip .lb{font-size:11px; font-weight:600; line-height:1; padding:0 6px 0 9px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;}
+@media (hover: hover) and (pointer: fine){ .rt-strip:hover{filter:brightness(.95) saturate(1.2);} }
 .rt-flag{position:absolute; display:flex; align-items:center; gap:4px; height:14px; z-index:5; cursor:pointer;}
 .rt-flag.flip{flex-direction:row-reverse;}
 .rt-flag .dot{width:8px; height:8px; border-radius:50%; background:var(--rt-c,#A8A5A0); flex:none; box-shadow:0 0 0 2px rgba(255,255,255,.9);}
-.rt-flag .chip{display:flex; align-items:center; flex:none; box-sizing:border-box; height:16px; line-height:16px; padding:0 6px; background:rgba(255,255,255,.94); border:1px solid var(--line2); border-radius:var(--r-round); font-size:10.5px; font-weight:600; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:border-color var(--dur-1) ease, color var(--dur-1) ease;}
-.rt-flag:hover .chip{border-color:var(--text3); color:var(--text);}
+.rt-flag .chip{display:flex; align-items:center; flex:none; box-sizing:border-box; height:16px; line-height:16px; padding:0 6px; background:rgba(255,255,255,.94); border:1px solid var(--line2); border-radius:var(--r-round); font-size:11px; font-weight:600; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:border-color var(--dur-1) ease, color var(--dur-1) ease;}
+@media (hover: hover) and (pointer: fine){ .rt-flag:hover .chip{border-color:var(--text3); color:var(--text);} }
 .rt-strip.done,.rt-flag.done{opacity:.45;}
 .rt-strip.done .lb,.rt-flag.done .chip{text-decoration:line-through;}
 .rt-tip,.ui-tip{position:fixed; z-index:500; display:none; background:var(--text); color:#fff; padding:6px 10px; border-radius:var(--r-sm); font-size:13px; pointer-events:none; box-shadow:0 4px 12px rgba(0,0,0,.18); max-width:240px;}
 .rt-tip .rt-tip-t,.ui-tip .rt-tip-t{display:block; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .rt-tip .rt-tip-s,.ui-tip .rt-tip-s{display:block; opacity:.85; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-.rt-tip .rt-tip-cap,.ui-tip .rt-tip-cap{display:block; font-size:10.5px; font-weight:500; opacity:.62; letter-spacing:.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-.rt-tip .rt-tip-row,.ui-tip .rt-tip-row{display:flex; align-items:center; gap:6px; margin-top:2px; white-space:nowrap; font-size:13.5px;}
+.rt-tip .rt-tip-cap,.ui-tip .rt-tip-cap{display:block; font-size:11px; font-weight:500; opacity:.62; letter-spacing:.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.rt-tip .rt-tip-row,.ui-tip .rt-tip-row{display:flex; align-items:center; gap:6px; margin-top:2px; white-space:nowrap; font-size:13px;}
 .rt-tip .rt-tip-row .dt,.ui-tip .rt-tip-row .dt{width:8px; height:8px; border-radius:50%; flex:none;}
 .rt-tip .rt-tip-row .ar,.ui-tip .rt-tip-row .ar{opacity:.82; overflow:hidden; text-overflow:ellipsis;}
 .rt-tip .rt-tip-row .vl,.ui-tip .rt-tip-row .vl{margin-left:auto; padding-left:12px; font-weight:600; font-variant-numeric:tabular-nums;}
@@ -427,7 +451,7 @@ section.block h2 .sub{font-size:13px; font-weight:400; color:var(--text2); margi
 .rt-row .rt-time{font-size:13px; color:var(--text3); font-variant-numeric:tabular-nums; flex:none; min-width:44px; text-align:right;}
 .rt-row .rt-time.range .rt-stack{display:inline-block; text-align:left; vertical-align:middle;}
 .rt-row .rt-time.range .rt-t1{display:block; line-height:1.15;}
-.rt-row .rt-time.range .rt-t2{display:block; margin-top:2px; font-size:10.5px; color:var(--text3); opacity:.75; line-height:1; white-space:nowrap;}
+.rt-row .rt-time.range .rt-t2{display:block; margin-top:2px; font-size:11px; color:var(--text3); opacity:.75; line-height:1; white-space:nowrap;}
 .rt-row .rt-time.range .rt-t2::before{content:"–"; margin-right:1px;}
 .rt-row.done .rt-time{color:var(--text3); opacity:.6;}
 .rt-row.done .rt-name{color:var(--text3); text-decoration:line-through;}
@@ -446,7 +470,7 @@ section.block h2 .sub{font-size:13px; font-weight:400; color:var(--text2); margi
 .rt-edit-switch input:checked + .sw-track::after{transform:translateX(16px);}
 .rt-edit-row{display:flex; align-items:center; gap:8px; padding:7px 0; flex-wrap:wrap;}
 .rt-time-btn{display:inline-flex; align-items:center; gap:6px; min-width:0; min-height:36px; padding:2px 10px; border:1px solid var(--line2); border-radius:var(--r-md); font-size:13px; flex:none; background:#fff; font-variant-numeric:tabular-nums; transition:border-color var(--dur-1) ease, box-shadow var(--dur-1) ease;}
-.rt-time-btn:hover{border-color:var(--text3); box-shadow:0 1px 6px rgba(0,0,0,.06);}
+@media (hover: hover) and (pointer: fine){ .rt-time-btn:hover{border-color:var(--text3); box-shadow:0 1px 6px rgba(0,0,0,.06);} }
 .rt-time-btn .tb-ico{font-size:13px; color:var(--text3); line-height:1;}
 .rt-time-btn .tb-sep{margin:0 5px; color:var(--text3); font-weight:400;}
 .rt-time-btn.empty .tb-val{color:var(--text3);}
@@ -457,12 +481,17 @@ section.block h2 .sub{font-size:13px; font-weight:400; color:var(--text2); margi
 .rt-add-row{border-top:1px dashed var(--line2); margin-top:6px; padding-top:10px;}
 .rt-days{display:flex; gap:4px; flex-basis:100%; padding:2px 0 2px 2px;}
 .rt-filter{display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding:0 0 10px;margin:0 0 6px;border-bottom:1px dashed var(--line2);}
-.rt-filter .rt-filter-lb{font-size:12px;color:var(--text3);font-weight:600;margin-right:2px;}
 .rt-filter .dow-pill{height:28px;min-width:32px;padding:0 6px;border-radius:var(--r-round);}
 .rt-filter .dow-pill.all{min-width:38px;}
 .rt-edit-empty{font-size:13px;color:var(--text3);padding:12px 2px 8px;}
+/* v3.12.26: routine row slide L→R enter / L exit (CSS fallback) */
+.rt-edit-row.rt-edit-enter,.rt-edit-row.rt-edit-restore{overflow:hidden;transform-origin:left center;animation:rtEditIn .57s both;will-change:transform,opacity,max-height;}
+@keyframes rtEditIn{0%{opacity:0;transform:translateX(-16px) scale(.98);max-height:0}10%{opacity:0;transform:translateX(-16px) scale(.98);max-height:calc(var(--rt-h,120px)*0.58)}24%{opacity:0;transform:translateX(-16px) scale(.98);max-height:calc(var(--rt-h,120px)*0.92)}38%{opacity:0;transform:translateX(-16px) scale(.98);max-height:calc(var(--rt-h,120px)*1.05)}48%{opacity:0;transform:translateX(-16px) scale(.98);max-height:var(--rt-h,120px)}58%{opacity:0;transform:translateX(-16px) scale(.98);max-height:var(--rt-h,120px)}100%{opacity:1;transform:none;max-height:var(--rt-h,120px)}}
+.rt-edit-row.rt-edit-exit{overflow:hidden;pointer-events:none;transform-origin:left center;animation:rtEditOut .57s both;will-change:transform,opacity,max-height;}
+@keyframes rtEditOut{0%{opacity:1;transform:translateX(0) scale(1);max-height:var(--rt-h,120px)}28%{opacity:0;transform:translateX(-18px) scale(.98);max-height:var(--rt-h,120px)}37%{opacity:0;transform:translateX(-18px) scale(.98);max-height:var(--rt-h,120px)}55%{opacity:0;transform:translateX(-18px) scale(.98);max-height:calc(var(--rt-h,120px)*0.88)}72%{opacity:0;transform:translateX(-18px) scale(.98);max-height:calc(var(--rt-h,120px)*0.55)}88%{opacity:0;transform:translateX(-18px) scale(.98);max-height:calc(var(--rt-h,120px)*0.18)}100%{opacity:0;transform:translateX(-18px) scale(.98);max-height:0;padding-top:0;padding-bottom:0;margin-top:0;margin-bottom:0}}
+@media (prefers-reduced-motion: reduce){.rt-edit-row.rt-edit-enter,.rt-edit-row.rt-edit-restore,.rt-edit-row.rt-edit-exit{animation:none;}}
 .rt-edit-row .del{width:36px; height:36px; border-radius:var(--r-md); color:var(--text3); flex:none;}
-.rt-edit-row .del:hover{background:var(--soft); color:var(--red);}
+@media (hover: hover) and (pointer: fine){ .rt-edit-row .del:hover{background:var(--soft); color:var(--red);} }
 .rt-dow-tag{font-size:11px; color:var(--text3); background:var(--soft); border:1px solid var(--line); border-radius:var(--r-round); padding:2px 8px; flex:none; margin-left:auto;}
 .dow-pill.sun{color:#B3423A; background:#FBEBE9;}
 .dow-pill.sat{color:#2E5FA3; background:#E9EFF8;}
@@ -474,17 +503,49 @@ section.block h2 .sub{font-size:13px; font-weight:400; color:var(--text2); margi
 
 /* ---------- tabbar ---------- */
 .tabbar{
-  position:fixed; left:0; right:0; bottom:0; z-index:30;
-  display:flex; background:#F9F8F7;
-  border-top:1px solid var(--line2);
-  padding-bottom:env(safe-area-inset-bottom);
+  /* 플로팅 글라스 탭 바 — 중앙 고정, 콘텐츠는 아래로 스크롤 */
+  position:fixed; left:50%; bottom:calc(10px + env(safe-area-inset-bottom)); z-index:30;
+  transform:translateX(-50%);
+  display:flex; gap:4px; padding:6px;
+  width:min(340px, calc(100vw - 32px));
+  background:rgba(255,255,255,.72);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  backdrop-filter:blur(20px) saturate(180%);
+  border:1px solid rgba(0,0,0,.06);
+  border-top-color:rgba(255,255,255,.7);
+  border-radius:var(--r-2xl);
+  box-shadow:0 8px 28px rgba(0,0,0,.10), 0 2px 8px rgba(0,0,0,.05);
 }
 .tabbar button{
   flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
-  padding:10px 0 8px; color:var(--text3); font-size:12px; font-weight:600;
+  padding:8px 0 7px; color:var(--text3); font-size:12px; font-weight:600;
+  border-radius:var(--r-xl);
 }
 .tabbar button svg{display:block; fill:currentColor;}
 .tabbar button.active{color:var(--text);}
+@media (prefers-reduced-transparency: reduce){
+  .tabbar{background:#F9F8F7; -webkit-backdrop-filter:none; backdrop-filter:none;}
+}
+
+/* ---------- sliding segmented indicator (v3.12.9) ---------- */
+.seg-ctl,.wk-mode{position:relative;}
+.seg-ctl button,.wk-mode button,.tabbar button{position:relative; z-index:1;}
+.slide-ind{position:absolute; left:0; top:3px; bottom:3px; width:0;
+  border-radius:9px; background:#fff; box-shadow:var(--sh-1);
+  z-index:0; pointer-events:none;
+  transition:transform .22s cubic-bezier(.23,1,.32,1), width .22s cubic-bezier(.23,1,.32,1);}
+.tabbar .slide-ind{top:6px; bottom:6px; border-radius:var(--r-xl); background:rgba(0,0,0,.05); box-shadow:none;}
+@media (prefers-reduced-motion: reduce){ .slide-ind{transition:none;} }
+
+/* ---------- direction-aware view slide (v3.12.9) ---------- */
+@keyframes viewInR{from{opacity:0; transform:translateX(36px);} to{opacity:1; transform:none;}}
+@keyframes viewInL{from{opacity:0; transform:translateX(-36px);} to{opacity:1; transform:none;}}
+.view-in-r{animation:viewInR .24s cubic-bezier(.23,1,.32,1) both;}
+.view-in-l{animation:viewInL .24s cubic-bezier(.23,1,.32,1) both;}
+@media (prefers-reduced-motion: reduce){
+  .view-in-r,.view-in-l{animation:viewFade .18s ease both;}
+  @keyframes viewFade{from{opacity:0;} to{opacity:1;}}
+}
 
 /* ---------- dialogs ---------- */
 dialog{
@@ -510,7 +571,7 @@ dialog::backdrop{background:rgba(0,0,0,.25);}
   font-size:16px; border-bottom:1px solid var(--line); border-radius:0;
 }
 .menu-list button:last-child{border-bottom:none;}
-.menu-list button:hover{background:var(--soft);}
+@media (hover: hover) and (pointer: fine){ .menu-list button:hover{background:var(--soft);} }
 .side-overlay{position:fixed; inset:0; background:rgba(0,0,0,.25); z-index:150; display:none; opacity:0; transition:opacity var(--dur-2) ease;}
 .side-overlay.open{display:block;}
 .side-overlay.show{opacity:1;}
@@ -520,14 +581,13 @@ dialog::backdrop{background:rgba(0,0,0,.25);}
 .sn-brand{display:flex; align-items:center; gap:10px; min-width:0;}
 .sn-logo{width:38px; height:38px; display:block; object-fit:contain; flex:none;}
 .sn-brand-t h3{font-size:16px; line-height:1.2;}
-.sn-tag{font-size:12px; color:var(--text3);}
 .sidenav-body{padding:12px; overflow-y:auto; flex:1;}
-.sn-today{display:flex; align-items:center; justify-content:space-between; background:var(--soft); border:1px solid var(--line); border-radius:var(--r-lg); padding:12px 14px; margin-bottom:4px;}
+.sn-today{display:flex; align-items:center; justify-content:space-between; background:var(--soft); border:none; border-radius:var(--r-lg); padding:12px 14px; margin-bottom:4px;}
 .sn-today-lb{font-size:13px; color:var(--text2);}
 .sn-today-v{font-size:15px; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; letter-spacing:-.01em;}
 .sn-sec{font-size:12px; font-weight:600; color:var(--text3); padding:14px 6px 6px;}
 .sidenav-item{display:flex; align-items:center; gap:12px; width:100%; text-align:left; padding:10px; min-height:56px; font-size:15px; border-radius:var(--r-lg); background:none; border:none; transition:background var(--dur-1) ease;}
-.sidenav-item:hover{background:var(--soft);}
+@media (hover: hover) and (pointer: fine){ .sidenav-item:hover{background:var(--soft);} }
 .sidenav-item:active{background:var(--line);}
 .sn-ic{width:36px; height:36px; border-radius:var(--r-md); background:var(--soft); color:var(--text2); display:flex; align-items:center; justify-content:center; flex:none;}
 .sn-ic svg{fill:currentColor;}
@@ -542,7 +602,7 @@ dialog::backdrop{background:rgba(0,0,0,.25);}
 .fs-panel.closing-right{transform:translateX(100%);}
 .fs-head{display:flex; align-items:center; gap:4px; padding:10px 12px; border-bottom:1px solid var(--line); flex:none;}
 .fs-back{width:38px; height:38px; flex:none; display:flex; align-items:center; justify-content:center; font-size:26px; line-height:1; border-radius:50%; border:none; background:none; color:var(--text);}
-.fs-back:hover{background:var(--soft);}
+@media (hover: hover) and (pointer: fine){ .fs-back:hover{background:var(--soft);} }
 .fs-head h3{flex:1; text-align:center; font-size:16px; margin-right:38px;}
 .fs-panel .dlg-body{max-height:none; flex:1;}
 #fsOverlay{position:fixed; inset:0; background:rgba(30,28,26,.32); opacity:0; pointer-events:none; transition:opacity .26s ease; z-index:199;}
@@ -554,12 +614,8 @@ dialog::backdrop{background:rgba(0,0,0,.25);}
   .fs-head{padding:16px 20px 12px;}
   .fs-head h3{font-size:17px;}
   .fs-panel .dlg-body{padding:20px 26px 26px;}
-  .json-tabs{padding:12px 26px 0;}
 }
 .act-add-row{align-items:center;}
-.json-tabs{display:flex; gap:4px; padding:10px 20px 0; border-bottom:1px solid var(--line);}
-.json-tab{padding:8px 14px; font-size:14px; color:var(--text2); border-bottom:2px solid transparent; margin-bottom:-1px; background:none; border-top:none; border-left:none; border-right:none;}
-.json-tab.active{color:var(--text); font-weight:600; border-bottom-color:var(--text);}
 .json-panel h4{padding:14px 0 6px;}
 .json-panel h4:first-child{padding-top:0;}
 .json-actions{display:flex; justify-content:flex-end; gap:8px; padding-top:10px;}
@@ -587,13 +643,13 @@ dialog::backdrop{background:rgba(0,0,0,.25);}
 .chk-sm input{accent-color:var(--text);}
 .exp-datebtn{display:inline-flex; align-items:center; gap:6px; transition:background var(--dur-1) ease,color var(--dur-1) ease,transform .09s ease,box-shadow .12s ease; -webkit-tap-highlight-color:transparent;}
 .exp-datebtn svg{flex:none; opacity:.75; transition:transform .09s ease;}
-.exp-datebtn:hover{background:var(--soft); color:var(--text);}
+@media (hover: hover) and (pointer: fine){ .exp-datebtn:hover{background:var(--soft); color:var(--text);} }
 .exp-datebtn:active{transform:scale(.955); background:var(--line); color:var(--text); box-shadow:inset 0 2px 4px rgba(0,0,0,.14);}
 .exp-datebtn:active svg{transform:scale(.9);}
 @media (prefers-reduced-motion: reduce){ .exp-datebtn,.exp-datebtn svg{transition:background var(--dur-1) ease,color var(--dur-1) ease;} .exp-datebtn:active{transform:none;} .exp-datebtn:active svg{transform:none;} }
 #expCalDlg{width:min(400px,92vw);}
 .ecal-modes{padding-bottom:8px; gap:6px;}
-.ecal-hint{margin-left:auto; font-size:11.5px; color:var(--text3);}
+.ecal-hint{margin-left:auto; font-size:11px; color:var(--text3);}
 .ecal-scroll{overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; position:relative; scrollbar-width:none; scroll-snap-type:y mandatory;}
 .ecal-scroll::-webkit-scrollbar{width:0; height:0;}
 .ecal-month{scroll-snap-align:start; scroll-snap-stop:always;}
@@ -609,7 +665,7 @@ dialog::backdrop{background:rgba(0,0,0,.25);}
 .cal-cell.midin{animation:ecalMidIn .28s cubic-bezier(.22,.61,.36,1) both;}
 @keyframes ecalMidIn{from{opacity:0; transform:scale(.6)}to{opacity:1; transform:scale(1)}}
 @media (prefers-reduced-motion: reduce){ .cal-cell.selin, .cal-cell.midin{animation:none;} }
-.ecal-sel{font-size:12.5px; color:var(--text2);}
+.ecal-sel{font-size:12px; color:var(--text2);}
 .btn:disabled{opacity:.4; pointer-events:none;}
 .jprev{margin-top:8px; padding:10px 12px; border:1px solid var(--line); border-radius:var(--r-md); background:var(--soft); font-size:13px; color:var(--text2);}
 .jprev b{color:var(--text);}
@@ -617,10 +673,10 @@ dialog::backdrop{background:rgba(0,0,0,.25);}
 .btn{
   min-height:38px; padding:4px 16px; border:1px solid var(--line2); border-radius:var(--r-md); font-size:14px; background:#fff;
 }
-.btn:hover{background:var(--soft);}
+@media (hover: hover) and (pointer: fine){ .btn:hover{background:var(--soft);} }
 .btn.dark{background:var(--text); border-color:var(--text); color:#fff;}
 .btn.danger{color:var(--red); border-color:#F3C9C5;}
-.btn.danger:hover{background:var(--red); border-color:var(--red); color:#fff;}
+@media (hover: hover) and (pointer: fine){ .btn.danger:hover{background:var(--red); border-color:var(--red); color:#fff;} }
 
 /* manager */
 .act-edit{display:flex; gap:8px; align-items:center; margin-bottom:8px;}
@@ -631,7 +687,7 @@ dialog::backdrop{background:rgba(0,0,0,.25);}
   color:var(--text3); cursor:grab; touch-action:none; flex:none; font-size:15px; letter-spacing:-1px;
 }
 .act-edit .del{width:36px; height:38px; border-radius:var(--r-md); color:var(--text3); flex:none;}
-.act-edit .del:hover{background:var(--soft); color:var(--red);}
+@media (hover: hover) and (pointer: fine){ .act-edit .del:hover{background:var(--soft); color:var(--red);} }
 .act-edit.ind-top{box-shadow:0 -2px 0 0 var(--text);}
 .act-edit.ind-bot{box-shadow:0 2px 0 0 var(--text);}
 .grp{border:1px solid var(--line); border-radius:var(--r-lg); margin-bottom:8px; overflow:hidden;}
@@ -639,7 +695,7 @@ dialog::backdrop{background:rgba(0,0,0,.25);}
   display:flex; align-items:center; gap:8px; width:100%; text-align:left;
   padding:10px 12px; font-size:15px; font-weight:600;
 }
-.grp-head:hover{background:var(--soft);}
+@media (hover: hover) and (pointer: fine){ .grp-head:hover{background:var(--soft);} }
 .grp-head .tri{font-size:11px; color:var(--text3); width:12px;}
 .grp-head .cnt{margin-left:auto; font-size:13px; font-weight:400; color:var(--text3);}
 .grp-head.drop{background:var(--soft); outline:1.5px dashed var(--text2); outline-offset:-3px;}
@@ -669,17 +725,18 @@ button,.pill,.btn,.icon-btn,.check-item .del,.act-edit .del,.menu-list button{
 }
 .pill:active,.btn:active,.icon-btn:active,.datenav .arrow:active,.tabbar button:active{transform:scale(.94);}
 .pill.dark,.btn.dark{box-shadow:0 1px 3px rgba(0,0,0,.14);}
-.pill.dark:hover,.btn.dark:hover{background:#000; box-shadow:0 3px 10px rgba(0,0,0,.22);}
+@media (hover: hover) and (pointer: fine){ .pill.dark:hover,.btn.dark:hover{background:#000; box-shadow:0 3px 10px rgba(0,0,0,.22);} }
 .pill.stop{box-shadow:0 1px 3px rgba(229,100,88,.35);}
-.pill.stop:hover{box-shadow:0 3px 10px rgba(229,100,88,.45);}
+@media (hover: hover) and (pointer: fine){ .pill.stop:hover{box-shadow:0 3px 10px rgba(229,100,88,.45);} }
 .seg{transition:filter var(--dur-1) ease,box-shadow var(--dur-1) ease; cursor:pointer;}
-.seg:hover,.seg.hover-group{filter:brightness(1.05) saturate(1.1); box-shadow:0 2px 10px rgba(0,0,0,.12); z-index:5;}
+.seg.hover-group{filter:brightness(1.05) saturate(1.1); box-shadow:0 2px 10px rgba(0,0,0,.12); z-index:5;}
+@media (hover: hover) and (pointer: fine){ .seg:hover{filter:brightness(1.05) saturate(1.1); box-shadow:0 2px 10px rgba(0,0,0,.12); z-index:5;} }
 .now-bar{box-shadow:0 0 8px rgba(224,32,46,.35);}
 .run-chip .dot{animation:pulseDot 1.6s ease-in-out infinite;}
 @keyframes pulseDot{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.4);opacity:.5}}
 .sbar i,.dpart .ring i{transition:width .5s cubic-bezier(.25,.8,.3,1);}
 .card{transition:box-shadow var(--dur-2) ease,border-color var(--dur-2) ease;}
-.card:hover{box-shadow:0 3px 14px rgba(0,0,0,.05);}
+@media (hover: hover) and (pointer: fine){ .card:hover{box-shadow:0 3px 14px rgba(0,0,0,.05);} }
 .tabbar button svg{transition:transform .22s cubic-bezier(.34,1.56,.64,1);}
 .tabbar button.active svg{transform:translateY(-2px) scale(1.08);}
 .check-item input[type=checkbox]{transition:transform var(--dur-1) ease;}
@@ -697,28 +754,28 @@ dialog.bdout::backdrop{animation:bdOut .24s ease forwards;}
 @media (prefers-reduced-motion: reduce){ dialog.closing{animation:none;} dialog.closing::backdrop, dialog.bdout::backdrop{animation:none;} }
 @keyframes bdIn{from{opacity:0}to{opacity:1}}
 .grp{transition:border-color .2s ease,box-shadow .2s ease;}
-.grp:hover{border-color:var(--line2);}
+@media (hover: hover) and (pointer: fine){ .grp:hover{border-color:var(--line2);} }
 input[type=text],input[type=time],select,textarea{transition:border-color .18s ease,box-shadow .18s ease;}
 input[type=text]:focus,input[type=time]:focus,select:focus,textarea:focus{
   outline:none; border-color:var(--text2)!important; box-shadow:0 0 0 3px rgba(44,44,43,.06);
 }
 input[type=color]{transition:transform var(--dur-1) ease,box-shadow .2s ease;}
-input[type=color]:hover{transform:scale(1.1); box-shadow:0 2px 8px rgba(0,0,0,.15);}
+@media (hover: hover) and (pointer: fine){ input[type=color]:hover{transform:scale(1.1); box-shadow:0 2px 8px rgba(0,0,0,.15);} }
 .wstack{transition:transform .2s ease;}
-.wcol:hover .wstack{transform:translateY(-2px);}
+@media (hover: hover) and (pointer: fine){ .wcol:hover .wstack{transform:translateY(-2px);} }
 
 @keyframes dateInL{from{opacity:0; transform:translateX(-16px);} to{opacity:1; transform:none;}}
 @keyframes dateInR{from{opacity:0; transform:translateX(16px);} to{opacity:1; transform:none;}}
 #dateLabel.css-in-l{animation:dateInL .3s ease both;}
 #dateLabel.css-in-r{animation:dateInR .3s ease both;}
 #monthHeat .cell,#weekHeat .cell{transition:transform var(--dur-1) ease;}
-#monthHeat .cell:hover,#weekHeat .cell:hover{transform:scale(1.07); z-index:3;}
+@media (hover: hover) and (pointer: fine){ #monthHeat .cell:hover,#weekHeat .cell:hover{transform:scale(1.07); z-index:3;} }
 @media (prefers-reduced-motion: reduce){
   *{animation:none!important; transition:none!important;}
 }
 /* ---- todo/routine timer ---- */
 .check-item .tmr{flex:none;width:30px;height:30px;border-radius:var(--r-round);border:1px solid var(--line2);background:#fff;font-size:11px;line-height:1;color:var(--text2);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:border-color var(--dur-1) ease,color var(--dur-1) ease,transform .12s ease;}
-.check-item .tmr:hover{border-color:var(--text3);color:var(--text);}
+@media (hover: hover) and (pointer: fine){ .check-item .tmr:hover{border-color:var(--text3);color:var(--text);} }
 .check-item .tmr:active{transform:scale(.9);}
 .check-item .tmr.on{background:var(--text);border-color:var(--text);color:#fff;}
 .check-item .tmr:disabled{opacity:.35;cursor:default;}
@@ -754,11 +811,11 @@ input[type=color]:hover{transform:scale(1.1); box-shadow:0 2px 8px rgba(0,0,0,.1
 .trl-min{margin-left:auto;flex:none;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;}
 .trl-chk{flex:none;font-size:12px;color:#2F7D4F;}
 button.trl-more{width:100%;text-align:center;font-size:12px;color:var(--text3);padding:8px 0 2px;}
-button.trl-more:hover{color:var(--text);}
+@media (hover: hover) and (pointer: fine){ button.trl-more:hover{color:var(--text);} }
 .src-sub{font-size:11px;color:var(--text3);padding:0 0 7px 18px;}
 /* ---- stats: weekly todo completion bars ---- */
 .wcol{cursor:pointer; border-radius:var(--r-md); padding:3px 0 4px; transition:background var(--dur-1) ease;}
-.wcol:hover{background:var(--soft);}
+@media (hover: hover) and (pointer: fine){ .wcol:hover{background:var(--soft);} }
 .wcol:focus-visible{outline:2px solid var(--text); outline-offset:1px;}
 .td-ring{width:26px; height:26px; border-radius:50%; margin-top:4px; background:conic-gradient(var(--ring-c,var(--ok)) calc(var(--pct)*1%), var(--line2) 0); position:relative; transition:background .25s ease;}
 .td-ring::after{content:""; position:absolute; inset:5px; background:#fff; border-radius:50%;}
@@ -776,20 +833,13 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
   background:var(--text); color:#fff; padding:11px 18px; border-radius:var(--r-round); font-size:13px;
   display:flex; align-items:center; gap:14px; max-width:min(90vw,480px); z-index:900;
   opacity:0; pointer-events:none; box-shadow:var(--sh-2);
-  transition:opacity var(--dur-2) ease, transform var(--dur-2) cubic-bezier(.2,.9,.3,1.2);}
-#toast.show{opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto;}
+  transition:opacity .18s ease, transform .2s cubic-bezier(.23,1,.32,1);}
+#toast.show{opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto; transition:opacity var(--dur-2) ease, transform var(--dur-2) cubic-bezier(.2,.9,.3,1.2);}
 #toast .t-msg{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 #toast .t-undo{color:#fff; font-weight:700; font-size:13px; flex:none; text-decoration:underline; text-underline-offset:2px; padding:2px 2px;}
-@media (prefers-reduced-motion: reduce){ #toast{transition:opacity var(--dur-1) ease;} }
+@media (prefers-reduced-motion: reduce){ #toast,#toast.show{transition:opacity var(--dur-1) ease;} }
 
 /* ---------- json hub renewal ---------- */
-.jhint{font-size:13px; color:var(--text2); background:var(--soft); border-radius:var(--r-md); padding:10px 12px; margin-bottom:10px; line-height:1.55;}
-.jhint b{color:var(--text);}
-.flow-step{display:flex; gap:10px; align-items:flex-start; padding:7px 0;}
-.flow-num{width:24px; height:24px; border-radius:50%; background:var(--text); color:#fff; font-size:13px; font-weight:600; display:flex; align-items:center; justify-content:center; flex:none; margin-top:1px;}
-.flow-step b{font-size:14px;}
-.flow-step small{display:block; font-size:13px; color:var(--text2); line-height:1.5; padding-top:1px;}
-.flow-step code{background:var(--soft); border:1px solid var(--line); border-radius:4px; padding:0 4px; font-size:12px;}
 .mode-seg{display:flex; background:var(--soft); border-radius:var(--r-md); padding:3px; gap:2px; position:relative;}
 .mode-seg .mode-thumb{position:absolute; top:3px; left:0; height:calc(100% - 6px); width:0; background:#fff; border-radius:var(--r-sm); box-shadow:var(--sh-1); z-index:0; pointer-events:none; opacity:0; will-change:transform,width;}
 .mode-seg.thumb-ready .mode-thumb{opacity:1;}
@@ -821,14 +871,14 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
 .onb-go{width:100%; min-height:46px; margin-top:14px; font-size:15px;}
 @media (prefers-reduced-motion: reduce){ .onb-card{animation:none;} }
 /* ---------- cloud account ---------- */
-.sn-cloud{margin:10px 0 4px;padding:12px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--soft);}
+.sn-cloud{margin:10px 0 4px;padding:12px;border:none;border-radius:var(--r-lg);background:var(--soft);}
 .sn-cloud .sc-row{display:flex;align-items:center;gap:10px;}
 .sn-cloud .sc-av{width:36px;height:36px;border-radius:50%;background:var(--line2);object-fit:cover;flex:none;}
 .sn-cloud .sc-av.ph{display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:16px;font-weight:700;}
 .sn-cloud .sc-meta{flex:1;min-width:0;}
 .sn-cloud .sc-meta b{display:block;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .sn-cloud .sc-meta small{display:block;font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.sn-cloud .sc-st{font-size:11.5px;color:var(--text2);padding-top:8px;line-height:1.45;display:block;position:relative;padding-left:21px;min-height:15px;}
+.sn-cloud .sc-st{font-size:11px;color:var(--text2);padding-top:8px;line-height:1.45;display:block;position:relative;padding-left:21px;min-height:15px;}
 .sn-cloud .sc-st::before{content:"";position:absolute;left:3px;top:calc(8px + .725em);box-sizing:border-box;width:7px;height:7px;margin-top:-3.5px;border-radius:9999px;background:var(--text3);box-shadow:0 0 0 3px transparent;pointer-events:none;}
 .sn-cloud .sc-st.ok{color:var(--text);font-weight:500;}
 .sn-cloud .sc-st.ok::before{background:var(--ok);box-shadow:0 0 0 3px rgba(70,161,113,.20);}
@@ -871,7 +921,7 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
 .mgr-sub{display:block; font-size:12px; color:var(--text3); padding-top:3px;}
 .mgr-paint{min-height:34px; padding:2px 12px; font-size:13px; flex:none;}
 .add-line{display:flex; align-items:center; justify-content:center; width:100%; min-height:44px; border-style:dashed; color:var(--text2); background:none; margin:2px 0 4px;}
-.add-line:hover{background:var(--soft); color:var(--text);}
+@media (hover: hover) and (pointer: fine){ .add-line:hover{background:var(--soft); color:var(--text);} }
 .act-edit{min-height:44px;}
 .a-cnt{font-size:12px; color:var(--text3); background:var(--soft); border-radius:var(--r-round); min-width:28px; text-align:center; padding:4px 0; flex:none; font-variant-numeric:tabular-nums;}
 .act-edit .del.blocked{opacity:.35;}
@@ -880,7 +930,7 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
 .jl-head{display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .jl-head h4{margin:0;}
 .jl-clear{flex:none;font-size:12px;font-weight:600;padding:4px 10px;border:1px solid var(--line);border-radius:var(--r-round);background:transparent;color:var(--text2);cursor:pointer;position:relative;transition:background var(--dur-1),color var(--dur-1),border-color var(--dur-1),transform var(--dur-1);}
-.jl-clear:hover{background:var(--soft);color:var(--red);border-color:var(--red);}
+@media (hover: hover) and (pointer: fine){ .jl-clear:hover{background:var(--soft);color:var(--red);border-color:var(--red);} }
 .jl-clear:active{transform:scale(.96);}
 .jl-clear::before{content:"";position:absolute;inset:-6px;border-radius:inherit;}
 .jl-row.jl-out{animation:jlRowOut .26s ease forwards;}
@@ -888,6 +938,189 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
 #jsonLogList .empty.jl-in{animation:jlEmptyIn .35s ease both;}
 @keyframes jlEmptyIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
 @media (prefers-reduced-motion: reduce){.jl-row.jl-out{animation:none;opacity:0;}#jsonLogList .empty.jl-in{animation:none;}}
+
+/* ---------- v3.12.12 design audit (Emil): touch feedback ---------- */
+button,.pill,.btn,.icon-btn,.seg,.cal-cell,.rt-strip,.sidenav-item,.check-item{-webkit-tap-highlight-color:transparent;}
+button{touch-action:manipulation;}
+.seg-ctl button:active,.wk-mode button:active{transform:scale(.95);}
+.cal-cell:active,.menu-list button:active,.ac-row:active,.grp-head:active,.add-line:active,.fs-back:active,.rng:active{background:var(--soft);}
+.check-item .del:active,.act-edit .del:active,.rt-edit-row .del:active{background:var(--soft);color:var(--red);}
+.rt-time-btn:active,.rtt-field:active{border-color:var(--text3);}
+.cp-sw:active{transform:scale(.94);}
+.cp-cell:active{transform:scale(1.12);}
+button.trl-more:active{color:var(--text);}
+@media (prefers-reduced-motion: reduce){
+  .seg-ctl button:active,.wk-mode button:active,.cp-sw:active,.cp-cell:active{transform:none;}
+}
+
+/* ---------- v3.12.13 visual polish (Emil/apple-design): typography + contrast ---------- */
+::selection{background:#2C2C2B; color:#fff;}
+#dateLabel,.stat-big{font-variant-numeric:tabular-nums;}
+@media (max-width:480px){ #dateLabel{min-width:88px;} }
+section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card h3,.focus-tile .fv,.tl-fs-title{letter-spacing:-.01em;}
+@media (prefers-contrast: more){
+  :root{--text2:#5E5B57; --text3:#7D7A75; --line:#D9D7D3; --line2:#C7C5C1;}
+  .tabbar{background:#fff; -webkit-backdrop-filter:none; backdrop-filter:none; box-shadow:var(--sh-2), 0 0 0 1px var(--line2);}
+}
+
+/* ---------- v3.12.14 ui/ux: json hub redesign + picker/manager/stats polish ---------- */
+.area-picker.cat-act .ap-nm.ph{font-weight:400;}
+#importText,#exportText{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.6;}
+.jkind{display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:2px 8px;border-radius:var(--r-round);background:var(--soft);color:var(--text2);flex:none;}
+.jkind.plan{background:#EDF1FB;color:#3B5BD9;}
+.jkind.log,.jkind.logs{background:#E8F4EC;color:#2F7D4F;}
+.jkind.backup{background:#FBF3E4;color:#9A6B15;}
+.jkind.routines,.jkind.routineDefs{background:#F3ECFA;color:#7048A8;}
+.jkind.err{background:#FBEBE9;color:#B3423A;}
+.jprev .jp-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;}
+.jprev .jp-meta{font-size:12px;color:var(--text2);min-width:0;}
+.jprev .jp-meta.warn{color:var(--red);}
+.exp-meta{font-size:11px;color:var(--text3);text-align:right;padding-top:4px;font-variant-numeric:tabular-nums;}
+.btn.copied{background:#E8F4EC;border-color:#BFE0CB;color:#2F7D4F;}
+.btn.dark.copied{background:#2F7D4F;border-color:#2F7D4F;color:#fff;}
+.mgr-sec-t h4 .cnt{display:inline-block;font-size:11px;font-weight:600;color:var(--text2);background:var(--soft);border-radius:var(--r-round);padding:2px 8px;margin-left:4px;vertical-align:1px;font-variant-numeric:tabular-nums;}
+#actStats .sbar{margin:2px 0 8px;}
+/* ---------- v3.12.15 mobile gestures + plan export ---------- */
+.tl-content.tl-arming .preview{outline:2px solid rgba(0,0,0,.38); outline-offset:-2px;}
+/* ---------- v3.12.16 mobile fit + reversible pickers ---------- */
+.ap-list .ac-row.clear-link{color:var(--text2);border-top:1px solid var(--line);margin-top:4px;}
+.ap-list .ac-row.clear-link .nm{font-weight:500;}
+@media (max-width:480px){
+  .ap-list,.ac{max-width:calc(100vw - 16px);}
+}
+
+/* ---------- v3.12.36 manager redesign (Emil design-eng + apple-design): grouped-list editor ---------- */
+#actsDlg .mgr-sec{padding:18px 0 10px;}
+.mgr-paint{min-height:32px;padding:2px 14px;font-size:12px;font-weight:600;color:var(--text2);border:1px solid var(--line);border-radius:var(--r-round);background:#fff;transition:background-color .18s ease,border-color .18s ease,color .18s ease,transform .12s ease;}
+@media (hover: hover) and (pointer: fine){ .mgr-paint:hover{background:var(--soft);border-color:var(--text3);color:var(--text);} }
+.mgr-paint:active{transform:scale(.96);}
+#areasList{background:#fff;border:1px solid var(--line);border-radius:var(--r-xl);padding:4px 8px;margin-bottom:10px;}
+#areasList .act-edit{margin:0;padding:4px 2px;min-height:48px;}
+#areasList .act-edit+.act-edit{border-top:1px solid var(--line);}
+#areasList .act-edit .cp-sw{width:26px;height:26px;}
+#areasList .drag-placeholder{margin:4px 0;}
+.act-edit input[type=text]{min-height:36px;padding:4px 10px;border:1px solid transparent;border-radius:var(--r-md);background:transparent;font-size:15px;font-weight:500;transition:background-color .18s ease,box-shadow .18s ease;}
+@media (hover: hover) and (pointer: fine){ .act-edit input[type=text]:hover{background:var(--soft);} }
+#actsDlg .act-edit input[type=text]:focus{background:var(--soft);border-color:transparent !important;box-shadow:none;}
+.act-edit .handle{width:20px;height:36px;display:flex;align-items:center;justify-content:center;color:var(--text3);cursor:grab;touch-action:none;flex:none;font-size:0;border-radius:var(--r-sm);}
+.act-edit .handle::before{content:"";width:8px;height:16px;background-image:radial-gradient(circle,var(--text3) 1.3px,transparent 1.5px);background-size:4px 4px;}
+.act-edit .handle:active{cursor:grabbing;}
+@media (hover: hover) and (pointer: fine){ .act-edit .handle:hover::before{background-image:radial-gradient(circle,var(--text2) 1.3px,transparent 1.5px);} }
+.act-edit .del{width:30px;height:30px;min-height:0;padding:0;border-radius:var(--r-sm);color:var(--text3);flex:none;font-size:13px;display:flex;align-items:center;justify-content:center;position:relative;background:none;transition:color .18s ease,background-color .18s ease,transform .12s ease;}
+.act-edit .del::after{content:"";position:absolute;inset:-6px;}
+.act-edit .del:active{transform:scale(.88);}
+@media (hover: hover) and (pointer: fine){ .act-edit .del:hover{color:var(--red);background:transparent;} }
+.a-cnt{font-size:12px;font-weight:600;color:var(--text2);background:var(--soft);border-radius:var(--r-round);min-width:28px;text-align:center;padding:2px 8px;flex:none;font-variant-numeric:tabular-nums;}
+#actsDlg .area-picker.sm{min-height:32px;padding:3px 10px;border:none;border-radius:var(--r-md);background:var(--soft);font-size:13px;font-weight:500;color:var(--text2);max-width:120px;box-shadow:none;transition:background-color .18s ease,transform .12s ease;}
+#actsDlg .area-picker.sm .ap-nm{font-weight:500;}
+#actsDlg .area-picker.sm .ap-tri{font-size:9px;}
+#actsDlg .area-picker.sm .dot{width:7px;height:7px;}
+@media (hover: hover) and (pointer: fine){ #actsDlg .area-picker.sm:hover{background:var(--line);} }
+#actsDlg .area-picker.sm:active{transform:scale(.96);}
+#actsDlg .area-picker.sm.open{background:var(--line);}
+.grp{margin-bottom:10px;border-radius:var(--r-xl);}
+.grp-head{padding:12px 14px;gap:9px;transition:background-color .18s ease;}
+.grp-head:active{background:var(--line);}
+.grp-head .dot{width:8px;height:8px;border-radius:50%;flex:none;}
+.grp-head .tri{font-size:10px;color:var(--text3);width:12px;flex:none;transition:transform .22s cubic-bezier(.23,1,.32,1);}
+.grp.open .grp-head .tri{transform:rotate(90deg);}
+.grp-head .grp-name{letter-spacing:-.01em;}
+.grp-head .cnt{font-size:11px;font-weight:600;color:var(--text2);background:var(--soft);border-radius:var(--r-round);min-width:22px;text-align:center;padding:2px 8px;font-variant-numeric:tabular-nums;flex:none;}
+.grp-head .act-paint{font-size:13px;line-height:1;padding:7px;margin:-7px -6px -7px 0;border-radius:var(--r-sm);opacity:.5;transition:opacity .18s ease,background-color .18s ease,transform .12s ease;}
+@media (hover: hover) and (pointer: fine){ .grp-head .act-paint:hover{opacity:1;background:var(--soft);} }
+.grp-head .act-paint:active{transform:scale(.88);}
+.grp-body{display:grid;grid-template-rows:0fr;padding:0;border-top:none;transition:grid-template-rows .28s cubic-bezier(.32,.72,0,1);}
+.grp.open .grp-body{grid-template-rows:1fr;}
+.grp-inner{overflow:hidden;min-height:0;padding:0 6px;}
+.grp.open .grp-inner{border-top:1px solid var(--line);}
+.grp-inner .act-edit{margin:0;min-height:46px;padding:3px 2px;}
+.grp-inner .act-edit+.act-edit{border-top:1px solid var(--line);}
+.grp-inner .act-edit .cp-sw{width:22px;height:22px;}
+.grp-inner .grp-empty{padding:12px 6px 14px;}
+.grp-inner .drag-placeholder{margin:3px 0;}
+.drag-placeholder{border:1.5px dashed var(--line2);border-radius:var(--r-lg);background:var(--soft);}
+.add-line{gap:6px;min-height:46px;border:1.5px dashed var(--line2);border-radius:var(--r-lg);color:var(--text2);font-size:14px;font-weight:500;transition:background-color .18s ease,border-color .18s ease,color .18s ease,transform .12s ease;}
+@media (hover: hover) and (pointer: fine){ .add-line:hover{background:var(--soft);border-color:var(--text3);color:var(--text);} }
+.add-line:active{transform:scale(.99);}
+@media (prefers-reduced-motion: reduce){
+  .grp-body{transition:none;}
+  .grp-head .tri{transition:none;}
+  .act-edit .del:active,.grp-head .act-paint:active,.mgr-paint:active,.add-line:active{transform:none;}
+}
+
+/* ---------- v3.12.41 윤투 연동 허브 전환 모션 ---------- */
+.json-tabs{position:relative; display:flex; margin:12px 20px 2px; padding:3px; background:var(--soft); border-radius:var(--r-lg); flex:none;}
+.json-tab{flex:1; position:relative; z-index:1; padding:8px 0; font-size:14px; font-weight:500; color:var(--text2); background:none; border:none; border-radius:calc(var(--r-lg) - 3px); transition:color var(--dur-1) ease; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
+.json-tab.active{color:var(--text); font-weight:600;}
+.json-tabs .slide-ind,.json-seg .slide-ind{border-radius:calc(var(--r-lg) - 3px);}
+#jsonDlg .dlg-body{overflow-x:hidden;}
+.jexport-view{min-width:0;}
+.json-panel .msg:empty{display:none;}
+.json-panel .msg.ok,.json-panel .msg.err{font-size:13px; line-height:1.5; padding:9px 12px; border-radius:var(--r-md); margin-top:10px;}
+.json-panel .msg.ok{background:#E8F4EC; color:#2F7D4F;}
+.json-panel .msg.err{background:#FBEAE8; color:#B4382C;}
+.jh-hero{background:var(--soft); border-radius:var(--r-xl); padding:14px 16px 12px; margin-bottom:16px;}
+.jh-top{display:flex; align-items:baseline; gap:8px;}
+.jh-date{font-size:15px; font-weight:600; letter-spacing:-.01em;}
+.jh-total{margin-left:auto; font-size:15px; font-weight:600; font-variant-numeric:tabular-nums;}
+.jh-total.zero{color:var(--text3); font-weight:500;}
+.jh-stats{display:flex; flex-wrap:wrap; gap:6px; padding:10px 0 2px;}
+.jh-chip{display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:600; color:var(--text2); background:#fff; border-radius:var(--r-round); padding:4px 10px; font-variant-numeric:tabular-nums;}
+.jh-chip i{width:6px; height:6px; border-radius:50%; background:var(--text3); font-style:normal; flex:none;}
+.jh-chip.on i{background:var(--ok);}
+.jh-role{font-size:12px; color:var(--text3); padding-top:8px; line-height:1.5;}
+.jh-role b{color:var(--text2); font-weight:600;}
+.jflow{padding:2px 0 4px;}
+.jstep{display:flex; gap:12px;}
+.jstep-rail{display:flex; flex-direction:column; align-items:center; flex:none; width:26px;}
+.jstep-n{width:26px; height:26px; border-radius:50%; background:var(--text); color:#fff; font-size:13px; font-weight:600; display:flex; align-items:center; justify-content:center; flex:none;}
+.jstep-rail::after{content:""; flex:1; width:2px; background:var(--line); border-radius:1px; margin:4px 0;}
+.jstep:last-child .jstep-rail::after{display:none;}
+.jstep-body{flex:1; min-width:0; padding-bottom:18px;}
+.jstep:last-child .jstep-body{padding-bottom:6px;}
+.jstep-t b{font-size:14px; letter-spacing:-.01em;}
+.jstep-t small{display:block; font-size:13px; color:var(--text2); line-height:1.55; padding-top:2px;}
+.jstep-t code{background:var(--soft); border:1px solid var(--line); border-radius:4px; padding:0 4px; font-size:12px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+.jstep-act{display:flex; flex-wrap:wrap; gap:8px; padding-top:9px;}
+.jgo{color:var(--text2);}
+.jl-head{padding-top:14px;}
+#jsonLogList .jl-row{gap:10px; padding:9px 2px;}
+#jsonLogList .jl-dir{flex:none; font-size:11px; font-weight:600; border-radius:var(--r-round); padding:3px 9px; background:var(--soft); color:var(--text2);}
+#jsonLogList .jl-dir.in{color:#2F7D4F; background:#E8F4EC;}
+#jsonLogList .jl-t{flex:none; font-size:12px; color:var(--text3); font-variant-numeric:tabular-nums;}
+#jsonLogList .empty{font-size:13px; color:var(--text3); padding:14px 2px;}
+.jdrop{display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center; padding:22px 16px 18px; border:1.5px dashed var(--line2); border-radius:var(--r-xl); color:var(--text2); transition:border-color var(--dur-1) ease, background var(--dur-1) ease; margin-bottom:12px;}
+.jdrop.over{border-color:var(--text); background:var(--soft);}
+.jdrop-ic{color:var(--text3);}
+.jdrop-t b{display:block; font-size:14px; color:var(--text); letter-spacing:-.01em;}
+.jdrop-t small{display:block; font-size:12px; color:var(--text3); padding-top:3px;}
+.jdrop-btns{display:flex; gap:8px; padding-top:6px; flex-wrap:wrap; justify-content:center;}
+#jpImport.has .jdrop{padding:10px 16px; gap:6px;}
+#jpImport.has .jdrop-ic,#jpImport.has .jdrop-t small{display:none;}
+#jpImport.has .jdrop-t b{font-size:13px; color:var(--text2); font-weight:500;}
+#jpImport textarea{min-height:150px;}
+.mode-desc{font-size:12px; color:var(--text3); padding-top:8px;}
+.json-seg{position:relative; display:flex; background:var(--soft); border-radius:var(--r-lg); padding:3px; margin-bottom:12px;}
+.json-seg .rng{flex:1; border:none; background:none; border-radius:calc(var(--r-lg) - 3px); padding:7px 0; font-size:13px; color:var(--text2); position:relative; z-index:1;}
+.json-seg .rng.active{background:none; border-color:transparent; color:var(--text); font-weight:600;}
+.jcap{font-size:13px; color:var(--text2); line-height:1.5; padding:0 2px 10px;}
+.exp-card{background:var(--soft); border-radius:var(--r-lg); padding:10px 12px 1px; margin-bottom:12px;}
+.exp-card .rng-row{padding-bottom:10px;}
+.jinfo{font-size:12px; color:var(--text2); padding:0 2px 10px; font-variant-numeric:tabular-nums;}
+.jcode{border:1px solid var(--line2); border-radius:var(--r-lg); overflow:hidden;}
+.jcode-head{display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--soft); border-bottom:1px solid var(--line);}
+.jcode-t{font-size:12px; font-weight:600; color:var(--text2);}
+.jcode-head .exp-meta{margin-left:auto; padding:0;}
+.jcode-x{flex:none; font-size:12px; font-weight:600; color:var(--text2); background:none; border:none; padding:2px 6px; border-radius:var(--r-sm);}
+.jcode textarea{border:none; border-radius:0; min-height:0; height:180px; max-height:180px; resize:none; display:block; background:#fff; transition:height .24s cubic-bezier(.32,.72,0,1), max-height .24s cubic-bezier(.32,.72,0,1);}
+.jcode.x textarea{height:420px; max-height:420px;}
+.jcode textarea:focus{outline:none;}
+@media (hover: hover) and (pointer: fine){
+  .jgo:hover{color:var(--text);}
+  .jcode-x:hover{background:var(--line);}
+  .jdrop-btns .btn:hover{background:var(--soft);}
+}
+@media (prefers-reduced-motion: reduce){ .jcode textarea{transition:none;} }
 </style>
 </head>
 <body>
@@ -1061,7 +1294,7 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
 <div class="side-overlay" id="sideOverlay"></div>
 <aside class="sidenav" id="sideNav" role="dialog" aria-label="설정 메뉴">
   <div class="sidenav-head">
-    <div class="sn-brand"><img class="sn-logo" src="brand/mark-96.png" alt=""><div class="sn-brand-t"><h3>TimeGrid</h3><span class="sn-tag">시간 기록 · 로그인 시 클라우드 동기화</span></div></div>
+    <div class="sn-brand"><img class="sn-logo" src="brand/mark-96.png" alt=""><div class="sn-brand-t"><h3>TimeGrid</h3></div></div>
     <button class="icon-btn" id="sideClose" aria-label="메뉴 닫기">✕</button>
   </div>
   <div class="sidenav-body">
@@ -1092,7 +1325,7 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.4 · 로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.41<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -1124,13 +1357,13 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
   <div class="dlg-body">
     <p class="mgr-intro">기록은 <b>영역 → 활동</b> 2단계로 분류됩니다. 타임라인 색은 항상 <b>활동 색</b>을 따르고, 활동 색은 속한 영역의 색 계열로 자동 배색할 수 있습니다.</p>
     <div class="mgr-sec">
-      <div class="mgr-sec-t"><h4>영역</h4><span class="mgr-sub">큰 분류 · ⁞ 핸들을 끌어 순서 변경</span></div>
-      <button class="btn mgr-paint" id="autoColorBtn" title="모든 영역·활동을 무지개 순서로 자동 배색">🎨 전체 자동 배색</button>
+      <div class="mgr-sec-t"><h4>영역 <span class="cnt" id="mgrAreaCnt"></span></h4><span class="mgr-sub">큰 분류 · 왼쪽 그립을 끌어 순서 변경</span></div>
+      <button class="btn mgr-paint" id="autoColorBtn" aria-label="전체 자동 배색">🎨 전체 자동 배색</button>
     </div>
     <div id="areasList"></div>
     <button class="btn add-line" id="areaAdd">＋ 영역 추가</button>
     <div class="mgr-sec">
-      <div class="mgr-sec-t"><h4>활동</h4><span class="mgr-sub">실제 측정 단위 · 끌어서 다른 영역으로 이동</span></div>
+      <div class="mgr-sec-t"><h4>활동 <span class="cnt" id="mgrActCnt"></span></h4><span class="mgr-sub">실제 측정 단위 · 그립으로 다른 영역으로 이동</span></div>
     </div>
     <div id="actsList"></div>
     <button class="btn add-line" id="actAdd">＋ 활동 추가</button>
@@ -1224,17 +1457,53 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
 
 <div class="fs-panel" id="jsonDlg">
   <div class="fs-head"><button class="fs-back" data-close aria-label="뒤로">‹</button><h3>윤투 연동 · 데이터</h3></div>
-  <div class="json-tabs">
-    <button class="json-tab active" data-jtab="link">윤투 연동</button>
-    <button class="json-tab" data-jtab="import">가져오기</button>
-    <button class="json-tab" data-jtab="export">내보내기</button>
+  <div class="json-tabs" role="tablist" aria-label="연동 메뉴">
+    <button class="json-tab active" data-jtab="link" role="tab" aria-selected="true">연동</button>
+    <button class="json-tab" data-jtab="import" role="tab" aria-selected="false">가져오기</button>
+    <button class="json-tab" data-jtab="export" role="tab" aria-selected="false">내보내기</button>
   </div>
   <div class="dlg-body">
+    <div class="json-panel" id="jpLink">
+      <div class="jh-hero" id="jhHero">
+        <div class="jh-top"><span class="jh-date" id="lnkDate"></span><span class="jh-total" id="jhTotal"></span></div>
+        <div class="jh-stats" id="jhStats"></div>
+        <div class="jh-role">트래커는 <b>분 단위 기록</b>, 윤투(Notion)는 <b>일 단위 요약과 추세</b>를 맡습니다.</div>
+      </div>
+      <div class="jflow">
+        <div class="jstep">
+          <div class="jstep-rail"><span class="jstep-n">1</span></div>
+          <div class="jstep-body">
+            <div class="jstep-t"><b>기록 보내기</b><small>이 날짜 기록을 윤투 명령문 한 줄로 복사합니다.</small></div>
+            <div class="jstep-act"><button class="btn dark" id="lnkCopyCmd">기록 반영 명령문 복사</button><button class="btn" id="lnkCopyLog">JSON만 복사</button></div>
+          </div>
+        </div>
+        <div class="jstep">
+          <div class="jstep-rail"><span class="jstep-n">2</span></div>
+          <div class="jstep-body">
+            <div class="jstep-t"><b>윤투에게 붙여넣기</b><small>Notion 채팅에 <code>기록 반영: {JSON}</code> 그대로 붙여넣으면 LIFE OS 데일리 로그·할일 DB에 반영됩니다.</small></div>
+          </div>
+        </div>
+        <div class="jstep">
+          <div class="jstep-rail"><span class="jstep-n">3</span></div>
+          <div class="jstep-body">
+            <div class="jstep-t"><b>계획 받아오기</b><small>받은 계획(plan) JSON을 가져오기에 붙여넣으면 이 날짜 할일·루틴이 채워집니다.</small></div>
+            <div class="jstep-act"><button class="btn" id="lnkCopyPlan">계획 발급 요청문 복사</button><button class="btn jgo" id="lnkGoImport">가져오기 열기 ›</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="msg" id="lnkMsg" role="status"></div>
+      <div class="jl-head"><h4>최근 이력</h4><button type="button" class="jl-clear" id="jsonLogClear" aria-label="이력 지우기">지우기</button></div>
+      <div id="jsonLogList"></div>
+    </div>
     <div class="json-panel" id="jpImport" hidden>
-      <div class="jhint"><b>붙여넣기 → 미리보기 확인 → 적용</b> 순서로 진행됩니다. 계획·기록·루틴 정의·백업 JSON을 자동으로 인식합니다.</div>
-      <textarea id="importText" placeholder="윤투에게 받은 계획(plan) JSON이나 기록·루틴 정의·백업 JSON을 여기에 붙여넣으세요."></textarea>
+      <div class="jdrop" id="impDrop">
+        <svg class="jdrop-ic" width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 16.5v2A2.5 2.5 0 0 0 7 21h10a2.5 2.5 0 0 0 2.5-2.5v-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <div class="jdrop-t"><b>JSON을 붙여넣거나 파일을 끌어다 놓으세요</b><small>계획 · 기록 · 루틴 정의 · 백업을 자동 인식합니다</small></div>
+        <div class="jdrop-btns"><button class="btn" id="impPasteBtn">클립보드 붙여넣기</button><button class="btn" id="impFileBtn">.json 열기</button><input type="file" id="impFileInp" accept=".json,application/json" hidden></div>
+      </div>
+      <textarea id="importText" placeholder="{ 여기에 JSON 붙여넣기 }" spellcheck="false"></textarea>
       <div class="jprev" id="importPreview" hidden></div>
-      <div class="msg" id="importMsg"></div>
+      <div class="msg" id="importMsg" role="status"></div>
       <div class="json-actions">
         <div class="mode-seg" role="radiogroup" aria-label="적용 방식">
           <span class="mode-thumb" aria-hidden="true"></span>
@@ -1244,37 +1513,34 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
         <span class="spacer"></span>
         <button class="btn dark" id="importApply">적용</button>
       </div>
-      <div class="msg" id="impModeDesc">병합: 기존 데이터를 유지하면서 추가합니다.</div>
+      <div class="msg mode-desc" id="impModeDesc">병합: 기존 데이터를 유지하면서 추가합니다.</div>
     </div>
     <div class="json-panel" id="jpExport" hidden>
-      <div class="rng-row">
+      <div class="json-seg" id="etgtSeg" aria-label="내보내기 대상">
         <button class="rng etgt active" data-etgt="log">기록</button>
+        <button class="rng etgt" data-etgt="plan">계획</button>
         <button class="rng etgt" data-etgt="routineDefs">루틴 정의</button>
         <button class="rng etgt" data-etgt="backup">전체 백업</button>
       </div>
-      <div class="msg" id="expDesc" style="margin:0 0 8px;"></div>
-      <div class="rng-row" id="expLogOpts">
-        <button class="rng exp-datebtn" id="expDateBtn" aria-haspopup="dialog"><svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="4" width="15" height="13.5" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M2.5 8.2h15" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6.5 2.2v3M13.5 2.2v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span id="expDateLbl"></span></button>
-        <label class="chk-sm" id="expSkipWrap"><input type="checkbox" id="expSkipEmpty" checked><span>빈 날 제외</span></label>
+      <div class="jexport-view" id="jexportView">
+      <div class="msg jcap" id="expDesc"></div>
+      <div class="exp-card">
+        <div class="rng-row" id="expLogOpts">
+          <button class="rng exp-preset" data-epre="today">오늘</button>
+          <button class="rng exp-preset" data-epre="yesterday">어제</button>
+          <button class="rng exp-preset" data-epre="7d">최근 7일</button>
+          <button class="rng exp-datebtn" id="expDateBtn" aria-haspopup="dialog"><svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="4" width="15" height="13.5" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M2.5 8.2h15" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6.5 2.2v3M13.5 2.2v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span id="expDateLbl"></span></button>
+          <label class="chk-sm" id="expSkipWrap"><input type="checkbox" id="expSkipEmpty" checked><span>빈 날 제외</span></label>
+        </div>
+        <div class="msg jinfo" id="exportInfo" hidden></div>
       </div>
-      <div class="msg" id="exportInfo" style="margin:0 0 8px;" hidden></div>
-      <textarea id="exportText" readonly></textarea>
-      <div class="msg" id="exportMsg"></div>
-      <div class="json-actions"><button class="btn" id="fileBtn">.json 저장</button><button class="btn dark" id="copyBtn">클립보드에 복사</button></div>
-    </div>
-    <div class="json-panel" id="jpLink">
-      <div class="jhint">트래커는 <b>분 단위 기록</b>, 윤투(Notion)는 <b>일 단위 요약과 추세</b>를 담당합니다. 아래 순서로 오가면 됩니다.</div>
-      <div class="flow-step"><span class="flow-num">1</span><div><b>기록 내보내기</b><small>아래 빠른 실행이나 내보내기 탭에서 이 날짜 기록 JSON을 복사합니다.</small></div></div>
-      <div class="flow-step"><span class="flow-num">2</span><div><b>윤투에게 붙여넣기</b><small>Notion에서 윤투에게 <code>기록 반영: {JSON}</code> 형태로 보내면 LIFE OS 데일리 로그·할일 DB에 반영됩니다.</small></div></div>
-      <div class="flow-step"><span class="flow-num">3</span><div><b>계획 받아오기</b><small>윤투에게 <code>계획 발급</code>을 요청해 받은 계획(plan) JSON을 가져오기 탭에 붙여넣으면 오늘 할일·루틴이 채워집니다.</small></div></div>
-      <h4>빠른 실행</h4>
-      <div class="json-actions" style="margin:0 0 4px; justify-content:flex-start;">
-        <button class="btn" id="lnkCopyLog">이 날짜 기록 JSON 복사</button>
-        <button class="btn dark" id="lnkCopyCmd">기록 반영 명령문 복사</button>
+      <div class="jcode" id="expCode">
+        <div class="jcode-head"><span class="jcode-t">JSON 미리보기</span><span class="exp-meta" id="expMeta"></span><button type="button" class="jcode-x" id="expExpand">펼치기</button></div>
+        <textarea id="exportText" readonly spellcheck="false"></textarea>
       </div>
-      <div class="msg" id="lnkMsg"></div>
-      <div class="jl-head"><h4>최근 가져오기·내보내기 이력</h4><button type="button" class="jl-clear" id="jsonLogClear" aria-label="이력 지우기">이력 지우기</button></div>
-      <div id="jsonLogList"></div>
+      <div class="msg" id="exportMsg" role="status"></div>
+      <div class="json-actions"><span class="spacer"></span><button class="btn" id="fileBtn">.json 저장</button><button class="btn dark" id="copyBtn">클립보드에 복사</button></div>
+      </div>
     </div>
   </div>
 </div>
@@ -1429,17 +1695,22 @@ function pulse(el){
   GS.fromTo(el,{scale:.94},{scale:1,duration:.6,ease:"elastic.out(1,.4)",clearProps:"transform"});
 }
 
-function acPickAnim(input,list,row){
+function acPickAnim(input,list,row,onCommit){
+  if(input._acLock)return;
   input._acLock=true;
   try{input.focus();}catch(e){}
   pulse(input);
+  function commitAndClose(){
+    if(onCommit)onCommit();
+    if(input._acHide)input._acHide();
+  }
   if(GS&&!rmPref()){
     if(row){GS.fromTo(row,{backgroundColor:"rgba(44,44,43,0.22)"},{backgroundColor:"rgba(44,44,43,0)",duration:.5,ease:"power2.out",clearProps:"backgroundColor"});}
-    GS.to(list,{opacity:0,y:-6,duration:.18,ease:"power2.in",delay:.05,onComplete:function(){ if(input._acHide)input._acHide(); GS.set(list,{clearProps:"opacity,transform"}); }});
+    GS.to(list,{opacity:0,y:-6,duration:.18,ease:"power2.in",delay:.05,onComplete:function(){ commitAndClose(); GS.set(list,{clearProps:"opacity,transform"}); }});
   }else{
     if(row)row.classList.add("picked");
     list.classList.add("closing");
-    setTimeout(function(){ list.classList.remove("closing"); if(row)row.classList.remove("picked"); if(input._acHide)input._acHide(); },200);
+    setTimeout(function(){ list.classList.remove("closing"); if(row)row.classList.remove("picked"); commitAndClose(); },200);
   }
   setTimeout(function(){input._acLock=false;},380);
 }
@@ -1515,6 +1786,14 @@ function fmtDateK(s){
   const w=["일","월","화","수","목","금","토"][dateOf(s).getDay()];
   return m+"월 "+d+"일 ("+w+")";
 }
+function fmtDateKHdr(s){
+  const full=fmtDateK(s);
+  if(window.innerWidth>480) return full;
+  const parts=s.split("-").map(Number);
+  const w=full.slice(full.indexOf("(")+1, full.indexOf(")"));
+  return parts[1]+"."+parts[2]+" "+w;
+}
+window.addEventListener("resize",()=>{try{const el=$("#dateLabel"); if(el) el.textContent=fmtDateKHdr(state.viewDate);}catch(e){}});
 function fmtMD(s){
   const [y,m,d]=s.split("-").map(Number);
   return m+"월 "+d+"일";
@@ -1713,7 +1992,8 @@ function addInterval(day,actId,s,e,tags){
 /* ================= autocomplete (custom) ================= */
 var _openAc={input:null};
 function _closeAc(){if(_openAc.input){_openAc.input._acHide();_openAc.input=null}}
-function _acReposition(){if(!_openAc.input)return;var inp=_openAc.input;var r=inp.getBoundingClientRect();var list=inp._acList;if(!list||list.style.display==="none")return;var lh=list.offsetHeight,wh=window.innerHeight;var flipUp=(r.bottom+4+lh>wh-8&&r.top-lh-4>8);if(flipUp){list.style.top='';list.style.bottom=(wh-r.top+4)+'px'}else{list.style.bottom='';list.style.top=(r.bottom+4)+'px'}list.style.left=r.left+'px';list.style.width=Math.max(r.width,230)+'px'}
+function _acReposition(){if(!_openAc.input)return;var inp=_openAc.input;var list=inp._acList;if(!list||list.style.display==="none")return;placeApList(inp,list)}
+function _acViewportBind(on){var m=on?'addEventListener':'removeEventListener';window[m]('resize',_acReposition);if(window.visualViewport){window.visualViewport[m]('resize',_acReposition);window.visualViewport[m]('scroll',_acReposition)}}
 function _acOutClick(ev){if(!_openAc.input)return;var list=_openAc.input._acList;if(list&&list.contains(ev.target))return;if(_openAc.input===ev.target)return;if(_openAc.input.contains(ev.target))return;_closeAc()}
 function _acKey(ev){if(!_openAc.input)return;var list=_openAc.input._acList;if(!list||list.style.display==="none")return;var scroll=list._scroll||list;var rows=scroll.querySelectorAll('.ac-row');if(!rows.length)return;var selIdx=parseInt(list.dataset.selIdx||'0');if(ev.key==='ArrowDown'){ev.preventDefault();selIdx=Math.min(selIdx+1,rows.length-1);rows.forEach(function(r){r.classList.remove('selected')});rows[selIdx].classList.add('selected');rows[selIdx].scrollIntoView({block:'nearest'});list.dataset.selIdx=selIdx;if(list._updateThumb)list._updateThumb();} else if(ev.key==='ArrowUp'){ev.preventDefault();selIdx=Math.max(selIdx-1,0);rows.forEach(function(r){r.classList.remove('selected')});rows[selIdx].classList.add('selected');rows[selIdx].scrollIntoView({block:'nearest'});list.dataset.selIdx=selIdx;if(list._updateThumb)list._updateThumb();} else if(ev.key==='Enter'){ev.preventDefault();if(rows[selIdx])rows[selIdx].click()} else if(ev.key==='Escape'){ev.preventDefault();_closeAc()}}
 function attachAC(input, areaSel, container){
@@ -1726,7 +2006,7 @@ function attachAC(input, areaSel, container){
   const thumb=document.createElement("div");
   thumb.className="ac-thumb";
   list.appendChild(thumb);
-  (container||document.body).appendChild(list);
+  document.body.appendChild(list);
   input._acList=list;
   list._scroll=scroll;
   var acSelIdx=0;
@@ -1742,51 +2022,51 @@ function attachAC(input, areaSel, container){
     thumb.classList.add('show');
   }
   list._updateThumb=updateThumb;
-  function hide(){ list.style.display="none"; document.removeEventListener('scroll',_acReposition,true); document.removeEventListener('click',_acOutClick,true); document.removeEventListener('keydown',_acKey,true); window.removeEventListener('resize',_acReposition); if(_openAc.input===input)_openAc.input=null; }
+  function hide(){ list.style.display="none"; document.removeEventListener('scroll',_acReposition,true); document.removeEventListener('click',_acOutClick,true); document.removeEventListener('keydown',_acKey,true); _acViewportBind(false); if(_openAc.input===input)_openAc.input=null; }
   input._acHide=hide;
   function show(){
     if(input._acLock)return;
     if(_openAc.input&&_openAc.input!==input)_closeAc();
     _openAc.input=input;
     const raw=input.value.trim(), q=raw.toLowerCase();
+    const areaFilter=(areaSel && areaSel.value)? areaSel.value:"";
     let acts=state.settings.activities.slice()
       .sort((a,b)=>(b.lastUsed||0)-(a.lastUsed||0));
+    /* 영역이 지정되면 해당 영역 소속 활동만 목록에 표시 */
+    if(areaFilter) acts=acts.filter(a=>a.area===areaFilter);
     if(q) acts=acts.filter(a=>a.name.toLowerCase().includes(q));
-    const exact=q && state.settings.activities.some(a=>a.name.toLowerCase()===q);
+    /* 전역 이름 중복 금지 — 다른 영역에 같은 이름이 있으면 새 활동 행 숨김 */
+    const exactGlobal=q && state.settings.activities.some(a=>a.name.toLowerCase()===q);
+    const exact=exactGlobal;
     scroll.innerHTML="";
     acSelIdx=0;
     list.dataset.selIdx='0';
     if(raw && !exact){
       const row=document.createElement("div"); row.className="ac-row new";
       row.innerHTML='<span class="dot" style="background:var(--text3)"></span><span class="nm">“'+esc(raw)+'” 새 활동 만들기</span><span class="ar">'+esc(areaSel.value||"")+'</span>';
-      row.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();var na=resolveActivity(raw,areaSel.value,true);if(na){na.lastUsed=Date.now();input.value=na.name;if(areaByName(na.area)){areaSel.value=na.area;if(areaSel.dispatchEvent)areaSel.dispatchEvent(new Event("change",{bubbles:true}));if(window.refreshAreaPickers)refreshAreaPickers();}save();if(window.renderManager)renderManager();}if(window.syncAreaLock)syncAreaLock();acPickAnim(input,list,row);});
+      row.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();var na=resolveActivity(raw,areaSel.value,true);if(na){na.lastUsed=Date.now();input.value=na.name;if(areaByName(na.area)){areaSel.value=na.area;if(areaSel.dispatchEvent)areaSel.dispatchEvent(new Event("change",{bubbles:true}));if(window.refreshAreaPickers)refreshAreaPickers();}save();if(window.renderManager)renderManager();}if(window.syncAreaLock)syncAreaLock();if(window.sizeActInput)sizeActInput(true);if(window.paintActInput)paintActInput();acPickAnim(input,list,row);});
       row.addEventListener("pointerdown",function(ev){ev.stopPropagation()});
       row.addEventListener("pointerenter",function(){scroll.querySelectorAll('.ac-row').forEach(function(x){x.classList.remove('selected')});row.classList.add('selected');acSelIdx=Array.from(scroll.children).indexOf(row);list.dataset.selIdx=acSelIdx});
       scroll.appendChild(row);
     }
     for(const a of acts.slice(0,8)){
       const row=document.createElement("div"); row.className="ac-row";
-      row.innerHTML='<span class="dot" style="background:'+a.color+'"></span><span class="nm">'+esc(a.name)+'</span><span class="ar">'+esc(a.area)+'</span>';
-      row.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();input.value=a.name;if(areaByName(a.area)){areaSel.value=a.area;if(areaSel.dispatchEvent)areaSel.dispatchEvent(new Event('change',{bubbles:true}));if(window.refreshAreaPickers)refreshAreaPickers();}if(window.syncAreaLock)syncAreaLock();acPickAnim(input,list,row);});
+      row.innerHTML='<span class="dot" style="background:'+a.color+'"></span><span class="nm">'+esc(a.name)+'</span>'+(areaFilter? '':'<span class="ar">'+esc(a.area)+'</span>');
+      row.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();input.value=a.name;if(areaByName(a.area)){areaSel.value=a.area;if(areaSel.dispatchEvent)areaSel.dispatchEvent(new Event('change',{bubbles:true}));if(window.refreshAreaPickers)refreshAreaPickers();}if(window.syncAreaLock)syncAreaLock();if(window.sizeActInput)sizeActInput(true);if(window.paintActInput)paintActInput();acPickAnim(input,list,row);});
       row.addEventListener("pointerdown",function(ev){ev.stopPropagation()});
       row.addEventListener("pointerenter",function(){scroll.querySelectorAll('.ac-row').forEach(function(x){x.classList.remove('selected')});row.classList.add('selected');acSelIdx=Array.from(scroll.children).indexOf(row);list.dataset.selIdx=acSelIdx});
       scroll.appendChild(row);
     }
     if(!scroll.children.length){ hide(); return; }
-    var r=input.getBoundingClientRect();
     list.style.display="block";
-    list.style.left=r.left+"px";
-    list.style.width=Math.max(r.width,230)+"px";
-    var lh=list.offsetHeight,wh=window.innerHeight;
-    var flipUp=(r.bottom+4+lh>wh-8&&r.top-lh-4>8);
-    if(flipUp){list.style.top='';list.style.bottom=(wh-r.top+4)+'px'}else{list.style.bottom='';list.style.top=(r.bottom+4)+'px'}
+    placeApList(input,list)
     if(scroll.children[0])scroll.children[0].classList.add('selected');
     scroll.scrollTop=0;
     updateThumb();
     document.addEventListener('scroll',_acReposition,true);
     document.addEventListener('click',_acOutClick,true);
     document.addEventListener('keydown',_acKey,true);
-    window.addEventListener('resize',_acReposition);
+    _acViewportBind(true);
   }
   scroll.addEventListener('scroll',function(ev){ev.stopPropagation();updateThumb();});
   list.addEventListener('pointerdown',function(ev){ev.stopPropagation()});
@@ -1817,11 +2097,72 @@ function noteChipRender(){
   }else{
     chip.style.display="none"; inp.style.display="";
   }
+  if(window.paintSwReady) paintSwReady();
 }
-function noteSetTag(kind,id){ noteTag={kind:kind,id:id}; $("#noteInput").value=""; noteChipRender(); }
-function noteClear(){ noteTag=null; $("#noteInput").value=""; noteChipRender(); }
+function noteSetTag(kind,id){ noteTag={kind:kind,id:id}; $("#noteInput").value=""; noteChipRender(); sizeNoteInput(true); }
+function noteClear(){ noteTag=null; $("#noteInput").value=""; noteChipRender(); sizeNoteInput(true); }
+/* 세부 입력(할일·루틴 칩 / 자유 메모) → 영역·활동 필드와 이벤트 태그를 한 경로로 해석 */
+function noteSyncFieldsFromItem(it){
+  if(!it) return;
+  if(it.actId){
+    const act=actById(it.actId);
+    if(act){
+      $("#actInput").value=act.name;
+      if(window.sizeActInput) sizeActInput(true);
+      if(areaByName(act.area)){
+        $("#areaSelect").value=act.area;
+        if(window.refreshAreaPickers) refreshAreaPickers();
+      }
+      if(window.syncAreaLock) syncAreaLock();
+      return;
+    }
+  }
+  /* 연결 활동 없음: 활동 입력이 비어 있을 때만 항목 영역으로 맞춘다 */
+  const raw=($("#actInput").value||"").trim();
+  const cur=raw? (actByName(raw)||state.settings.activities.find(a=>a.name.toLowerCase()===raw.toLowerCase())):null;
+  if(!cur && it.area && areaByName(it.area)){
+    $("#areaSelect").value=it.area;
+    if(window.refreshAreaPickers) refreshAreaPickers();
+  }
+}
+function noteApplyItem(it){
+  if(!it) return;
+  noteSetTag(it.kind, it.id);
+  noteRowOpen(true);
+  noteSyncFieldsFromItem(it);
+}
+function resolveStartContext(create){
+  /* {act, tags} | null — 시작 버튼·그리드 직접 입력이 동일 규칙 사용 */
+  const tags={};
+  if(noteTag){
+    const it=noteItemOf(noteTag);
+    if(!it){ noteClear(); }
+    else{
+      if(noteTag.kind==="todo") tags.todoId=it.id; else tags.routineId=it.id;
+      let act=it.actId? actById(it.actId):null;
+      if(!act){
+        act=currentActivity(create);
+        if(!act) return null;
+        it.actId=act.id; it.area=act.area;
+        if(noteTag.kind==="routine"){
+          const def=state.settings.routineDefs.find(d=>d.name===it.name);
+          if(def){ def.actId=act.id; def.area=act.area; }
+        }
+      }
+      return {act:act, tags:tags};
+    }
+  }
+  const act=currentActivity(create);
+  if(!act) return null;
+  if(noteRowIsOpen()){
+    const nRaw=($("#noteInput").value||"").trim();
+    if(nRaw) tags.note=nRaw;
+  }
+  return {act:act, tags:tags};
+}
 function noteRowOpen(open){
   $("#noteRow").classList.toggle("open",open);
+  if(open) requestAnimationFrame(function(){sizeNoteInput(false)});
   const tgl=$("#noteTgl");
   tgl.classList.toggle("on",open);
   tgl.querySelector(".nt-sym").textContent=open? "−":"+";
@@ -1835,6 +2176,8 @@ $("#noteTgl").addEventListener("click",()=>{
   if(open){ setTimeout(()=>{ if(noteRowIsOpen()&&!state.running) $("#noteInput").focus(); }, rmPref()? 0:310); } else noteClear();
 });
 $("#noteChipX").addEventListener("click",()=>{ if(state.running) return; noteClear(); $("#noteInput").focus(); });
+$("#noteInput").addEventListener("input",function(){ sizeNoteInput(); if(window.paintSwReady) paintSwReady(); });
+$("#noteInput").addEventListener("change",function(){ sizeNoteInput(true); if(window.paintSwReady) paintSwReady(); });
 function noteCandidates(q){
   const d=ensureDay(ymd(new Date()));
   const kws=(q||"").toLowerCase().split(/\s+/).filter(Boolean);
@@ -1848,15 +2191,15 @@ function noteCandidates(q){
 }
 function attachNoteAC(input, container){
   const list=document.createElement("div");
-  list.className="ac";
+  list.className="ac note-ac";
   list.style.display="none";
   const scroll=document.createElement("div");
   scroll.className="ac-scroll";
   list.appendChild(scroll);
-  (container||document.body).appendChild(list);
+  document.body.appendChild(list);
   input._acList=list;
   list._scroll=scroll;
-  function hide(){ list.style.display="none"; document.removeEventListener('scroll',_acReposition,true); document.removeEventListener('click',_acOutClick,true); document.removeEventListener('keydown',_acKey,true); window.removeEventListener('resize',_acReposition); if(_openAc.input===input)_openAc.input=null; }
+  function hide(){ list.style.display="none"; document.removeEventListener('scroll',_acReposition,true); document.removeEventListener('click',_acOutClick,true); document.removeEventListener('keydown',_acKey,true); _acViewportBind(false); if(_openAc.input===input)_openAc.input=null; }
   input._acHide=hide;
   function show(){
     if(input._acLock||input.readOnly)return;
@@ -1869,25 +2212,20 @@ function attachNoteAC(input, container){
       const row=document.createElement("div"); row.className="ac-row";
       const a=it.actId? actById(it.actId):null;
       row.innerHTML='<span class="k">'+(it.kind==="todo"? "할일":"루틴")+'</span><span class="nm">'+esc(it.name)+'</span>'+(a? '<span class="ar">'+esc(a.name)+'</span>':'')+(it.min? '<span class="tm">'+fmtDur(it.min)+'</span>':'');
-      row.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();noteSetTag(it.kind,it.id);hide();});
+      row.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();acPickAnim(input,list,row,function(){noteApplyItem(it);});});
       row.addEventListener("pointerdown",function(ev){ev.stopPropagation()});
       row.addEventListener("pointerenter",function(){scroll.querySelectorAll('.ac-row').forEach(function(x){x.classList.remove('selected')});row.classList.add('selected');list.dataset.selIdx=Array.from(scroll.children).indexOf(row)});
       scroll.appendChild(row);
     }
     if(!scroll.children.length){ hide(); return; }
-    var r=input.getBoundingClientRect();
     list.style.display="block";
-    list.style.left=r.left+"px";
-    list.style.width=Math.max(r.width,230)+"px";
-    var lh=list.offsetHeight,wh=window.innerHeight;
-    var flipUp=(r.bottom+4+lh>wh-8&&r.top-lh-4>8);
-    if(flipUp){list.style.top='';list.style.bottom=(wh-r.top+4)+'px'}else{list.style.bottom='';list.style.top=(r.bottom+4)+'px'}
+    placeApList(input,list)
     if(scroll.children[0])scroll.children[0].classList.add('selected');
     scroll.scrollTop=0;
     document.addEventListener('scroll',_acReposition,true);
     document.addEventListener('click',_acOutClick,true);
     document.addEventListener('keydown',_acKey,true);
-    window.addEventListener('resize',_acReposition);
+    _acViewportBind(true);
   }
   list.addEventListener('pointerdown',function(ev){ev.stopPropagation()});
   list.addEventListener('click',function(ev){ev.stopPropagation()});
@@ -1921,32 +2259,16 @@ function currentActivity(create){
 
 /* ================= stopwatch / total ================= */
 function swStart(){
-  const nOpen=noteRowIsOpen();
-  const nRaw=nOpen? $("#noteInput").value.trim():"";
-  if(nOpen&&noteTag){
-    const it=noteItemOf(noteTag);
-    if(!it){ noteClear(); }
-    else{
-      let act=it.actId? actById(it.actId):null;
-      if(!act){
-        act=currentActivity(true);
-        if(!act) return;
-        /* 미연결 항목: 입력된 활동으로 연결 (lkOk와 동일 의미) */
-        it.actId=act.id; it.area=act.area;
-        if(noteTag.kind==="routine"){
-          const def=state.settings.routineDefs.find(d=>d.name===it.name);
-          if(def){ def.actId=act.id; def.area=act.area; }
-        }
-      }
-      swStartTagged(act.id, noteTag.kind==="todo"? {todoId:it.id}:{routineId:it.id});
-      return;
-    }
+  const ctx=resolveStartContext(true);
+  if(!ctx) return;
+  const act=ctx.act, tags=ctx.tags;
+  if(tags.todoId||tags.routineId){
+    swStartTagged(act.id, tags);
+    return;
   }
-  const act=currentActivity(true);
-  if(!act) return;
   act.lastUsed=Date.now();
   state.running={actId:act.id,startTs:Date.now()};
-  if(nRaw) state.running.note=nRaw;
+  if(tags.note) state.running.note=tags.note;
   save(); renderSw(); renderTimeline();
 }
 function swStartTagged(actId,tags){
@@ -2032,6 +2354,8 @@ function renderSw(){
     $("#noteTgl").disabled=false;
   }
   if(window.syncAreaLock)syncAreaLock();
+  if(window.paintActInput) paintActInput();
+  else if(window.paintSwReady) paintSwReady();
 }
 function totalSec(){
   const day=ensureDay(state.viewDate);
@@ -2058,8 +2382,27 @@ function renderTotal(){
 
 /* ================= timeline ================= */
 const tlContent=$("#tlContent"), tlLabels=$("#tlLabels");
+function fitTlGutters(root){
+  const tl=root||document.querySelector("#trackerView .tl")||tlLabels.closest(".tl");
+  if(!tl||!tlLabels) return;
+  const cs=getComputedStyle(tlLabels);
+  const probe=document.createElement("span");
+  probe.textContent="24";
+  probe.style.cssText="position:absolute;visibility:hidden;pointer-events:none;white-space:nowrap;font:"+cs.font+";font-variant-numeric:tabular-nums;letter-spacing:"+cs.letterSpacing+";";
+  document.body.appendChild(probe);
+  const tw=Math.ceil(probe.getBoundingClientRect().width);
+  probe.remove();
+  const labW=Math.max(14, tw+1);
+  tl.style.setProperty("--tl-lab-w", labW+"px");
+  // Keep a hairline outer inset so labels never kiss the bezel; right side stays a soft label breath.
+  const edge=Math.max(4, Math.round((window.visualViewport&&visualViewport.offsetLeft)||0)?4:4);
+  tl.style.setProperty("--tl-pad-x", "max("+edge+"px, env(safe-area-inset-left, 0px))");
+  tl.style.setProperty("--tl-pad-r", "max(8px, env(safe-area-inset-right, 0px))");
+  tl.style.setProperty("--tl-lab-gap", "4px");
+}
 function buildTimeline(){
   const H=tlHeight();
+  fitTlGutters(tlLabels.closest(".tl"));
   tlContent.style.height=H+"px";
   tlLabels.style.height=H+"px";
   tlLabels.innerHTML="";
@@ -2392,20 +2735,43 @@ function renderPreview(){
     tlContent.appendChild(d);
   }
 }
+/* v3.12.15 touch intent split: tap=add/edit, swipe=scroll, long-press(320ms)+drag=range create */
+let tlTouch=null;
+function tlBeginDrag(e,isTouch){
+  drag={anchor:cellAt(e),cur:cellAt(e),startedOn:e.target.closest(".seg")||null,moved:false,touch:!!isTouch};
+  try{ tlContent.setPointerCapture(e.pointerId); }catch(_){}
+}
+function tlCancelTouch(){ if(tlTouch){ clearTimeout(tlTouch.timer); tlTouch=null; } }
 tlContent.addEventListener("pointerdown",e=>{
   if(e.target.closest(".rt-strip,.rt-flag")) return;
-  drag={anchor:cellAt(e),cur:cellAt(e),startedOn:e.target.closest(".seg")||null,moved:false};
-  tlContent.setPointerCapture(e.pointerId);
+  if(e.pointerType==="touch"){
+    tlCancelTouch();
+    tlTouch={x:e.clientX,y:e.clientY,e:e,timer:setTimeout(()=>{
+      tlTouch=null;
+      tlBeginDrag(e,true);
+      tlContent.classList.add("tl-arming");
+      if(navigator.vibrate) navigator.vibrate(10);
+      renderPreview();
+    },320)};
+    return;
+  }
+  tlBeginDrag(e,false);
   e.preventDefault();
 });
 tlContent.addEventListener("pointermove",e=>{
+  if(tlTouch&&!drag){
+    if(Math.hypot(e.clientX-tlTouch.x,e.clientY-tlTouch.y)>8) tlCancelTouch();
+    return;
+  }
   if(!drag) return;
   const c=cellAt(e);
   if(c!==drag.cur){ drag.cur=c; drag.moved=true; renderPreview(); }
 });
+tlContent.addEventListener("touchmove",e=>{ if(drag&&drag.touch) e.preventDefault(); },{passive:false});
 function endDrag(){
   if(!drag) return;
   const d=drag; drag=null;
+  tlContent.classList.remove("tl-arming");
   tlContent.querySelectorAll(".preview").forEach(p=>p.remove());
   const day=ensureDay(state.viewDate);
   if(!d.moved && d.startedOn && d.startedOn.dataset.evId){
@@ -2413,8 +2779,9 @@ function endDrag(){
     if(ev) openEvDlg(ev);
     return;
   }
-  const act=currentActivity(true);
-  if(!act) return;
+  const ctx=resolveStartContext(true);
+  if(!ctx) return;
+  const act=ctx.act;
   act.lastUsed=Date.now();
   const a=Math.min(d.anchor,d.cur), b=Math.max(d.anchor,d.cur);
   let s=a*10, e=(b+1)*10;
@@ -2424,11 +2791,14 @@ function endDrag(){
     if(s>=lim){ toast("현재 시각 이후 구간에는 기록을 추가할 수 없습니다"); return; }
     if(e>lim) e=lim;
   }
-  addInterval(day,act.id,s,e);
-  save(); renderTimeline(); renderStats(); renderTotal();
+  addInterval(day,act.id,s,e,ctx.tags);
+  save(); renderTimeline(); renderStats(); renderTotal(); renderTodos(); renderRoutines();
 }
-tlContent.addEventListener("pointerup",endDrag);
-tlContent.addEventListener("pointercancel",()=>{drag=null; tlContent.querySelectorAll(".preview").forEach(p=>p.remove());});
+tlContent.addEventListener("pointerup",e=>{
+  if(tlTouch){ const t=tlTouch; tlCancelTouch(); tlBeginDrag(t.e,true); }
+  endDrag();
+});
+tlContent.addEventListener("pointercancel",()=>{tlCancelTouch(); drag=null; tlContent.classList.remove("tl-arming"); tlContent.querySelectorAll(".preview").forEach(p=>p.remove());});
 
 /* ================= event edit dialog ================= */
 let editingEvId=null;
@@ -2530,20 +2900,28 @@ function dayDetail(dateStr){
     routineDone:routines.filter(r=>r.done).length, routineTotal:routines.length};
 }
 let statPeriod="today";
+const _stOrder={today:0,week:1,month:2};
 function setStatPeriod(p){
+  const prev=statPeriod, changed=p!==prev;
+  const dir=changed? Math.sign(_stOrder[p]-_stOrder[prev]):0;
   statPeriod=p;
   document.querySelectorAll("#statSeg button").forEach(b=>b.classList.toggle("active",b.dataset.per===p));
+  const seg=$("#statSeg"); if(seg&&seg._slideIndMove) seg._slideIndMove(changed);
   $("#stToday").hidden=p!=="today";
   $("#stWeek").hidden=p!=="week";
   $("#stMonth").hidden=p!=="month";
   statsAnimPending=true; renderStats(); animStats();
-  if(GS){ const v=p==="today"?"#stToday":p==="week"?"#stWeek":"#stMonth"; GS.fromTo(v,{opacity:0,y:8},{opacity:1,y:0,duration:.28,ease:"power2.out",clearProps:"opacity,transform"}); }
+  const v=p==="today"?$("#stToday"):p==="week"?$("#stWeek"):$("#stMonth");
+  v.classList.remove("view-in-l","view-in-r");
+  if(changed && dir!==0){ void v.offsetWidth; v.classList.add(dir>0?"view-in-r":"view-in-l"); }
 }
 document.querySelectorAll("#statSeg button").forEach(b=>b.addEventListener("click",()=>setStatPeriod(b.dataset.per)));
 document.querySelectorAll("#wkMode button").forEach(b=>b.addEventListener("click",()=>{
   if(b.dataset.wm===weekMode) return;
   weekMode=b.dataset.wm; try{localStorage.setItem("timegrid-weekmode",weekMode);}catch(e){}
+  document.querySelectorAll("#wkMode button").forEach(x=>x.classList.toggle("active",x===b));
   renderStWeek();
+  const wm=$("#wkMode"); if(wm&&wm._slideIndMove) wm._slideIndMove(true);
 }));
 function renderStats(){
   if(statPeriod==="today") renderStToday();
@@ -2564,7 +2942,7 @@ function renderStToday(){
     vb.hidden=false;
     const diff=total-yTotal;
     if(diff===0){ vb.textContent="어제와 동일"; vb.className="delta-badge up"; }
-    else{ vb.textContent=(diff>0?"▲ ":"▼ ")+fmtShort(Math.abs(diff))+" 어제보다"; vb.className="delta-badge "+(diff>0?"up":"down"); }
+    else{ vb.textContent="어제보다 "+(diff>0?"▲ ":"▼ ")+fmtShort(Math.abs(diff)); vb.className="delta-badge "+(diff>0?"up":"down"); }
   }
   const band=$("#dayBand"); band.innerHTML="";
   const day=state.days[state.viewDate];
@@ -2613,6 +2991,7 @@ function renderStToday(){
       const row=document.createElement("div"); row.className="srow";
       row.innerHTML='<span class="dot" style="background:'+(act?act.color:"#999")+'"></span><span class="name">'+(act?esc(act.name):"(삭제된 활동)")+'</span><span class="tag" style="color:'+(act?areaColor(act.area):"var(--text2)")+'">'+(act?esc(act.area):"기타")+'</span><span class="t">'+fmtDur(min)+' · '+cnt+'회 · 평균 '+fmtShort(avg)+'</span><span class="pct">'+pct+'%</span>';
       actBox.appendChild(row);
+      const abar=document.createElement("div"); abar.className="sbar"; abar.innerHTML='<i style="width:'+pct+'%;background:'+(act?act.color:"#999")+'"></i>'; actBox.appendChild(abar);
       const src=det.perActSrc[id]||{todo:0,routine:0,free:0};
       if(src.todo||src.routine){
         const parts=[];
@@ -3375,6 +3754,8 @@ $("#rttApply").addEventListener("click",()=>{
 });
 let rtEditMode=false;
 let rtEditFilter="all";
+/* enter=list stagger on edit open; add={id} only new row; null=no list anim */
+let _rtEditAnim=null;
 function syncDayRoutines(dateStr){
   const day=state.days[dateStr];
   if(!day) return;
@@ -3438,15 +3819,52 @@ function renderRoutines(){
     list.appendChild(row);
   }
 }
+function removeRtEditRow(row,def){
+  if(!row||row._rtDelLock) return;
+  row._rtDelLock=true;
+  const _i=state.settings.routineDefs.indexOf(def);
+  const finish=function(){
+    state.settings.routineDefs=state.settings.routineDefs.filter(function(x){return x!==def;});
+    _rtEditAnim=null;
+    commitRoutineDefs();
+    toast("루틴 삭제됨: "+def.name,function(){
+      if(!def.id) def.id=uid("rd");
+      state.settings.routineDefs.splice(Math.min(_i<0?0:_i,state.settings.routineDefs.length),0,def);
+      _rtEditAnim={type:"restore",id:def.id};
+      commitRoutineDefs();
+    });
+  };
+  if(rmPref()){ finish(); return; }
+  const h=Math.ceil(row.getBoundingClientRect().height);
+  row.style.pointerEvents="none";
+  row.style.overflow="hidden";
+  row.style.boxSizing="border-box";
+  row.style.transformOrigin="0% 50%";
+  /* slide L + height collapse → gap fill without full-list stagger */
+  if(GS){
+    GS.killTweensOf(row);
+    GS.set(row,{height:h,overflow:"hidden",transformOrigin:"0% 50%",willChange:"transform,opacity,height"});
+    /* slide fully out to the left first, only then close the gap */
+    GS.timeline({onComplete:finish})
+      .to(row,{opacity:0,x:-18,scale:0.98,duration:0.16,ease:"power2.in"},0)
+      .to(row,{height:0,paddingTop:0,paddingBottom:0,marginTop:0,marginBottom:0,duration:0.36,ease:"power4.in"},0.21);
+  }else{
+    row.style.setProperty("--rt-h", h+"px");
+    row.classList.add("rt-edit-exit");
+    var done=false;
+    var once=function(){ if(done) return; done=true; finish(); };
+    row.addEventListener("animationend", once, {once:true});
+    setTimeout(once, 620);
+  }
+}
 function renderRoutineEditor(list){
   const DOWS=["일","월","화","수","목","금","토"];
   const fbar=document.createElement("div"); fbar.className="rt-filter";
-  const flb=document.createElement("span"); flb.className="rt-filter-lb"; flb.textContent="요일"; fbar.appendChild(flb);
   const mkFilterBtn=(lb,val)=>{
     const b=document.createElement("button"); b.type="button";
     b.className="dow-pill"+(val==="all"?" all":"")+(val===0?" sun":val===6?" sat":"")+(rtEditFilter===val?" on":"");
     b.textContent=lb;
-    b.addEventListener("click",()=>{ rtEditFilter=val; renderRoutines(); });
+    b.addEventListener("click",()=>{ rtEditFilter=val; _rtEditAnim=null; renderRoutines(); });
     fbar.appendChild(b);
   };
   mkFilterBtn("전체","all");
@@ -3458,15 +3876,20 @@ function renderRoutineEditor(list){
     if(rtEditFilter!=="all" && !def.days.includes(rtEditFilter)) continue;
     shown++;
     const row=document.createElement("div"); row.className="rt-edit-row";
+    if(def.id) row.setAttribute("data-rd", def.id);
+    /* pre-hide restore target before paint (L offset + collapsed) */
+    if(_rtEditAnim&&_rtEditAnim.type==="restore"&&def.id&&_rtEditAnim.id===def.id){
+      row.style.opacity="0"; row.style.overflow="hidden"; row.style.height="0";
+      row.style.transform="translateX(-14px) scale(0.98)";
+      row.style.pointerEvents="none";
+    }
     const tm=timeBtn({time:def.time||"",end:def.end||""}, v=>{ def.time=v.time; def.end=v.end||""; commitRoutineDefs(false); });
     const nm=document.createElement("input"); nm.type="text"; nm.className="rt-edit-name"; nm.value=def.name;
     nm.addEventListener("change",()=>{const v=nm.value.trim(); if(!v){nm.value=def.name;return;} def.name=v; commitRoutineDefs(false);});
     const del=document.createElement("button"); del.className="del icon-btn"; del.textContent="✕"; del.setAttribute("aria-label","루틴 삭제");
-    del.addEventListener("click",()=>{
-      const _i=state.settings.routineDefs.indexOf(def);
-      state.settings.routineDefs=state.settings.routineDefs.filter(x=>x!==def);
-      commitRoutineDefs();
-      toast("루틴 삭제됨: "+def.name,()=>{ state.settings.routineDefs.splice(Math.min(_i<0?0:_i,state.settings.routineDefs.length),0,def); commitRoutineDefs(); });
+    del.addEventListener("click",function(ev){
+      ev.preventDefault(); ev.stopPropagation();
+      removeRtEditRow(row, def);
     });
     const days=document.createElement("div"); days.className="rt-days";
     DOWS.forEach((lb,i)=>{
@@ -3488,17 +3911,60 @@ function renderRoutineEditor(list){
   const addWrap=document.createElement("div"); addWrap.className="rt-add-row";
   const add=document.createElement("button"); add.className="btn"; add.textContent="＋ 루틴 추가";
   add.addEventListener("click",()=>{
-    state.settings.routineDefs.push({id:uid("rd"),time:"",name:"새 루틴",days:rtEditFilter==="all"?[0,1,2,3,4,5,6]:[rtEditFilter]});
+    const nid=uid("rd");
+    state.settings.routineDefs.push({id:nid,time:"",name:"새 루틴",days:rtEditFilter==="all"?[0,1,2,3,4,5,6]:[rtEditFilter]});
+    _rtEditAnim={type:"add",id:nid};
     commitRoutineDefs();
-    const names=$("#routineList").querySelectorAll(".rt-edit-name");
-    const last=names[names.length-1]; if(last){ last.focus(); last.select(); }
+    const row=$("#routineList").querySelector('.rt-edit-row[data-rd="'+nid+'"]');
+    const last=row? row.querySelector(".rt-edit-name"):null;
+    if(last){ last.focus(); last.select(); }
   });
   addWrap.appendChild(add);
   list.appendChild(addWrap);
-  if(GS) GS.from(list.querySelectorAll(".rt-edit-row"),{opacity:0,y:6,duration:.3,stagger:.03,ease:"power2.out",clearProps:"opacity,transform"});
+  /* Emil: L→R enter / L exit; add/restore single-row; edit-open stagger; filter none */
+  const anim=_rtEditAnim; _rtEditAnim=null;
+  if(rmPref()) return;
+  if(anim && (anim.type==="add" || anim.type==="restore") && anim.id){
+    const row=list.querySelector('.rt-edit-row[data-rd="'+anim.id+'"]');
+    if(!row) return;
+    if(GS){
+      /* gap opens fully first (rows below settle), then the row slides in L->R */
+      GS.killTweensOf(row);
+      row.style.pointerEvents="none";
+      row.style.overflow="hidden";
+      if(anim.type==="restore"){
+        row.style.opacity="0";
+        row.style.height="auto";
+        row.style.transform="none";
+      }
+      const h=Math.max(1, Math.ceil(row.getBoundingClientRect().height)||Math.ceil(row.scrollHeight));
+      GS.set(row,{overflow:"hidden",height:0,opacity:0,x:-16,scale:0.98,transformOrigin:"0% 50%",willChange:"transform,opacity,height"});
+      GS.timeline({onComplete:function(){
+        GS.set(row,{clearProps:"height,overflow,opacity,transform,transformOrigin,pointerEvents,willChange"});
+      }})
+        /* gap OPEN: hand-pull — snappier start, decelerate, slight overshoot (≠ delete power4.in) */
+        .to(row,{height:h,duration:0.37,ease:"back.out(1.4)"},0)
+        .to(row,{opacity:1,x:0,scale:1,duration:0.18,ease:"power3.out"},0.28);
+    }else{
+      const h=Math.max(1, Math.ceil(row.getBoundingClientRect().height)||Math.ceil(row.scrollHeight));
+      row.style.setProperty("--rt-h", h+"px");
+      row.classList.add(anim.type==="restore"?"rt-edit-restore":"rt-edit-enter");
+      row.addEventListener("animationend",function(){
+        row.classList.remove("rt-edit-enter","rt-edit-restore");
+        row.style.removeProperty("--rt-h");
+      },{once:true});
+    }
+  }else if(anim && anim.type==="enter"){
+    const rows=list.querySelectorAll(".rt-edit-row");
+    if(!rows.length) return;
+    if(GS){
+      GS.from(rows,{opacity:0,x:-14,duration:0.28,stagger:0.035,ease:"power3.out",clearProps:"opacity,transform"});
+    }
+  }
 }
 $("#rtEditToggle").addEventListener("change",e=>{
   rtEditMode=e.target.checked;
+  _rtEditAnim=rtEditMode?{type:"enter"}:null;
   sortRoutineDefsByTime();
   syncDayRoutines(state.viewDate);
   save();
@@ -3520,6 +3986,34 @@ function apPickAnim(btn,list,row,closeFn){
     setTimeout(function(){ if(list)list.classList.remove("closing"); if(row)row.classList.remove("picked"); if(closeFn)closeFn(); },200);
   }
   setTimeout(function(){btn._apLock=false;},380);
+}
+function placeApList(btn,list){
+  if(!btn||!list) return;
+  const vv=window.visualViewport;
+  const vx=vv?vv.offsetLeft:0, vy=vv?vv.offsetTop:0;
+  const vw=vv?vv.width:window.innerWidth, vh=vv?vv.height:window.innerHeight;
+  const r=btn.getBoundingClientRect(), scroll=list._scroll;
+  list.style.display='block';
+  list.style.left='-9999px'; list.style.top=vy+'px'; list.style.bottom='';
+  list.style.maxWidth='none'; list.style.width='max-content';
+  if(scroll) scroll.style.maxHeight='236px';
+  const naturalW=Math.ceil(list.getBoundingClientRect().width);
+  const maxW=Math.max(120,Math.floor(vw-16));
+  const w=Math.min(maxW,Math.max(120,naturalW));
+  list.style.width=w+'px'; list.style.maxWidth=maxW+'px';
+  const naturalH=Math.min(248,Math.ceil(list.scrollHeight||list.getBoundingClientRect().height));
+  const below=Math.max(0,vy+vh-r.bottom-12), above=Math.max(0,r.top-vy-12);
+  const flip=below<Math.min(naturalH,180)&&above>below;
+  const room=Math.max(96,flip?above:below);
+  const maxH=Math.min(248,Math.floor(room));
+  list.style.maxHeight=maxH+'px';
+  if(scroll) scroll.style.maxHeight=Math.max(84,maxH-12)+'px';
+  const actualH=Math.ceil(list.getBoundingClientRect().height);
+  const left=Math.max(vx+8,Math.min(r.left,vx+vw-w-8));
+  const top=flip?Math.max(vy+8,r.top-4-actualH):Math.min(r.bottom+4,vy+vh-actualH-8);
+  list.style.left=Math.round(left)+'px'; list.style.top=Math.round(top)+'px';
+  list.style.bottom='';
+  if(list._updateThumb) list._updateThumb();
 }
 function areaBtn(value,onSelect,opts){
   opts=opts||{}
@@ -3580,14 +4074,7 @@ function areaBtn(value,onSelect,opts){
     list.dataset.selIdx=selectedIdx
   function positionList(){
       if(!list)return
-      var r=btn.getBoundingClientRect()
-      list.style.left=r.left+'px'
-      list.style.width=Math.max(r.width,200)+'px'
-      list.style.display='block'
-      var lh=list.offsetHeight, wh=window.innerHeight
-      var flipUp=(r.bottom+4+lh>wh-8 && r.top-lh-4>8)
-      if(flipUp){list.style.top='';list.style.bottom=(wh-r.top+4)+'px'}
-      else{list.style.bottom='';list.style.top=(r.bottom+4)+'px'}
+      placeApList(btn,list)
       updateThumb()
     }
     _openAp.list=list
@@ -3626,7 +4113,7 @@ function catActBtn(value,onSelect,opts){
     }else if(ar){
       btn.innerHTML='<span class="ap-nm"><span class="ca-ar" style="color:'+ar.color+'">'+esc(ar.name)+'</span></span><span class="ap-tri">▾</span>'
     }else{
-      btn.innerHTML='<span class="ap-nm" style="color:var(--text3)">영역·활동</span><span class="ap-tri">▾</span>'
+      btn.innerHTML='<span class="ap-nm ph" style="color:var(--text3)">영역·활동</span><span class="ap-tri">▾</span>'
     }
   }
   refresh()
@@ -3658,6 +4145,11 @@ function catActBtn(value,onSelect,opts){
       thumb.classList.add('show')
     }
     list._updateThumb=updateThumb
+    const clear=document.createElement('div')
+    clear.className='ac-row clear-link'+((!cur.area&&!cur.actId)?' selected':'')
+    clear.innerHTML='<span class="nm">연결 없음</span>'
+    clear.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();pick(null,null,clear)})
+    clear.addEventListener('pointerdown',function(ev){ev.stopPropagation()})
     state.settings.areas.forEach(function(a){
       const hd=document.createElement('div')
       hd.className='ac-row cat-hd'+((!cur.actId&&cur.area===a.name)?' selected':'')
@@ -3674,20 +4166,14 @@ function catActBtn(value,onSelect,opts){
         scroll.appendChild(row)
       })
     })
+    scroll.appendChild(clear)
     var rows=scroll.querySelectorAll('.ac-row')
     rows.forEach(function(r,i){ r.addEventListener('pointerenter',function(){rows.forEach(function(x){x.classList.remove('selected')});r.classList.add('selected');if(list)list.dataset.selIdx=i}) })
     var selIdx=Array.prototype.findIndex.call(rows,function(r){return r.classList.contains('selected')})
     list.dataset.selIdx=selIdx<0?0:selIdx
     function positionList(){
       if(!list)return
-      var r=btn.getBoundingClientRect()
-      list.style.left=r.left+'px'
-      list.style.width=Math.max(r.width,230)+'px'
-      list.style.display='block'
-      var lh=list.offsetHeight, wh=window.innerHeight
-      var flipUp=(r.bottom+4+lh>wh-8 && r.top-lh-4>8)
-      if(flipUp){list.style.top='';list.style.bottom=(wh-r.top+4)+'px'}
-      else{list.style.bottom='';list.style.top=(r.bottom+4)+'px'}
+      placeApList(btn,list)
       updateThumb()
     }
     _openAp.list=list
@@ -3710,7 +4196,6 @@ function catActBtn(value,onSelect,opts){
     const act=cur.actId? actById(cur.actId):null
     if(act) cur.area=act.area
     if(cur.area&&!areaByName(cur.area)) cur.area=null
-    if(!cur.area&&state.settings.areas.length) cur.area=state.settings.areas[0].name
     refresh()
   }
   return btn
@@ -3718,7 +4203,7 @@ function catActBtn(value,onSelect,opts){
 var _openAp={btn:null,list:null}
 function _closeAp(){if(_openAp.btn){var ev=new MouseEvent('click',{bubbles:false});_openAp.btn.dispatchEvent(ev)}}
 function _apOutClick(ev){if(_openAp.btn&&_openAp.btn!==ev.target&&!_openAp.btn.contains(ev.target)){var _apl=document.querySelector('.ap-list');if(_apl&&_apl.contains(ev.target))return;_closeAp()}}
-function _apReposition(ev){if(_openAp.btn){var r=_openAp.btn.getBoundingClientRect();var list=_openAp.list;if(!list)return;var lh=list.offsetHeight,wh=window.innerHeight;var flipUp=(r.bottom+4+lh>wh-8&&r.top-lh-4>8);if(flipUp){list.style.top='';list.style.bottom=(wh-r.top+4)+'px'}else{list.style.bottom='';list.style.top=(r.bottom+4)+'px'}list.style.left=r.left+'px'}}
+function _apReposition(ev){if(_openAp.btn&&_openAp.list)placeApList(_openAp.btn,_openAp.list)}
 function _apKey(ev){if(!_openAp.btn)return;var list=_openAp.list;if(!list)return;var scroll=list._scroll||list;var rows=scroll.querySelectorAll('.ac-row');if(!rows.length)return;var selIdx=parseInt(list.dataset.selIdx||'0');if(ev.key==='ArrowDown'){ev.preventDefault();selIdx=Math.min(selIdx+1,rows.length-1);rows.forEach(function(r){r.classList.remove('selected')});rows[selIdx].classList.add('selected');rows[selIdx].scrollIntoView({block:'nearest'});list.dataset.selIdx=selIdx;if(list._updateThumb)list._updateThumb();}
   else if(ev.key==='ArrowUp'){ev.preventDefault();selIdx=Math.max(selIdx-1,0);rows.forEach(function(r){r.classList.remove('selected')});rows[selIdx].classList.add('selected');rows[selIdx].scrollIntoView({block:'nearest'});list.dataset.selIdx=selIdx;if(list._updateThumb)list._updateThumb();}
   else if(ev.key==='Enter'){ev.preventDefault();ev.stopPropagation();if(rows[selIdx])rows[selIdx].click()}
@@ -3742,15 +4227,16 @@ function areaLockBtn(){
 }
 function syncAreaLock(){
   var inp=document.getElementById('actInput'); if(!inp)return;
-  var btn=areaLockBtn(); if(!btn||!btn._setLocked)return;
+  var btn=areaLockBtn();
   var v=inp.value.trim().toLowerCase();
   var act=v? state.settings.activities.find(function(a){return a.name.toLowerCase()===v;}):null;
   if(act){
     if(areaByName(act.area)){ $("#areaSelect").value=act.area; refreshAreaPickers(); }
-    btn._setLocked(true);
+    if(btn&&btn._setLocked) btn._setLocked(true);
   }else{
-    btn._setLocked(false);
+    if(btn&&btn._setLocked) btn._setLocked(false);
   }
+  if(window.paintActInput) paintActInput();
 }
 window.syncAreaLock=syncAreaLock;
 
@@ -3858,7 +4344,7 @@ function renderManager(){
   const abox=$("#areasList"); abox.innerHTML="";
   for(const ar of state.settings.areas){
     const row=document.createElement("div"); row.className="act-edit"; row.dataset.aname=ar.name;
-    const ahd=document.createElement("span"); ahd.className="handle"; ahd.textContent="⁞"; ahd.title="끌어서 순서 변경";
+    const ahd=document.createElement("span"); ahd.className="handle"; ahd.setAttribute("aria-label","끌어서 순서 변경"); attachTip(ahd,'<span class="rt-tip-t">끌어서 순서 변경</span>');
     ahd.addEventListener("pointerdown",e=>startAreaDrag(e,ar,row));
     const col=colorField(ar.color,(c)=>{
       ar.color=c; nm.style.color=ar.color;
@@ -3890,9 +4376,9 @@ function renderManager(){
     });
     const del=document.createElement("button"); del.className="del icon-btn"; del.textContent="✕"; del.setAttribute("aria-label","삭제");
     const _actN=state.settings.activities.filter(x=>x.area===ar.name).length;
-    const cnt=document.createElement("span"); cnt.className="a-cnt"; cnt.textContent=_actN; cnt.title="이 영역의 활동 수";
-    if(state.settings.areas.length<=1){ del.classList.add("blocked"); del.title="영역은 최소 1개 필요합니다"; }
-    else if(_actN>0){ del.classList.add("blocked"); del.title="활동이 있는 영역은 삭제할 수 없습니다"; }
+    const cnt=document.createElement("span"); cnt.className="a-cnt"; cnt.textContent=_actN; attachTip(cnt,'<span class="rt-tip-t">이 영역의 활동 수</span>');
+    if(state.settings.areas.length<=1){ del.classList.add("blocked"); attachTip(del,'<span class="rt-tip-t">영역은 최소 1개 필요합니다</span>'); }
+    else if(_actN>0){ del.classList.add("blocked"); attachTip(del,'<span class="rt-tip-t">활동이 있는 영역은 삭제할 수 없습니다</span>'); }
     del.addEventListener("click",()=>{
       if(state.settings.areas.length<=1){ toast("영역은 최소 1개 필요합니다."); return; }
       if(state.settings.activities.some(a=>a.area===ar.name)){ toast("이 영역을 쓰는 활동이 있어 삭제할 수 없습니다. 활동을 먼저 다른 영역으로 옮겨 주세요."); return; }
@@ -3904,31 +4390,38 @@ function renderManager(){
     row.append(ahd,col,nm,cnt,del);
     abox.appendChild(row);
   }
+  (function(){const _a=$("#mgrAreaCnt"),_c=$("#mgrActCnt"); if(_a) _a.textContent=state.settings.areas.length; if(_c) _c.textContent=state.settings.activities.length;})();
   const box=$("#actsList"); box.innerHTML="";
   for(const ar of state.settings.areas){
     const acts=state.settings.activities.filter(a=>a.area===ar.name);
     const grp=document.createElement("div"); grp.className="grp"; grp.dataset.area=ar.name;
     const head=document.createElement("button"); head.className="grp-head"; head.dataset.area=ar.name;
     const open=expandedGrps.has(ar.name);
-    head.innerHTML='<span class="tri">'+(open?"▾":"▸")+'</span><span class="dot" style="background:'+ar.color+'"></span><span class="grp-name" style="color:'+ar.color+'">'+esc(ar.name)+'</span><span class="cnt">'+acts.length+'</span><span class="act-paint" style="font-size:14px;cursor:pointer;padding:0 4px;" title="활동 그라데이션 배색">🎨</span>';
-    head.querySelector(".act-paint").addEventListener("click",e=>{e.preventDefault();e.stopPropagation();autoColorActs(ar.name);});
+    if(open) grp.classList.add("open");
+    head.innerHTML='<span class="tri">▸</span><span class="dot" style="background:'+ar.color+'"></span><span class="grp-name" style="color:'+ar.color+'">'+esc(ar.name)+'</span><span class="cnt">'+acts.length+'</span><span class="act-paint" aria-label="활동 그라데이션 배색">🎨</span>';
+    const paintBtn=head.querySelector(".act-paint");
+    attachTip(paintBtn,'<span class="rt-tip-t">활동 그라데이션 배색</span>');
+    paintBtn.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();autoColorActs(ar.name);});
     head.addEventListener("click",()=>{
-      if(expandedGrps.has(ar.name)) expandedGrps.delete(ar.name); else expandedGrps.add(ar.name);
-      renderManager();
+      const nowOpen=!grp.classList.contains("open");
+      if(nowOpen) expandedGrps.add(ar.name); else expandedGrps.delete(ar.name);
+      grp.classList.toggle("open",nowOpen);
     });
     grp.appendChild(head);
-    if(open){
+    {
       const body=document.createElement("div"); body.className="grp-body";
+      const inner=document.createElement("div"); inner.className="grp-inner";
+      body.appendChild(inner);
       if(!acts.length){
         const eb=document.createElement("div"); eb.className="grp-empty";
         const et=document.createElement("span"); et.textContent="아직 활동이 없습니다. 끌어다 놓거나 새로 만드세요.";
         const cta=document.createElement("button"); cta.className="btn grp-empty-cta"; cta.textContent="＋ 이 영역에 활동 추가";
         cta.addEventListener("click",()=>toggleActAddForm(ar.name));
-        eb.append(et,cta); body.appendChild(eb);
+        eb.append(et,cta); inner.appendChild(eb);
       }
       for(const a of acts){
         const row=document.createElement("div"); row.className="act-edit"; row.dataset.id=a.id;
-        const hd=document.createElement("span"); hd.className="handle"; hd.textContent="⁞"; hd.title="끌어서 이동";
+        const hd=document.createElement("span"); hd.className="handle"; hd.setAttribute("aria-label","끌어서 다른 영역으로 이동"); attachTip(hd,'<span class="rt-tip-t">끌어서 다른 영역으로 이동</span>');
         const col=colorField(a.color,(c)=>{a.color=c; save(); renderAll();},{container:$("#actsDlg")});
         const nm=document.createElement("input"); nm.type="text"; nm.value=a.name;
         nm.addEventListener("change",()=>{
@@ -3946,7 +4439,7 @@ function renderManager(){
         });
         hd.addEventListener("pointerdown",e=>startActDrag(e,a,row));
         row.append(hd,col,nm,arBtn,del);
-        body.appendChild(row);
+        inner.appendChild(row);
       }
       grp.appendChild(body);
     }
@@ -4049,12 +4542,13 @@ function resolveActDrop(x,y,animate){
   if(!grp) return;
   var area=grp.dataset.area;
   var head=grp.querySelector('.grp-head');
-  var body=grp.querySelector('.grp-body');
-  var rows=body?[].slice.call(body.querySelectorAll('.act-edit[data-id]')).filter(function(n){return n!==mdrag.row;}):[];
+  var grpOpen=grp.classList.contains('open');
+  var body=grp.querySelector('.grp-inner');
+  var rows=(body&&grpOpen)?[].slice.call(body.querySelectorAll('.act-edit[data-id]')).filter(function(n){return n!==mdrag.row;}):[];
   /* first row whose vertical midpoint sits below the pointer = insert before it */
   var beforeRow=null;
   for(var j=0;j<rows.length;j++){ var rr=rows[j].getBoundingClientRect(); if(y<rr.top+rr.height/2){ beforeRow=rows[j]; break; } }
-  if(body){
+  if(body&&grpOpen){
     var flip=animate?flipSibs(body):null;
     if(beforeRow) body.insertBefore(mdrag.ph,beforeRow);
     else body.appendChild(mdrag.ph);
@@ -4231,6 +4725,7 @@ function toggleActAddForm(presetArea){
   nameInp.focus();
 }
 $("#actAdd").addEventListener("click",toggleActAddForm);
+attachTip($("#autoColorBtn"),'<span class="rt-tip-t">모든 영역·활동을 무지개 순서로 자동 배색</span>');
 $("#autoColorBtn").addEventListener("click",()=>autoColorAll());
 
 /* ================= import / export ================= */
@@ -4604,29 +5099,43 @@ function buildRoutineDefs(){
   return {v:2, kind:"routineDefs",
     defs:state.settings.routineDefs.map(d=>{ const a=d.actId? actById(d.actId):null; return {id:d.id,time:d.time||"",end:d.end||"",name:d.name,days:(d.days&&d.days.length)? d.days:[0,1,2,3,4,5,6],act:a? a.name:null,area:a? a.area:(d.area||null)}; })};
 }
+function buildPlan(ds){
+  const day=state.days[ds]||{events:[],todos:[],routines:[]};
+  const todos=(day.todos||[]).map(t=>{ const a=t.actId? actById(t.actId):null; return {id:t.id,title:t.title,area:t.area||(a? a.area:null),act:a? a.name:null}; });
+  const extras=(day.routines||[]).filter(r=>r.extra).map(r=>{ const a=r.actId? actById(r.actId):null; const o={time:r.time||"",name:r.name}; if(r.end) o.end=r.end; o.act=a? a.name:null; const _ar=r.area||(a? a.area:null); if(_ar) o.area=_ar; return o; });
+  return {v:2,kind:"plan",date:ds,todos:todos,extraRoutines:extras};
+}
 let expTarget="log";
 function buildExport(){
+  if(expTarget==="plan"){ expDates(); return buildPlan(expDay); }
   if(expTarget==="routineDefs") return buildRoutineDefs();
   if(expTarget==="backup") return buildBackup();
   return buildLogRange();
 }
 function expLabel(){
+  if(expTarget==="plan"){ expDates(); return "계획 ("+expDay+")"; }
   if(expTarget==="routineDefs") return "루틴 정의 "+state.settings.routineDefs.length+"개";
   if(expTarget==="backup") return "전체 백업 (기록 "+Object.keys(state.days).length+"일치)";
   expDates();
   return expMode==="day"? "기록 ("+expDay+")" : "기록 ("+expFrom+" ~ "+expTo+")";
 }
 function refreshExport(){
-  $("#expLogOpts").style.display= expTarget==="log"? "":"none";
+  if(expTarget==="plan"&&expMode==="range") expMode="day";
+  $("#expLogOpts").style.display= (expTarget==="log"||expTarget==="plan")? "":"none";
+  (function(){const p7=document.querySelector('.exp-preset[data-epre="7d"]'); if(p7) p7.style.display= expTarget==="plan"? "none":"";})();
   expDates();
   $("#expDateLbl").textContent=expDateLabel();
   $("#expSkipWrap").style.display= expMode==="range"? "":"none";
   const dsc=$("#expDesc");
-  if(dsc){ dsc.textContent= expTarget==="log"? "선택한 날짜·기간의 이벤트·할일·루틴·통계를 내보냅니다. 윤투 '기록 반영'에 사용합니다." : expTarget==="routineDefs"? "반복 루틴 마스터 정의를 내보냅니다. 기기 간 루틴 동기화에 사용합니다." : "설정과 모든 날짜 기록을 통째로 내보냅니다. 복원·기기 이전용입니다."; }
+  if(dsc){ dsc.textContent= expTarget==="log"? "선택한 날짜·기간의 이벤트·할일·루틴·통계를 내보냅니다. 윤투 '기록 반영'에 사용합니다." : expTarget==="plan"? "선택한 날짜의 할일·일회성 루틴을 계획(plan) JSON으로 내보냅니다. 다른 날짜·기기로 계획을 옮기거나 가져오기로 재적용할 때 사용합니다." : expTarget==="routineDefs"? "반복 루틴 마스터 정의를 내보냅니다. 기기 간 루틴 동기화에 사용합니다." : "설정과 모든 날짜 기록을 통째로 내보냅니다. 복원·기기 이전용입니다."; }
   const info=$("#exportInfo");
   if(expTarget==="backup"){
     info.hidden=false;
     info.textContent="현재 데이터: 기록 "+Object.keys(state.days).length+"일치 · 영역 "+state.settings.areas.length+"개 · 활동 "+state.settings.activities.length+"개 · 루틴 "+state.settings.routineDefs.length+"개";
+  }else if(expTarget==="plan"){
+    const o=buildPlan(expDay);
+    info.hidden=false;
+    info.textContent=expDay+" · 할일 "+o.todos.length+"개 · 일회성 루틴 "+o.extraRoutines.length+"개";
   }else if(expTarget==="log"&&expMode==="day"&&!(state.days[expDay]&&state.days[expDay].events.length)){
     info.hidden=false;
     info.textContent="선택한 날짜("+expDay+")에는 아직 기록이 없습니다.";
@@ -4636,6 +5145,7 @@ function refreshExport(){
     info.textContent=o.from+" ~ "+o.to+" · 포함된 날 "+o.days.length+"일";
   }else info.hidden=true;
   $("#exportText").value=JSON.stringify(buildExport(),null,2);
+  (function(){const m=$("#expMeta"); if(m){const v=$("#exportText").value; m.textContent=(v.length/1024).toFixed(1)+" KB · "+v.length.toLocaleString("ko-KR")+"자";}})();
   $("#exportMsg").textContent="";
 }
 document.querySelectorAll(".etgt[data-etgt]").forEach(b=>b.addEventListener("click",()=>{
@@ -4676,7 +5186,8 @@ function ecalBuild(cy,cm){
       c.addEventListener("click",()=>ecalPickDay(ds));
       g.appendChild(c);
     }
-    for(let i=startDow+daysIn;i<42;i++){ const c=document.createElement("div"); c.className="cal-cell empty"; g.appendChild(c); }
+    const used=startDow+daysIn, cells=Math.ceil(used/7)*7;
+    for(let i=used;i<cells;i++){ const c=document.createElement("div"); c.className="cal-cell empty"; g.appendChild(c); }
     sec.appendChild(g);
     sc.appendChild(sec);
   }
@@ -4703,11 +5214,12 @@ function ecalSyncTitle(){
   ecalY=+parts[0]; ecalM=+parts[1];
   $("#ecalTitle").textContent=ecalY+"년 "+(ecalM+1)+"월";
 }
-function ecalFitHeight(){ const sc=$("#ecalScroll"); const m=sc.querySelector(".ecal-month"); if(m&&m.offsetHeight) sc.style.height=m.offsetHeight+"px"; }
+function ecalFitHeight(y,m){ const sc=$("#ecalScroll"); const el=(Number.isFinite(y)&&Number.isFinite(m))?ecalMonthEl(y,m):ecalMonthEl(ecalY,ecalM); if(el&&el.offsetHeight) sc.style.height=el.offsetHeight+"px"; }
 function ecalScrollTo(y,m,animate,dir){
   const sc=$("#ecalScroll");
   let el=ecalMonthEl(y,m);
-  if(!el){ ecalBuild(y,m); ecalPaint(); ecalFitHeight(); el=ecalMonthEl(y,m); animate=false; }
+  if(!el){ ecalBuild(y,m); ecalPaint(); el=ecalMonthEl(y,m); animate=false; }
+  ecalFitHeight(y,m);
   if(!el) return;
   if(ecalScrollTween){ ecalScrollTween.kill(); ecalScrollTween=null; }
   const target=Math.max(0,Math.min(el.offsetTop, sc.scrollHeight-sc.clientHeight));
@@ -4812,7 +5324,7 @@ $("#expDateBtn").addEventListener("click",()=>{
   $("#expCalDlg").classList.remove("closing","bdout");
   ecalBuild(ecalY,ecalM); ecalPaint();
   $("#expCalDlg").showModal();
-  ecalFitHeight();
+  ecalFitHeight(ecalY,ecalM);
   ecalScrollTo(ecalY,ecalM,false);
   const mEl=ecalMonthEl(ecalY,ecalM);
   if(GS&&mEl&&!weekReducedMotion()) GS.from(mEl.querySelectorAll(".cal-cell:not(.empty)"),{opacity:0,scale:.75,duration:.22,stagger:.004,ease:"power2.out",clearProps:"opacity,transform"});
@@ -4826,7 +5338,7 @@ function downloadJson(obj,filename){
   setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 }
 $("#fileBtn").addEventListener("click",()=>{
-  const fn= expTarget==="routineDefs"? "timegrid-routines-"+ymd(new Date())+".json" : expTarget==="backup"? "timegrid-backup-"+ymd(new Date())+".json" : expMode==="day"? "timegrid-log-"+expDay+".json" : "timegrid-log-"+expFrom+"_"+expTo+".json";
+  const fn= expTarget==="plan"? "timegrid-plan-"+expDay+".json" : expTarget==="routineDefs"? "timegrid-routines-"+ymd(new Date())+".json" : expTarget==="backup"? "timegrid-backup-"+ymd(new Date())+".json" : expMode==="day"? "timegrid-log-"+expDay+".json" : "timegrid-log-"+expFrom+"_"+expTo+".json";
   downloadJson(buildExport(),fn);
   const msg=$("#exportMsg"); msg.textContent="파일 저장을 시작했습니다."; msg.className="msg ok";
   jsonLog("out",expLabel()+" 파일 저장");
@@ -4967,10 +5479,189 @@ function setJsonTab(tab){
   $("#jpLink").hidden = tab!=="link";
   if(tab==="export") refreshExport();
   if(tab==="import"){ $("#importMsg").textContent=""; requestAnimationFrame(()=>positionModeThumb(false)); }
-  if(tab==="link") renderJsonLog();
+  if(tab==="link"){ renderJsonLog(); const _ld=$("#lnkDate"); if(_ld) _ld.textContent=fmtDateK(state.viewDate); }
 }
 document.querySelectorAll(".json-tab").forEach(b=>b.addEventListener("click",()=>setJsonTab(b.dataset.jtab)));
 function openJsonDlg(tab){ setJsonTab(tab||"link"); openFsPanel($("#jsonDlg")); }
+/* ---------- v3.12.14 json hub: paste/file import, live preview, export presets, copy feedback, plan request ---------- */
+function btnFlash(btn,txt){
+  if(!btn) return;
+  if(btn._flashT) clearTimeout(btn._flashT);
+  if(btn._flashOrig==null) btn._flashOrig=btn.textContent;
+  btn.textContent=txt||"복사됨 ✓"; btn.classList.add("copied");
+  btn._flashT=setTimeout(function(){ btn.textContent=btn._flashOrig; btn._flashOrig=null; btn._flashT=0; btn.classList.remove("copied"); },1300);
+}
+$("#lnkCopyLog").addEventListener("click",function(){ btnFlash(this); });
+$("#lnkCopyCmd").addEventListener("click",function(){ btnFlash(this); });
+$("#copyBtn").addEventListener("click",function(){ btnFlash(this); });
+$("#lnkCopyPlan").addEventListener("click",async function(){
+  const cmd="계획 발급: "+state.viewDate+" (이 날짜 계획을 plan JSON으로 만들어 주세요)";
+  const msg=$("#lnkMsg");
+  try{ await navigator.clipboard.writeText(cmd); }
+  catch(e){ const ta=document.createElement("textarea"); ta.value=cmd; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); }
+  msg.textContent="복사 완료. 윤투에게 붙여넣으면 계획(plan) JSON을 받을 수 있습니다."; msg.className="msg ok";
+  jsonLog("out","계획 발급 요청문 ("+state.viewDate+") 복사");
+  btnFlash(this);
+});
+/* ---------- v3.12.41 윤투 연동 허브: 중첩 방향 전환·세그 인디케이터·요약 카드·드롭존·프리셋·JSON 접기 ---------- */
+(function(){
+  const tabsBox=document.querySelector("#jsonDlg .json-tabs");
+  const segBox=$("#etgtSeg");
+  if(tabsBox) attachSlideInd(tabsBox);
+  if(segBox) attachSlideInd(segBox);
+  function moveInd(box,animate){ if(box&&box._slideIndMove) box._slideIndMove(animate); }
+  function jhPaint(){
+    const ds=state.viewDate, det=dayDetail(ds);
+    const day=state.days[ds]||{events:[],todos:[],routines:[]};
+    const dEl=$("#lnkDate"); if(dEl) dEl.textContent=fmtDateK(ds);
+    const tEl=$("#jhTotal");
+    if(tEl){ tEl.textContent= det.total? fmtDur(det.total) : "기록 없음"; tEl.classList.toggle("zero",!det.total); }
+    const box=$("#jhStats");
+    if(box){
+      const evs=day.events||[], tds=day.todos||[], rts=day.routines||[];
+      const chips=[
+        {t:"이벤트 "+evs.length, on:evs.length>0},
+        {t:"할일 "+tds.filter(x=>x.done).length+"/"+tds.length, on:tds.length>0&&tds.every(x=>x.done)},
+        {t:"루틴 "+rts.filter(x=>x.done).length+"/"+rts.length, on:rts.length>0&&rts.every(x=>x.done)}
+      ];
+      box.innerHTML=chips.map(c=>'<span class="jh-chip'+(c.on?" on":"")+'"><i></i>'+c.t+'</span>').join("");
+    }
+  }
+  const _jtabOrder={link:0,import:1,export:2};
+  let _curJtab=(tabsBox&&tabsBox.querySelector(".json-tab.active")||{}).dataset?.jtab||"link";
+  const _tab0=setJsonTab;
+  setJsonTab=function(tab){
+    const prev=_curJtab, changed=tab!==prev;
+    const dir=changed?Math.sign(_jtabOrder[tab]-_jtabOrder[prev]):0;
+    _tab0(tab);
+    _curJtab=tab;
+    document.querySelectorAll("#jsonDlg .json-tab").forEach(b=>b.setAttribute("aria-selected", b.classList.contains("active")?"true":"false"));
+    if(tab==="link") jhPaint();
+    const panel=tab==="link"?$("#jpLink"):tab==="import"?$("#jpImport"):$("#jpExport");
+    if(panel){
+      panel.classList.remove("view-in-l","view-in-r");
+      if(changed&&dir!==0&&$("#jsonDlg").classList.contains("open")){
+        void panel.offsetWidth;
+        panel.classList.add(dir>0?"view-in-r":"view-in-l");
+      }
+    }
+    requestAnimationFrame(()=>{ moveInd(tabsBox,changed); if(tab==="export") moveInd(segBox,false); });
+  };
+  const _open0=openJsonDlg;
+  openJsonDlg=function(tab){
+    _open0(tab);
+    requestAnimationFrame(()=>{ moveInd(tabsBox,false); moveInd(segBox,false); });
+  };
+  const go=$("#lnkGoImport");
+  if(go) go.addEventListener("click",()=>setJsonTab("import"));
+  function impHasPaint(){
+    const jp=$("#jpImport");
+    if(jp) jp.classList.toggle("has", !!$("#importText").value.trim());
+  }
+  const _prev0=previewImport;
+  previewImport=function(){ _prev0(); impHasPaint(); };
+  $("#importText").addEventListener("input",impHasPaint);
+  const drop=$("#impDrop");
+  if(drop){
+    ["dragenter","dragover"].forEach(t=>drop.addEventListener(t,e=>{ e.preventDefault(); drop.classList.add("over"); }));
+    ["dragleave","dragend"].forEach(t=>drop.addEventListener(t,()=>drop.classList.remove("over")));
+    drop.addEventListener("drop",e=>{
+      e.preventDefault(); drop.classList.remove("over");
+      const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];
+      if(f){ f.text().then(t=>{ $("#importText").value=t; previewImport(); }); return; }
+      const t=e.dataTransfer&&e.dataTransfer.getData("text");
+      if(t){ $("#importText").value=t; previewImport(); }
+    });
+  }
+  const _etgtOrder={log:0,plan:1,routineDefs:2,backup:3};
+  let _segTarget=expTarget;
+  const _rex0=refreshExport;
+  refreshExport=function(){
+    const prevTarget=_segTarget;
+    const targetChanged=expTarget!==prevTarget;
+    const targetDir=targetChanged?Math.sign(_etgtOrder[expTarget]-_etgtOrder[prevTarget]):0;
+    _rex0();
+    const t=ymd(new Date());
+    const yd=new Date(); yd.setDate(yd.getDate()-1);
+    const wd=new Date(); wd.setDate(wd.getDate()-6);
+    let hit="";
+    if(expMode==="day"&&expDay===t) hit="today";
+    else if(expMode==="day"&&expDay===ymd(yd)) hit="yesterday";
+    else if(expMode==="range"&&expFrom===ymd(wd)&&expTo===t) hit="7d";
+    document.querySelectorAll(".exp-preset").forEach(b=>b.classList.toggle("active", b.dataset.epre===hit));
+    const db=$("#expDateBtn"); if(db) db.classList.toggle("active", !hit);
+    moveInd(segBox,targetChanged);
+    const exportView=$("#jexportView");
+    if(exportView){
+      exportView.classList.remove("view-in-l","view-in-r");
+      if(targetChanged&&targetDir!==0&&$("#jsonDlg").classList.contains("open")){
+        void exportView.offsetWidth;
+        exportView.classList.add(targetDir>0?"view-in-r":"view-in-l");
+      }
+    }
+    _segTarget=expTarget;
+  };
+  const xb=$("#expExpand");
+  if(xb) xb.addEventListener("click",()=>{
+    const c=$("#expCode"); if(!c) return;
+    const on=c.classList.toggle("x");
+    xb.textContent= on? "접기":"펼치기";
+  });
+})();
+const _impTa=$("#importText"), _impPrev=$("#importPreview");
+let _impTimer=0;
+function impKindLabel(k){ return {plan:"계획",log:"기록",logs:"기록 묶음",routines:"루틴",routineDefs:"루틴 정의",backup:"전체 백업"}[k]||k; }
+function impPreview(){
+  const v=_impTa.value.trim();
+  if(!v){ _impPrev.hidden=true; _impPrev.innerHTML=""; return; }
+  try{
+    const j=JSON.parse(v);
+    const kind=detectJsonKind(j);
+    if(!kind) throw new Error("kind를 인식할 수 없습니다.");
+    let meta="";
+    if(kind==="log") meta=(j.date||"?")+" · 이벤트 "+((j.events||[]).length)+"개 · 할일 "+((j.todos||[]).length)+"개 · 루틴 "+((j.routines||[]).length)+"개";
+    else if(kind==="logs") meta=(j.from||"?")+" ~ "+(j.to||"?")+" · "+((j.days||[]).length)+"일치";
+    else if(kind==="plan") meta=(j.date||"?")+" · 할일 "+((j.todos||[]).length)+"개 · 추가 루틴 "+((j.extraRoutines||[]).length)+"개";
+    else if(kind==="routines") meta="루틴 "+j.length+"개";
+    else if(kind==="routineDefs") meta="루틴 정의 "+((j.defs||[]).length)+"개";
+    else if(kind==="backup") meta="기록 "+Object.keys(j.days||{}).length+"일치 · 영역 "+(((j.settings||{}).areas||[]).length)+"개 · 활동 "+(((j.settings||{}).activities||[]).length)+"개";
+    _impPrev.innerHTML='<div class="jp-row"><span class="jkind '+kind+'">'+impKindLabel(kind)+'</span><span class="jp-meta">'+esc(meta)+'</span></div>';
+    _impPrev.hidden=false;
+  }catch(err){
+    _impPrev.innerHTML='<div class="jp-row"><span class="jkind err">인식 불가</span><span class="jp-meta warn">'+esc(err.message)+'</span></div>';
+    _impPrev.hidden=false;
+  }
+}
+_impTa.addEventListener("input",function(){ clearTimeout(_impTimer); _impTimer=setTimeout(impPreview,200); });
+$("#impPasteBtn").addEventListener("click",async function(){
+  const msg=$("#importMsg");
+  try{
+    const t=await navigator.clipboard.readText();
+    if(!t){ msg.textContent="클립보드가 비어 있습니다."; msg.className="msg"; return; }
+    _impTa.value=t; impPreview();
+    msg.textContent="클립보드 내용을 붙여넣었습니다. 미리보기를 확인한 뒤 적용하세요."; msg.className="msg ok";
+  }catch(e){
+    _impTa.focus();
+    msg.textContent="브라우저가 클립보드 읽기를 허용하지 않았습니다. 입력창에 직접 붙여넣어 주세요."; msg.className="msg err";
+  }
+});
+$("#impFileBtn").addEventListener("click",function(){ $("#impFileInp").click(); });
+$("#impFileInp").addEventListener("change",function(e){
+  const f=e.target.files&&e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=function(){ _impTa.value=String(rd.result||""); impPreview(); const msg=$("#importMsg"); msg.textContent="'"+f.name+"' 파일을 불러왔습니다. 미리보기를 확인한 뒤 적용하세요."; msg.className="msg ok"; };
+  rd.readAsText(f);
+  e.target.value="";
+});
+document.querySelectorAll(".exp-preset").forEach(function(b){
+  b.addEventListener("click",function(){
+    const p=b.dataset.epre, now=new Date();
+    if(p==="today"){ expMode="day"; expDay=ymd(now); }
+    else if(p==="yesterday"){ now.setDate(now.getDate()-1); expMode="day"; expDay=ymd(now); }
+    else if(p==="7d"){ expTo=ymd(now); const fr=new Date(); fr.setDate(fr.getDate()-6); expFrom=ymd(fr); expMode="range"; }
+    refreshExport();
+  });
+});
 $("#actsBtn").addEventListener("click",()=>{ closeSideNav(); renderManager(); openFsPanel($("#actsDlg")); });
 $("#jsonBtn").addEventListener("click",()=>{ closeSideNav(); openJsonDlg(); });
 /* ================= calendar sheet ================= */
@@ -5013,19 +5704,51 @@ $("#calNext").addEventListener("click",()=>{ calM++; if(calM>11){calM=0;calY++;}
 $("#calToday").addEventListener("click",()=>{ $("#calDlg").close(); jumpToDate(ymd(new Date())); });
 $("#dateLabel").addEventListener("click",openCalDlg);
 
+/* ---------- sliding segmented indicator ---------- */
+function attachSlideInd(container){
+  if(!container || container._slideInd) return;
+  const ind=document.createElement("span");
+  ind.className="slide-ind";
+  ind.setAttribute("aria-hidden","true");
+  container.prepend(ind);
+  container._slideInd=ind;
+  const move=(animate)=>{
+    const btn=container.querySelector("button.active")||container.querySelector("button");
+    if(!btn) return;
+    if(animate===false){ ind.style.transition="none"; }
+    ind.style.width=btn.offsetWidth+"px";
+    ind.style.transform="translateX("+btn.offsetLeft+"px)";
+    if(animate===false){ void ind.offsetWidth; ind.style.transition=""; }
+  };
+  container._slideIndMove=move;
+  move(false);
+  if(window.ResizeObserver){ new ResizeObserver(()=>move(false)).observe(container); }
+}
+window.attachSlideInd=attachSlideInd;
+/* ---------- direction-aware tab switch ---------- */
+const _tabOrder={planner:0,tracker:1,stats:2};
+let _curTab="tracker";
 function setTab(name){
+  const prev=_curTab, changed=name!==prev;
+  const dir=changed? Math.sign(_tabOrder[name]-_tabOrder[prev]):0;
   $("#trackerView").hidden=(name!=="tracker");
   $("#plannerView").hidden=(name!=="planner");
   $("#statsView").hidden=(name!=="stats");
   $("#tabTracker").classList.toggle("active",name==="tracker");
   $("#tabPlanner").classList.toggle("active",name==="planner");
   $("#tabStats").classList.toggle("active",name==="stats");
-  if(name==="stats"){ statsAnimPending=true; renderStats(); animStats(); }
-  if(name==="tracker"){ tlAnimPending=true; renderTimeline(); }
-  if(GS){
-    const v=name==="tracker"? "#trackerView" : name==="planner"? "#plannerView" : "#statsView";
-    GS.fromTo(v,{opacity:0,y:10},{opacity:1,y:0,duration:.3,ease:"power2.out",clearProps:"opacity,transform"});
+  _curTab=name;
+  const tb=document.querySelector(".tabbar");
+  if(tb&&tb._slideIndMove) tb._slideIndMove(changed);
+  if(name==="stats"){
+    statsAnimPending=true; renderStats(); animStats();
+    document.querySelectorAll("#wkMode button").forEach(x=>x.classList.toggle("active",x.dataset.wm===weekMode));
+    attachSlideInd($("#statSeg")); attachSlideInd($("#wkMode"));
   }
+  if(name==="tracker"){ tlAnimPending=true; renderTimeline(); }
+  const v=name==="tracker"? $("#trackerView") : name==="planner"? $("#plannerView") : $("#statsView");
+  v.classList.remove("view-in-l","view-in-r");
+  if(changed && dir!==0){ void v.offsetWidth; v.classList.add(dir>0?"view-in-r":"view-in-l"); }
 }
 $("#tabTracker").addEventListener("click",()=>setTab("tracker"));
 $("#tabPlanner").addEventListener("click",()=>setTab("planner"));
@@ -5176,7 +5899,7 @@ $("#swBtn").addEventListener("click",()=>{state.running? swStop() : swStart(); p
 /* ================= init ================= */
 function renderAll(){
   hideUiTip();
-  $("#dateLabel").textContent=fmtDateK(state.viewDate);
+  $("#dateLabel").textContent=fmtDateKHdr(state.viewDate);
   updateRngDayLabel();
   renderSelects(); renderSw(); renderTimeline(); renderStats(); renderTotal(); renderTodos(); renderRoutines();
 }
@@ -5283,24 +6006,20 @@ function sizeActInput(animate){
   _actMeas.style.fontStyle=cs.fontStyle;
   _actMeas.style.letterSpacing=cs.letterSpacing;
   _actMeas.style.textTransform=cs.textTransform;
+  /* 표시 중인 문자열만 실측 — 값 있으면 값 폭, 비었으면 placeholder 폭. 하한 강제 없음 → 글자수에 맞춰 늘고 줄어듦 */
   const hasVal=el.value!=="";
-  /* placeholder 폭이 하한: 첫 글자에서 시작 폭보다 줄어드는 역방향 움직임 방지. 텍스트가 더 길어질 때만 성장 */
-  _actMeas.textContent=el.placeholder||"";
-  const pw=Math.ceil(_actMeas.getBoundingClientRect().width);
-  _actMeas.textContent=el.value;
-  const vw=hasVal? Math.ceil(_actMeas.getBoundingClientRect().width)+1 : 0;
-  const tw=Math.max(pw, vw);
+  _actMeas.textContent=hasVal? el.value : (el.placeholder||"");
+  const tw=Math.ceil(_actMeas.getBoundingClientRect().width)+(hasVal?1:0);
   const pl=parseFloat(cs.paddingLeft)||0;
   const pr=parseFloat(cs.paddingRight)||0;
   const bl=parseFloat(cs.borderLeftWidth)||0;
   const br=parseFloat(cs.borderRightWidth)||0;
-  /* 상한: 같은 줄 형제 요소들이 남긴 공간과 220px 중 작은 쪽 (줄바꿈 방지) */
   let cap=220;
   const row=el.parentElement;
   if(row){
     const rs=getComputedStyle(row);
     const inner=row.clientWidth-(parseFloat(rs.paddingLeft)||0)-(parseFloat(rs.paddingRight)||0);
-    const gap=parseFloat(rs.columnGap)||8;
+    const gap=parseFloat(rs.columnGap)||parseFloat(rs.gap)||8;
     let sib=0, cnt=0;
     for(const ch of row.children){
       if(ch===el) continue;
@@ -5308,28 +6027,123 @@ function sizeActInput(animate){
       sib+=ch.getBoundingClientRect().width; cnt++;
     }
     const avail=Math.floor(inner-sib-gap*cnt-1);
-    cap=Math.min(220, Math.max(avail, 60));
+    cap=Math.min(220, Math.max(avail, 48));
   }
-  /* border-box: text + pad + border */
   const w=Math.min(cap, Math.max(tw+pl+pr+bl+br, 1));
-  /* 타이핑은 전환 없이 1:1 추적(박스가 글자를 못 따라오는 끊김 제거), 프로그램 대입만 애니메이션 */
   if(!animate){
+    const prev=el.style.transition;
     el.style.transition="none";
     el.style.width=w+"px";
     void el.offsetWidth;
-    el.style.transition="";
+    el.style.transition=prev;
   }else{
     el.style.width=w+"px";
   }
 }
 window.sizeActInput=sizeActInput;
+var _noteMeas=null;
+function sizeNoteInput(animate){
+  const el=$("#noteInput"); if(!el||el.style.display==="none") return;
+  if(!_noteMeas){
+    _noteMeas=document.createElement("span");
+    _noteMeas.style.cssText="position:absolute;visibility:hidden;white-space:pre;left:-9999px;top:0;pointer-events:none;";
+    document.body.appendChild(_noteMeas);
+  }
+  const cs=getComputedStyle(el);
+  _noteMeas.style.font=cs.font;
+  _noteMeas.style.letterSpacing=cs.letterSpacing;
+  _noteMeas.style.textTransform=cs.textTransform;
+  const hasVal=el.value!=="";
+  _noteMeas.textContent=hasVal?el.value:(el.placeholder||"");
+  const tw=Math.ceil(_noteMeas.getBoundingClientRect().width)+(hasVal?1:0);
+  const chrome=(parseFloat(cs.paddingLeft)||0)+(parseFloat(cs.paddingRight)||0)+(parseFloat(cs.borderLeftWidth)||0)+(parseFloat(cs.borderRightWidth)||0);
+  let cap=320;
+  const row=el.parentElement;
+  if(row){
+    const rs=getComputedStyle(row);
+    cap=Math.min(cap,Math.floor(row.clientWidth-(parseFloat(rs.paddingLeft)||0)-(parseFloat(rs.paddingRight)||0)));
+  }
+  const w=Math.min(cap,Math.max(tw+chrome,48));
+  if(!animate){
+    const prev=el.style.transition; el.style.transition="none"; el.style.width=w+"px"; void el.offsetWidth; el.style.transition=prev;
+  }else el.style.width=w+"px";
+  if(el._acList&&el._acList.style.display!=="none") placeApList(el,el._acList);
+}
+window.sizeNoteInput=sizeNoteInput;
+function resolveMainAct(){
+  const el=$("#actInput"); if(!el) return null;
+  const v=el.value.trim();
+  if(!v) return null;
+  return actByName(v)||state.settings.activities.find(function(a){return a.name.toLowerCase()===v.toLowerCase();})||null;
+}
+function paintActInput(){
+  const el=$("#actInput"); if(!el) return;
+  const act=resolveMainAct();
+  if(act && act.color){
+    el.classList.add("act-filled");
+    el.style.setProperty("--act-fill", hexToRgba(act.color, .42));
+    el.style.borderColor="transparent";
+    el.style.removeProperty("background-color");
+    el.style.removeProperty("background");
+    el.style.removeProperty("color");
+  }else{
+    el.classList.remove("act-filled");
+    el.style.removeProperty("--act-fill");
+    el.style.removeProperty("--act-ink");
+    el.style.removeProperty("background-color");
+    el.style.removeProperty("background");
+    el.style.removeProperty("color");
+    el.style.background="";
+    el.style.borderColor="";
+    el.style.color="";
+  }
+  paintSwReady();
+}
+window.paintActInput=paintActInput;
+/* 측정 준비 신호: 확정 활동 → 영역·시작 세미볼드. 무엇을(메모/칩)은 내용 있을 때 */
+function paintSwReady(){
+  const running=!!state.running;
+  const act=resolveMainAct();
+  const ready=!running && !!act;
+  const btn=$("#swBtn");
+  if(btn){
+    if(running) btn.classList.remove("sw-ready");
+    else btn.classList.toggle("sw-ready", ready);
+  }
+  const ap=document.querySelector("#trackerView .sw-row .area-picker");
+  if(ap) ap.classList.toggle("sw-ready", ready);
+  const noteInp=$("#noteInput");
+  const hasTag=!!(typeof noteTag!=="undefined" && noteTag);
+  const noteHas=hasTag || !!(noteInp && String(noteInp.value||"").trim());
+  if(noteInp) noteInp.classList.toggle("sw-ready", noteHas);
+  const chip=$("#noteChip");
+  if(chip) chip.classList.toggle("sw-ready", hasTag);
+  const tgl=$("#noteTgl");
+  if(tgl) tgl.classList.toggle("sw-ready", noteHas || tgl.classList.contains("on"));
+}
+window.paintSwReady=paintSwReady;
+function onMainAreaChange(){
+  const area=$("#areaSelect").value;
+  const inp=$("#actInput"); if(!inp) return;
+  const v=inp.value.trim();
+  const act=v? (actByName(v)||state.settings.activities.find(function(a){return a.name.toLowerCase()===v.toLowerCase();})) : null;
+  /* 영역 변경 시 다른 영역 활동명이 남아 있으면 비움 — 목록·채움색과 일치 */
+  if(act && act.area!==area){ inp.value=""; }
+  if(window.syncAreaLock) syncAreaLock();
+  sizeActInput(true);
+  paintActInput();
+}
 attachAC($("#actInput"), $("#areaSelect"), document.body);
 attachAC($("#evAct"), $("#evArea"), $("#evDlg"));
 attachNoteAC($("#noteInput"), document.body);
+sizeNoteInput();
 linkAreaPicker("#areaSelect");
-$("#actInput").addEventListener("input",function(){ if(window.syncAreaLock)syncAreaLock(); sizeActInput(); });
-$("#actInput").addEventListener("change",function(){ if(window.syncAreaLock)syncAreaLock(); sizeActInput(true); });
+$("#areaSelect").addEventListener("change",function(){ onMainAreaChange(); });
+$("#actInput").addEventListener("input",function(){ if(window.syncAreaLock)syncAreaLock(); sizeActInput(); paintActInput(); });
+$("#actInput").addEventListener("change",function(){ if(window.syncAreaLock)syncAreaLock(); sizeActInput(true); paintActInput(); });
 sizeActInput();
+paintActInput();
+attachSlideInd(document.querySelector(".tabbar"));
 (function(){
   const sel=$("#todoArea"); sel.style.display="none";
   const btn=catActBtn({area:sel.value||((state.settings.areas[0]||{}).name)||null,actId:null},function(v){ sel.value=v.area||""; });
