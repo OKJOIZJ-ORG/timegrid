@@ -1,4 +1,4 @@
-const VERSION = "timegrid-v3.12.51-20260730";
+const VERSION = "timegrid-v3.12.53-20260730";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const APP_SHELL = [
