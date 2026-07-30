@@ -1411,7 +1411,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.51<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.53<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -3211,7 +3211,7 @@ function renderTodoRoutineTime(){
     const running=!!(r&&((kind==="todo"&&r.todoId===item.id)||(kind==="routine"&&r.routineId===item.id)));
     if(!min&&!running&&!trlShowZero){ zero++; return; }
     const row=document.createElement("div"); row.className="trl-row"+(item.done?" done":"");
-    if(item.time){ const t=document.createElement("span"); t.className="trl-time"; t.textContent=item.time; row.appendChild(t); }
+    if(item.time){ const t=document.createElement("span"); t.className="trl-time"; t.textContent=item.time+(item.end?"–"+item.end:""); row.appendChild(t); }
     const nm=document.createElement("span"); nm.className="nm"; nm.textContent=kind==="todo"? item.title:item.name;
     row.appendChild(nm);
     const act=item.actId? actById(item.actId):null;
@@ -5113,23 +5113,31 @@ function clearJsonLog(){
   }
 }
 (function(){ const _b=$("#jsonLogClear"); if(_b) _b.addEventListener("click",clearJsonLog); })();
+function normTodoWindow(td){
+  const _t=(td&&td.time&&/^\d{1,2}:\d{2}$/.test(td.time)&&toMin(td.time)<1440)? td.time:"";
+  const _e=(td&&td.end&&/^\d{1,2}:\d{2}$/.test(td.end)&&_t&&toMin(td.end)<=1440&&toMin(td.end)>toMin(_t))? td.end:"";
+  return {time:_t,end:_e};
+}
 function applyPlan(json){
   if(json.kind!=="plan") throw new Error('kind가 "plan"이 아닙니다.');
   if(!json.date) throw new Error("date가 없습니다.");
   const day=ensureDay(json.date);
   let nt=0,nr=0,st=0,sr=0;
   for(const td of (json.todos||[])){
-    if(!td.title) continue;
-    if(td.id && day.todos.some(x=>x.id===td.id)){ st++; continue; }
+    if(!td||typeof td!=="object"||!td.title) continue;
+    const _tw=normTodoWindow(td);
+    const _hasTw=Object.prototype.hasOwnProperty.call(td,"time")||Object.prototype.hasOwnProperty.call(td,"end");
+    const _ex=td.id? day.todos.find(x=>x.id===td.id):null;
+    if(_ex){ if(_hasTw){ _ex.time=_tw.time; _ex.end=_tw.end; } st++; continue; }
     let _actId=null,_area=td.area||"";
     if(td.act){ const _a=resolveActivity(td.act,_area||(state.settings.areas[0]&&state.settings.areas[0].name)||"",true); if(_a){ _actId=_a.id; if(!_area) _area=_a.area; } }
-    if(_area && !areaByName(_area)) state.settings.areas.push({name:_area,color:RAINBOW[state.settings.areas.length%RAINBOW.length]}); day.todos.push({id:td.id||uid("m"),title:td.title,area:_area,actId:_actId,done:false,time:td.time||"",end:td.end||""});
+    if(_area && !areaByName(_area)) state.settings.areas.push({name:_area,color:RAINBOW[state.settings.areas.length%RAINBOW.length]}); day.todos.push({id:td.id||uid("m"),title:td.title,area:_area,actId:_actId,done:false,time:_tw.time,end:_tw.end});
     nt++;
   }
   for(const er of (json.extraRoutines||[])){
     if(!er||!er.name) continue;
-    const _t=er.time||"";
-    const _e=(er.end&&/^\d{1,2}:\d{2}$/.test(er.end)&&_t&&toMin(er.end)>toMin(_t))? er.end:"";
+    const _t=(er.time&&/^\d{1,2}:\d{2}$/.test(er.time)&&toMin(er.time)<1440)? er.time:"";
+    const _e=(er.end&&/^\d{1,2}:\d{2}$/.test(er.end)&&_t&&toMin(er.end)<=1440&&toMin(er.end)>toMin(_t))? er.end:"";
     if(day.routines.some(x=>x.name===er.name&&(x.time||"")===_t)){ sr++; continue; }
     let _actId=null,_area=er.area||null;
     if(er.act){ const _a=resolveActivity(er.act,_area||(state.settings.areas[0]&&state.settings.areas[0].name)||"",true); if(_a){ _actId=_a.id; if(!_area) _area=_a.area; } }
@@ -5224,18 +5232,23 @@ function applyLog(json,mode){
   if(mode==="replace") day.events=[];
   for(const td of (json.todos||[])){
     if(!td||typeof td!=="object"||!td.title) continue;
+    const _tw=normTodoWindow(td);
+    const _hasTw=Object.prototype.hasOwnProperty.call(td,"time")||Object.prototype.hasOwnProperty.call(td,"end");
     let ex=day.todos.find(x=>(td.id&&x.id===td.id)||x.title===td.title);
     if(!ex){
       let _actId=null,_area=td.area||"";
       if(td.act){ const _a=resolveActivity(td.act,_area,true); if(_a){ _actId=_a.id; if(!_area) _area=_a.area; } }
-      if(_area && !areaByName(_area)) state.settings.areas.push({name:_area,color:RAINBOW[state.settings.areas.length%RAINBOW.length]}); ex={id:td.id||uid("m"),title:td.title,area:_area,actId:_actId,done:!!td.done};
+      if(_area && !areaByName(_area)) state.settings.areas.push({name:_area,color:RAINBOW[state.settings.areas.length%RAINBOW.length]}); ex={id:td.id||uid("m"),title:td.title,area:_area,actId:_actId,done:!!td.done,time:_tw.time,end:_tw.end};
       day.todos.push(ex);
-    }else if(typeof td.done==="boolean") ex.done=td.done;
+    }else{
+      if(typeof td.done==="boolean") ex.done=td.done;
+      if(_hasTw){ ex.time=_tw.time; ex.end=_tw.end; }
+    }
   }
   for(const rt of (json.routines||[])){
     if(!rt||typeof rt!=="object"||!rt.name) continue;
-    const _t=rt.time||"";
-    const _e=(rt.end&&/^\d{1,2}:\d{2}$/.test(rt.end)&&_t&&toMin(rt.end)>toMin(_t))? rt.end:"";
+    const _t=(rt.time&&/^\d{1,2}:\d{2}$/.test(rt.time)&&toMin(rt.time)<1440)? rt.time:"";
+    const _e=(rt.end&&/^\d{1,2}:\d{2}$/.test(rt.end)&&_t&&toMin(rt.end)<=1440&&toMin(rt.end)>toMin(_t))? rt.end:"";
     let ex=day.routines.find(x=>x.name===rt.name&&(x.time||"")===_t)||day.routines.find(x=>x.name===rt.name);
     if(!ex){
       let _actId=null,_area=rt.area||null;
@@ -5268,7 +5281,7 @@ function applyLog(json,mode){
 }
 function applyRoutineDefs(arr){
   state.settings.routineDefs = arr.map(r=>{
-    const def={id:r.id||uid("rd"), time:r.time||"", end:(r.end&&/^\d{1,2}:\d{2}$/.test(r.end)&&r.time&&toMin(r.end)>toMin(r.time))? r.end:"", name:r.name||"", days:Array.isArray(r.days)&&r.days.length? r.days.filter(d=>d>=0&&d<=6):[0,1,2,3,4,5,6]};
+    const def={id:r.id||uid("rd"), time:(r.time&&/^\d{1,2}:\d{2}$/.test(r.time)&&toMin(r.time)<1440)? r.time:"", end:(r.end&&/^\d{1,2}:\d{2}$/.test(r.end)&&r.time&&toMin(r.end)<=1440&&toMin(r.end)>toMin(r.time))? r.end:"", name:r.name||"", days:Array.isArray(r.days)&&r.days.length? r.days.filter(d=>d>=0&&d<=6):[0,1,2,3,4,5,6]};
     let _actId=null,_area=r.area||null;
     if(r.act){ const _a=resolveActivity(r.act, r.area||"", true); if(_a){ _actId=_a.id; if(!_area) _area=_a.area; } }
     else if(r.actId&&actById(r.actId)){ _actId=r.actId; if(!_area) _area=actById(r.actId).area; }
@@ -5370,7 +5383,7 @@ function buildLog(ds){
   return {
     v:2, kind:"log", date:ds,
     events,
-    todos:day.todos.map(t=>{ const a=t.actId? actById(t.actId):null; return {id:t.id,title:t.title,area:t.area||(a? a.area:""),act:a? a.name:null,done:!!t.done,min:todoMeasuredMin(day,t)}; }),
+    todos:day.todos.map(t=>{ const a=t.actId? actById(t.actId):null; return {id:t.id,title:t.title,area:t.area||(a? a.area:""),act:a? a.name:null,done:!!t.done,time:t.time||"",end:t.end||"",min:todoMeasuredMin(day,t)}; }),
     routines:day.routines.map(r=>{ const a=r.actId? actById(r.actId):null; return {time:r.time||"",end:r.end||"",name:r.name,act:a? a.name:null,done:!!r.done,min:routineMeasuredMin(day,r)}; }),
     stats:{ total:det.total, gap:Math.max(1440-det.total,0), areas, acts, todoMin:det.todoMin, routineMin:det.routineMin }
   };
@@ -5414,7 +5427,7 @@ function buildRoutineDefs(){
 }
 function buildPlan(ds){
   const day=state.days[ds]||{events:[],todos:[],routines:[]};
-  const todos=(day.todos||[]).map(t=>{ const a=t.actId? actById(t.actId):null; return {id:t.id,title:t.title,area:t.area||(a? a.area:null),act:a? a.name:null}; });
+  const todos=(day.todos||[]).map(t=>{ const a=t.actId? actById(t.actId):null; return {id:t.id,title:t.title,area:t.area||(a? a.area:null),act:a? a.name:null,time:t.time||"",end:t.end||""}; });
   const extras=(day.routines||[]).filter(r=>r.extra).map(r=>{ const a=r.actId? actById(r.actId):null; const o={time:r.time||"",name:r.name}; if(r.end) o.end=r.end; o.act=a? a.name:null; const _ar=r.area||(a? a.area:null); if(_ar) o.area=_ar; return o; });
   return {v:2,kind:"plan",date:ds,todos:todos,extraRoutines:extras};
 }
