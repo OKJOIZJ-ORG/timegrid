@@ -229,6 +229,17 @@ main::-webkit-scrollbar, .tl::-webkit-scrollbar, .dlg-body::-webkit-scrollbar, d
   font-weight:600 !important;
 }
 .sw-row #actInput.act-filled::placeholder{color:transparent;}
+#evAct.act-filled{
+  background-color:#fff !important;
+  background-image:linear-gradient(var(--act-fill), var(--act-fill)) !important;
+  border-color:transparent !important;
+  color:var(--text) !important;
+  caret-color:var(--text);
+  font-weight:600 !important;
+}
+#evDlg .area-picker.locked{opacity:.6;cursor:default;pointer-events:none;background:var(--soft);border-color:var(--line);}
+#evDlg .area-picker.locked .ap-tri{display:none;}
+#evDlg .area-picker.locked .ap-lock{font-size:11px;color:var(--text3);flex:none;margin-left:2px;}
 @media (prefers-reduced-motion: reduce){ .sw-row #actInput{transition:none;} }
 .sw-row .area-picker{font-size:15px; padding:4px 14px; font-weight:400;}
 .sw-row .area-picker.sw-ready{font-weight:600;}
@@ -280,7 +291,7 @@ main::-webkit-scrollbar, .tl::-webkit-scrollbar, .dlg-body::-webkit-scrollbar, d
 
 /* ---------- autocomplete ---------- */
 .ac{
-  position:fixed; z-index:120; display:none;
+  position:fixed; z-index:520; display:none;
   background:#fff; border:1px solid var(--line2); border-radius:var(--r-xl);
   box-shadow:var(--sh-2);
   max-height:248px; overflow:hidden; padding:6px;
@@ -308,7 +319,7 @@ main::-webkit-scrollbar, .tl::-webkit-scrollbar, .dlg-body::-webkit-scrollbar, d
 .area-picker.locked{opacity:.6;cursor:default;pointer-events:none;background:var(--soft);border-color:var(--line);}
 .area-picker.locked .ap-tri{display:none;}
 .area-picker.locked .ap-lock{font-size:11px;color:var(--text3);flex:none;margin-left:2px;}
-.ap-list{position:fixed;z-index:300;display:none;background:#fff;border:1px solid var(--line2);border-radius:var(--r-xl);box-shadow:var(--sh-2);max-height:248px;overflow:hidden;padding:6px;min-width:0;animation:acIn .18s ease;}
+.ap-list{position:fixed;z-index:520;display:none;background:#fff;border:1px solid var(--line2);border-radius:var(--r-xl);box-shadow:var(--sh-2);max-height:248px;overflow:hidden;padding:6px;min-width:0;animation:acIn .18s ease;}
 .ap-scroll{max-height:236px; overflow-y:auto; scrollbar-width:none; -ms-overflow-style:none;}
 .ap-scroll::-webkit-scrollbar{display:none; width:0; height:0;}
 .ap-thumb{position:absolute; top:12px; right:3px; width:4px; border-radius:2px; background:#c8c8c8; opacity:0; transition:opacity .2s ease; pointer-events:none;}
@@ -423,24 +434,47 @@ section.block h2 .sub{font-size:13px; font-weight:400; color:var(--text2); margi
 #monthHeat .cell.cur{box-shadow:0 0 0 2px #fff,0 0 0 3px var(--text); z-index:1;}
 
 /* ---------- todos / routines ---------- */
-.check-item{display:flex; align-items:center; gap:10px; min-height:40px;}
-.check-item input[type=checkbox]{width:19px; height:19px; accent-color:var(--text); flex:none;}
+.check-item{display:flex; align-items:center; gap:8px; min-height:40px;}
+.check-item input[type=checkbox]{width:19px; height:19px; accent-color:var(--text); flex:none; margin-right:8px;}
 .check-item .name{flex:1; min-width:0;}
 .check-item.done .name{color:var(--text3); text-decoration:line-through;}
 .check-item .tag{font-size:12px; padding:1px 9px; border-radius:var(--r-round); background:var(--soft); color:var(--text2); flex:none;}
+.check-item .tag.linked{background:none; padding:0; display:inline-flex; align-items:center; gap:5px;}
+.check-item .tag .tag-ar{font-weight:600;}
+.check-item .tag .tag-dot{color:var(--text3); font-weight:400;}
+.check-item .tag .tag-act{display:inline-flex; align-items:center; padding:2px 7px; border-radius:var(--r-sm); color:var(--text); font-weight:600; line-height:1.2;}
+button.tag{border:0; font:inherit; font-size:12px; cursor:pointer; touch-action:manipulation; position:relative; transition:opacity var(--dur-1) ease;}
+button.tag::after{content:""; position:absolute; inset:-8px -5px;}
+button.tag:active{transform:scale(.95);}
+button.tag.ghost{background:none; border:1px dashed var(--line2); color:var(--text3); padding:1px 8px; border-radius:var(--r-round); transition:opacity var(--dur-1) ease, border-color var(--dur-1) ease, color var(--dur-1) ease;}
+@media (hover: hover) and (pointer: fine){ button.tag:hover{opacity:.72;} button.tag.ghost:hover{opacity:1; border-color:var(--text3); color:var(--text2);} }
+.check-item.done .tag{opacity:.55;}
 .check-item .del{color:var(--text2); font-size:15px; padding:6px 8px; border-radius:var(--r-sm);}
 @media (hover: hover) and (pointer: fine){ .check-item .del:hover{background:var(--soft); color:var(--red);} }
-.rt-strip{position:absolute; display:flex; align-items:center; height:14px; z-index:5; cursor:pointer; overflow:hidden; transition:filter var(--dur-1) ease, opacity var(--dur-1) ease;}
+.rt-strip{position:absolute; display:flex; align-items:center; height:16px; z-index:5; cursor:pointer; overflow:hidden; transition:filter var(--dur-1) ease, opacity var(--dur-1) ease;}
 .rt-strip.lead::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--rt-c,#A8A5A0); border-radius:3px 0 0 3px;}
 .rt-strip .lb{font-size:11px; font-weight:600; line-height:1; padding:0 6px 0 9px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;}
 @media (hover: hover) and (pointer: fine){ .rt-strip:hover{filter:brightness(.95) saturate(1.2);} }
-.rt-flag{position:absolute; display:flex; align-items:center; gap:4px; height:14px; z-index:5; cursor:pointer;}
+.rt-flag{position:absolute; display:flex; align-items:center; gap:4px; height:16px; z-index:5; cursor:pointer;}
 .rt-flag.flip{flex-direction:row-reverse;}
 .rt-flag .dot{width:8px; height:8px; border-radius:50%; background:var(--rt-c,#A8A5A0); flex:none; box-shadow:0 0 0 2px rgba(255,255,255,.9);}
-.rt-flag .chip{display:flex; align-items:center; flex:none; box-sizing:border-box; height:16px; line-height:16px; padding:0 6px; background:rgba(255,255,255,.94); border:1px solid var(--line2); border-radius:var(--r-round); font-size:11px; font-weight:600; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:border-color var(--dur-1) ease, color var(--dur-1) ease;}
+.rt-flag .chip{display:grid; place-items:center; text-align:center; flex:none; box-sizing:border-box; height:16px; line-height:1; padding:0 6px; background:rgba(255,255,255,.94); border:1px solid var(--line2); border-radius:var(--r-round); font-size:11px; font-weight:600; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:border-color var(--dur-1) ease, color var(--dur-1) ease;}
 @media (hover: hover) and (pointer: fine){ .rt-flag:hover .chip{border-color:var(--text3); color:var(--text);} }
 .rt-strip.done,.rt-flag.done{opacity:.45;}
 .rt-strip.done .lb,.rt-flag.done .chip{text-decoration:line-through;}
+/* ---- v3.12.45 todo time markers ---- */
+.td-flag{position:absolute;display:flex;align-items:center;gap:4px;height:16px;z-index:6;cursor:pointer;}
+.td-flag.flip{flex-direction:row-reverse;}
+.td-flag .tdot{width:8px;height:8px;border-radius:2px;background:var(--td-c,#A8A5A0);flex:none;box-shadow:0 0 0 2px rgba(255,255,255,.9);}
+.td-flag .chip{display:grid;place-items:center;text-align:center;flex:none;box-sizing:border-box;height:16px;line-height:1;padding:0 6px;background:rgba(255,255,255,.94);border:1px solid var(--line2);border-radius:5px;font-size:11px;font-weight:600;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rt-flag .marker-t,.td-flag .marker-t{display:block;min-width:0;max-width:100%;line-height:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transform:translateY(.5px);}
+@media (hover: hover) and (pointer: fine){ .td-flag:hover .chip{color:var(--text);} }
+.td-strip-td{position:absolute;display:flex;align-items:center;height:16px;z-index:6;cursor:pointer;overflow:hidden;transition:filter var(--dur-1) ease,opacity var(--dur-1) ease;}
+.td-strip-td.lead::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--td-c,#A8A5A0);border-radius:3px 0 0 3px;}
+.td-strip-td .lb{font-size:11px;font-weight:600;line-height:1;padding:0 6px 0 9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+@media (hover: hover) and (pointer: fine){ .td-strip-td:hover{filter:brightness(.95) saturate(1.2);} }
+.td-flag.done,.td-strip-td.done{opacity:.45;}
+.td-flag.done .chip,.td-strip-td.done .lb{text-decoration:line-through;}
 .rt-tip,.ui-tip{position:fixed; z-index:500; display:none; background:var(--text); color:#fff; padding:6px 10px; border-radius:var(--r-sm); font-size:13px; pointer-events:none; box-shadow:0 4px 12px rgba(0,0,0,.18); max-width:240px;}
 .rt-tip .rt-tip-t,.ui-tip .rt-tip-t{display:block; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .rt-tip .rt-tip-s,.ui-tip .rt-tip-s{display:block; opacity:.85; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
@@ -451,12 +485,21 @@ section.block h2 .sub{font-size:13px; font-weight:400; color:var(--text2); margi
 .rt-tip .rt-tip-row .vl,.ui-tip .rt-tip-row .vl{margin-left:auto; padding-left:12px; font-weight:600; font-variant-numeric:tabular-nums;}
 .rt-tip::after,.ui-tip::after{content:""; position:absolute; bottom:-4px; left:50%; transform:translateX(-50%); border:4px solid transparent; border-top-color:var(--text);}
 .rt-row{display:flex; align-items:center; gap:10px; min-height:40px;}
-.rt-row .rt-time{font-size:13px; color:var(--text3); font-variant-numeric:tabular-nums; flex:none; min-width:44px; text-align:right;}
-.rt-row .rt-time.range .rt-stack{display:inline-block; text-align:left; vertical-align:middle;}
-.rt-row .rt-time.range .rt-t1{display:block; line-height:1.15;}
-.rt-row .rt-time.range .rt-t2{display:block; margin-top:2px; font-size:11px; color:var(--text3); opacity:.75; line-height:1; white-space:nowrap;}
-.rt-row .rt-time.range .rt-t2::before{content:"–"; margin-right:1px;}
-.rt-row.done .rt-time{color:var(--text3); opacity:.6;}
+.check-item .rt-time{font-size:13px; color:var(--text3); font-variant-numeric:tabular-nums; flex:none; min-width:40px; width:40px; text-align:left;}
+.check-item .rt-time + .name{margin-left:-4px;}
+.check-item.rt-row .rt-time + .name{margin-left:-6px;}
+#todoList .check-item input[type=checkbox]{margin-right:10px;}
+.check-item .rt-time.range .rt-stack{display:inline-block; text-align:left; vertical-align:middle;}
+.check-item .rt-time.range .rt-t1{display:block; line-height:1.15;}
+.check-item .rt-time.range .rt-t2{display:block; margin-top:2px; font-size:11px; color:var(--text3); opacity:.75; line-height:1; white-space:nowrap;}
+.check-item .rt-time.range .rt-t2::before{content:"–"; margin-right:1px;}
+.check-item.done .rt-time{color:var(--text3); opacity:.6;}
+/* v3.12.47: todo time = bordered chip button; border marks a real interactive surface */
+.check-item .ttime{font:inherit;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;min-width:44px;min-height:24px;padding:1px 5px;border:1px solid var(--line2);border-radius:6px;background:#fff;font-size:13px;color:var(--text3);font-variant-numeric:tabular-nums;white-space:nowrap;cursor:pointer;position:relative;flex:none;transition:border-color var(--dur-1) ease,color var(--dur-1) ease;touch-action:manipulation;}
+.check-item .ttime::after{content:"";position:absolute;inset:-7px -4px;}
+.check-item .ttime.unset{color:var(--text3);letter-spacing:.02em;}
+@media (hover: hover) and (pointer: fine){ .check-item .ttime:hover{border-color:var(--text3);color:var(--text);} }
+.check-item .ttime:active{transform:scale(.95);border-color:var(--text3);}
 .rt-row.done .rt-name{color:var(--text3); text-decoration:line-through;}
 .add-row{display:flex; gap:8px; margin-top:10px;}
 .add-row input[type=text]{
@@ -554,7 +597,9 @@ section.block h2 .sub{font-size:13px; font-weight:400; color:var(--text2); margi
 dialog{
   border:1px solid var(--line2); border-radius:var(--r-xl); padding:0;
   width:min(560px,92vw); max-height:86vh; margin:auto;
+  overflow:visible;
 }
+dialog .ac, dialog .ap-list, dialog .cp-pop{z-index:40;}
 dialog::backdrop{background:rgba(0,0,0,.25);}
 .dlg-head{display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--line);}
 .dlg-head h3{font-size:16px;}
@@ -783,7 +828,6 @@ input[type=color]{transition:transform var(--dur-1) ease,box-shadow .2s ease;}
 .check-item .tmr.on{background:var(--text);border-color:var(--text);color:#fff;}
 .check-item .tmr:disabled{opacity:.35;cursor:default;}
 .check-item .tbadge{flex:none;font-size:11px;color:var(--text2);font-variant-numeric:tabular-nums;white-space:nowrap;}
-.check-item .tag.linked{font-weight:600;}
 #lkTitle{padding-bottom:6px;}
 /* ---- unified cat|act picker ---- */
 .ap-list .ac-row.cat-hd .nm{font-weight:600;}
@@ -982,7 +1026,7 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
 @media (prefers-reduced-motion: reduce){.jl-row.jl-out{animation:none;opacity:0;}#jsonLogList .empty.jl-in{animation:none;}}
 
 /* ---------- v3.12.12 design audit (Emil): touch feedback ---------- */
-button,.pill,.btn,.icon-btn,.seg,.cal-cell,.rt-strip,.sidenav-item,.check-item{-webkit-tap-highlight-color:transparent;}
+button,.pill,.btn,.icon-btn,.seg,.cal-cell,.rt-strip,.rt-flag,.td-strip-td,.td-flag,.sidenav-item,.check-item{-webkit-tap-highlight-color:transparent;}
 button{touch-action:manipulation;}
 .seg-ctl button:active,.wk-mode button:active{transform:scale(.95);}
 .cal-cell:active,.menu-list button:active,.ac-row:active,.grp-head:active,.add-line:active,.fs-back:active,.rng:active{background:var(--soft);}
@@ -1367,7 +1411,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.43<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.51<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -1645,14 +1689,15 @@ function migrateRoutines(){
 const LS_KEY = "timegrid-proto-v1";
 const DEMO = !!document.body.dataset.demo;
 const HOUR_H = 56;
-const RT_LH = 16;      /* 루틴 오버레이 레인 높이 */
-const SEG_LBL_H = 19; const RT_BAND = 14; const RT_TOP = 1; const RT_BOT = 2; const RT_GAP = 0;  /* 이벤트 라벨 1줄 + 상하 여백 */
+const RT_LH = 18;      /* 마커 16px + 레인 간 2px */
+const SEG_LBL_H = 19; const RT_BAND = 16; const RT_TOP = 1; const RT_BOT = 2; const RT_GAP = 0;  /* 이벤트 라벨 1줄 + 상하 여백 */
 /* 시간 행 높이는 그 시간대의 루틴 레인 수에 따라 늘어난다. 루틴이 0~2개(라벨 없을 때)면 기본 HOUR_H(56px) 유지 */
 let _rowLanes={}, _rowTops=null, _laneSig="{}", _relayout=false;
 let _rowLbl={}, _lblSig="{}", _runPick=null, _runAlnR=false, _rowOcc={}, _rowTxt={}, _occSig="";
+function markerStackH(L){ return L? RT_BAND+RT_LH*(L-1) : 0; }
 function rowH(h){
   const L=_rowLanes[h]||0;
-  const need=6+(L? RT_LH*L-2 : 0)+(_rowLbl[h]? SEG_LBL_H : 0);
+  const need=6+markerStackH(L)+(_rowLbl[h]? SEG_LBL_H : 0);
   return Math.max(HOUR_H, need);
 }
 function laneY(h,lane){
@@ -1660,21 +1705,21 @@ function laneY(h,lane){
   const top=rowTop(h)+3;
   const ah=rowH(h)-6-(_rowLbl[h]? SEG_LBL_H : 0);
   if(L<=1) return top;
-  return top+lane*(ah-RT_BAND)/(L-1);
+  return top+lane*Math.min(RT_LH,(ah-RT_BAND)/(L-1));
 }
 function lblCost(h,x1,x2){
   const L=_rowLanes[h]||0;
   if(!L) return {cost:0,reserve:false};
-  const bh=Math.max(HOUR_H,RT_LH*L+4)-6;
+  const bh=Math.max(HOUR_H,6+markerStackH(L))-6;
   let hit=false;
   for(let ln=0;ln<L&&!hit;ln++){
-    const top=(L<=1)? 0 : ln*(bh-RT_BAND)/(L-1);
+    const top=(L<=1)? 0 : ln*Math.min(RT_LH,(bh-RT_BAND)/(L-1));
     if(top+RT_BAND<=bh-SEG_LBL_H) continue;
     const ivs=(_rowOcc[h]&&_rowOcc[h][ln])||[];
     for(let vi=0;vi<ivs.length;vi++){ if(x1<ivs[vi][1]&&ivs[vi][0]<x2){ hit=true; break; } }
   }
   if(!hit) return {cost:0,reserve:false};
-  return {cost:Math.max(HOUR_H,RT_LH*L+4+SEG_LBL_H)-(bh+6),reserve:true};
+  return {cost:Math.max(HOUR_H,6+markerStackH(L)+SEG_LBL_H)-(bh+6),reserve:true};
 }
 function lblTxtHit(h,x1,x2){
   const m=_rowTxt[h]; if(!m) return false;
@@ -2048,7 +2093,10 @@ function attachAC(input, areaSel, container){
   const thumb=document.createElement("div");
   thumb.className="ac-thumb";
   list.appendChild(thumb);
-  document.body.appendChild(list);
+  /* showModal() top-layer: body-mounted lists render BEHIND the dialog. Host inside container when provided. */
+  var acHost=(container && container.nodeType===1)? container: document.body;
+  acHost.appendChild(list);
+  list._acHost=acHost;
   input._acList=list;
   list._scroll=scroll;
   var acSelIdx=0;
@@ -2238,7 +2286,7 @@ function attachNoteAC(input, container){
   const scroll=document.createElement("div");
   scroll.className="ac-scroll";
   list.appendChild(scroll);
-  document.body.appendChild(list);
+  var _nHost=(container&&container.nodeType===1)?container:document.body;_nHost.appendChild(list);
   input._acList=list;
   list._scroll=scroll;
   function hide(){ list.style.display="none"; document.removeEventListener('scroll',_acReposition,true); document.removeEventListener('click',_acOutClick,true); document.removeEventListener('keydown',_acKey,true); _acViewportBind(false); if(_openAc.input===input)_openAc.input=null; }
@@ -2611,13 +2659,14 @@ function renderRtMarkers(){
   var W=tlContent.clientWidth;
   var rts=(day.routines||[]).filter(function(r){return r.time;});
   var SC=(window.devicePixelRatio||1)*((window.visualViewport&&window.visualViewport.scale)||1); if(!isFinite(SC)||SC<=0) SC=1;
-  var dataSig=state.viewDate+"|"+JSON.stringify(rts.map(function(r){return [r.time,r.end||"",r.name,!!r.done,r.actId||"",r.area||""];}));
+  var _tdms=(day.todos||[]).filter(function(t){return t.time;});
+  var dataSig=state.viewDate+"|"+JSON.stringify(rts.map(function(r){return [r.time,r.end||"",r.name,!!r.done,r.actId||"",r.area||""];}))+ "|T|"+JSON.stringify(_tdms.map(function(t){return [t.time,t.end||"",t.title,!!t.done,t.area||""];}));
   var sig=dataSig+"|"+W+"|"+SC;
-  var have=tlContent.querySelector(".rt-strip,.rt-flag");
-  if(sig===_rtMarkSig&&(have||!rts.length)) return;
+  var have=tlContent.querySelector(".rt-strip,.rt-flag,.td-flag,.td-strip-td");
+  if(sig===_rtMarkSig&&(have||(!rts.length&&!_tdms.length))) return;
   var animOK=(dataSig!==_rtMarkDataSig)||tlAnimPending;
   _rtMarkSig=sig; _rtMarkDataSig=dataSig;
-  tlContent.querySelectorAll(".rt-strip,.rt-flag").forEach(function(x){x.remove();});
+  tlContent.querySelectorAll(".rt-strip,.rt-flag,.td-flag,.td-strip-td").forEach(function(x){x.remove();});
   if(!_rtTipEl||!document.body.contains(_rtTipEl)){ _rtTipEl=document.createElement("div"); _rtTipEl.className="rt-tip"; document.body.appendChild(_rtTipEl); }
   var tip=_rtTipEl; tip.style.display="none";
   var LH=RT_LH, PXM=W/60;
@@ -2630,15 +2679,27 @@ function renderRtMarkers(){
     if(isNaN(rf0)||rf0<0||rf0>=1440) continue;
     var re0=-1;
     if(rt0.end){ var rq=rt0.end.split(":"); var e2=parseInt(rq[0],10)*60+parseInt(rq[1],10); if(e2>rf0&&e2<=1440) re0=e2; }
-    items.push({rt:rt0,rf:rf0,re:re0});
+    items.push({rt:rt0,rf:rf0,re:re0,kind:"rt"});
+  }
+  for(var _ti=0;_ti<_tdms.length;_ti++){
+    var _td0=_tdms[_ti];
+    var _tp=_td0.time.split(":");
+    var _tf0=parseInt(_tp[0],10)*60+parseInt(_tp[1],10);
+    if(isNaN(_tf0)||_tf0<0||_tf0>=1440) continue;
+    var _te0=-1;
+    if(_td0.end){ var _tq=_td0.end.split(":"); var _te1=parseInt(_tq[0],10)*60+parseInt(_tq[1],10); if(_te1>_tf0&&_te1<=1440) _te0=_te1; }
+    items.push({td:_td0,rf:_tf0,re:_te0,kind:"td"});
   }
   items.sort(function(a,b){ return a.rf-b.rf || ((b.re<0?b.rf:b.re)-(a.re<0?a.rf:a.re)); });
   var occ={}, lanes={}, txt={};
   items.forEach(function(it){
-    var rt=it.rt, rf=it.rf, re=it.re;
-    var name=(rt.done?"\u2713 ":"")+rt.name;
-    var act=rt.actId? actById(rt.actId):null;
-    var c=act? act.color : (rt.area? areaColor(rt.area) : "#A8A5A0");
+    var isRt=it.kind!=="td";
+    var rt=it.rt, rf=it.rf, re=it.re, _itd=it.td;
+    var _src=isRt?rt:_itd;
+    var isDone=!!_src.done;
+    var name=(isDone?"\u2713 ":"")+(isRt?rt.name:_itd.title);
+    var act=_src.actId? actById(_src.actId):null;
+    var c=act? act.color : (_src.area? areaColor(_src.area) : (isRt?"#A8A5A0":"#7A7773"));
     var spans=[], flip=false, chipW=0, x=0;
     if(re>rf){
       var sgs=segsOf(rf,re);
@@ -2671,11 +2732,11 @@ function renderRtMarkers(){
       occ[sp.hour][lane].push([sp.x1,sp.x2]);
       if(!lanes[sp.hour]||lanes[sp.hour]<lane+1) lanes[sp.hour]=lane+1;
     }
-    var tt=(re>rf)? rt.time+"\u2009\u2013\u2009"+rt.end : rt.time;
+    var tt=(re>rf)? _src.time+"\u2009\u2013\u2009"+_src.end : _src.time;
     function bindTip(el){
       el.addEventListener("pointerenter",function(){
         tip.style.display="block";
-        tip.innerHTML='<span class="rt-tip-t">'+(rt.done?'\u2713 ':'')+esc(rt.name)+'</span>'+(tt?'<span class="rt-tip-s">'+esc(tt)+'</span>':'');
+        tip.innerHTML='<span class="rt-tip-t">'+(isDone?'\u2713 ':'')+esc(isRt?rt.name:_itd.title)+'</span>'+(tt?'<span class="rt-tip-s">'+esc(tt)+'</span>':'');
         var r=el.getBoundingClientRect();
         var tw=tip.offsetWidth, th=tip.offsetHeight;
         var lx=r.left+r.width/2-tw/2;
@@ -2692,17 +2753,17 @@ function renderRtMarkers(){
       for(di=0;di<spans.length;di++){
         sp=spans[di];
         var d=document.createElement("div");
-        d.className="rt-strip"+(sp.first?" lead":"")+(rt.done?" done":"");
+        d.className=(isRt?"rt-strip":"td-strip-td")+(sp.first?" lead":"")+(isDone?" done":"");
         d.style.top=ds(laneY(sp.hour,lane))+"px";
         d.style.left=ds(sp.x1)+"px";
         d.style.width=ds(sp.x2-sp.x1)+"px";
         d.style.background=routineNoteColor(c);
-        d.style.setProperty("--rt-c",c);
+        if(isRt) d.style.setProperty("--rt-c",c); else d.style.setProperty("--td-c",c);
         d.style.borderRadius=(sp.first&&sp.last)? "4px" : sp.first? "4px 0 0 4px" : sp.last? "0 4px 4px 0" : "0";
         if(di===wi && (sp.x2-sp.x1)>=34){
           var lb=document.createElement("span");
           lb.className="lb"; lb.style.color=deriveText(c);
-          lb.textContent=((sp.x2-sp.x1)>=150? rt.time+"  ":"")+name;
+          lb.textContent=((sp.x2-sp.x1)>=150? _src.time+"  ":"")+name;
           d.appendChild(lb);
           if(!txt[sp.hour]) txt[sp.hour]={};
           if(!txt[sp.hour][lane]) txt[sp.hour][lane]=[];
@@ -2713,15 +2774,15 @@ function renderRtMarkers(){
       }
     }else{
       var f=document.createElement("div");
-      f.className="rt-flag"+(flip?" flip":"")+(rt.done?" done":"");
+      f.className=(isRt?"rt-flag":"td-flag")+(flip?" flip":"")+(isDone?" done":"");
       f.style.top=ds(laneY(spans[0].hour,lane))+"px";
       f.style.left=ds(spans[0].x1)+"px";
-      f.style.setProperty("--rt-c",c);
-      f.innerHTML='<span class="dot"></span>';
+      if(isRt) f.style.setProperty("--rt-c",c); else f.style.setProperty("--td-c",c);
+      f.innerHTML=isRt?'<span class="dot"></span>':'<span class="tdot"></span>';
       var chip=document.createElement("span");
       chip.className="chip"; chip.style.maxWidth=Math.round(chipW)+"px";
-      chip.textContent=name;
-      f.appendChild(chip);
+      var markerT=document.createElement("span"); markerT.className="marker-t"; markerT.textContent=name;
+      chip.appendChild(markerT); f.appendChild(chip);
       if(!txt[spans[0].hour]) txt[spans[0].hour]={};
       if(!txt[spans[0].hour][lane]) txt[spans[0].hour][lane]=[];
       txt[spans[0].hour][lane].push([spans[0].x1,spans[0].x2]);
@@ -2734,7 +2795,7 @@ function renderRtMarkers(){
   if(occChanged){ _occSig=occSig; _rowOcc=occ; _rowTxt=txt; }
   if(applyLanes(lanes)) return;
   if(occChanged&&!_relayout){ _relayout=true; try{ renderTimeline(); }finally{ _relayout=false; } return; }
-  var els=tlContent.querySelectorAll(".rt-strip,.rt-flag");
+  var els=tlContent.querySelectorAll(".rt-strip,.rt-flag,.td-flag,.td-strip-td");
   if(GS&&!rmPref()&&!tlNoAnim&&animOK&&els.length){
     GS.fromTo(els,{opacity:0,y:-5},{opacity:1,y:0,duration:.3,ease:"power2.out",stagger:.015,clearProps:"transform,opacity"});
   }
@@ -2843,7 +2904,7 @@ function endDrag(){
 tlContent.addEventListener("contextmenu",e=>{ e.preventDefault(); });
 tlContent.addEventListener("pointerdown",e=>{
   if(e.button!=null && e.button!==0) return;
-  if(e.target.closest(".rt-strip,.rt-flag,.now-bar")) return;
+  if(e.target.closest(".rt-strip,.rt-flag,.td-strip-td,.td-flag,.now-bar")) return;
   /* mouse/pen: immediate drag-create (desktop) */
   if(e.pointerType!=="touch"){
     tlClearGesture();
@@ -2939,6 +3000,9 @@ function openEvDlg(ev){
   else{ _nEl.value=ev.note||""; _nEl.readOnly=false; }
   $("#evMsg").textContent="";
   $("#evDlg").showModal();
+  /* Tracker와 동일: 확정 활동이면 영역 잠금 + 형광펜, AC는 해당 영역 활동만 */
+  if(window.syncAreaLock) syncAreaLock();
+  if(window.paintEvAct) paintEvAct();
 }
 $("#evSave").addEventListener("click",()=>{
   const day=ensureDay(state.viewDate);
@@ -3147,11 +3211,11 @@ function renderTodoRoutineTime(){
     const running=!!(r&&((kind==="todo"&&r.todoId===item.id)||(kind==="routine"&&r.routineId===item.id)));
     if(!min&&!running&&!trlShowZero){ zero++; return; }
     const row=document.createElement("div"); row.className="trl-row"+(item.done?" done":"");
-    if(kind==="routine"&&item.time){ const t=document.createElement("span"); t.className="trl-time"; t.textContent=item.time; row.appendChild(t); }
+    if(item.time){ const t=document.createElement("span"); t.className="trl-time"; t.textContent=item.time; row.appendChild(t); }
     const nm=document.createElement("span"); nm.className="nm"; nm.textContent=kind==="todo"? item.title:item.name;
     row.appendChild(nm);
     const act=item.actId? actById(item.actId):null;
-    if(act){ const pl=document.createElement("span"); pl.className="trl-pill"; pl.textContent=act.name; pl.style.background=hexToRgba(act.color,.3); pl.style.color=darkTone(act.color); row.appendChild(pl); }
+    if(act){ const pl=document.createElement("span"); pl.className="trl-pill"; pl.textContent=act.name; pl.style.background=hexToRgba(act.color,.3); pl.style.color="var(--text)"; row.appendChild(pl); }
     if(item.done){ const c=document.createElement("span"); c.className="trl-chk"; c.textContent="완료"; row.appendChild(c); }
     const mv=document.createElement("span"); mv.className="trl-min"; mv.dataset.tmr=kind+":"+item.id;
     mv.textContent=min? fmtDur(min):(running?"측정 중":"0m");
@@ -3529,7 +3593,7 @@ function renderStMonth(){
       const b=document.createElement("button"); b.type="button"; b.textContent=label;
       if(moCat===key){
         b.className="on";
-        if(color){ b.style.background=hexToRgba(color,.22); b.style.color=darkTone(color); }
+        if(color){ b.style.background=hexToRgba(color,.22); b.style.color="var(--text)"; }
         else{ b.style.background="var(--text)"; b.style.color="#fff"; }
       }
       b.addEventListener("click",()=>{
@@ -3553,7 +3617,7 @@ function renderStMonth(){
           const b=document.createElement("button"); b.type="button"; b.textContent=label;
           if(moAct===key){
             b.className="on";
-            if(color){ b.style.background=hexToRgba(color,.22); b.style.color=darkTone(color); }
+            if(color){ b.style.background=hexToRgba(color,.22); b.style.color="var(--text)"; }
             else{ b.style.background="var(--text)"; b.style.color="#fff"; }
           }
           b.addEventListener("click",()=>{ if(moAct===key) return; moAct=key; renderStMonth(); });
@@ -3717,15 +3781,50 @@ function renderTodos(){
     const tb=document.createElement("span"); tb.className="tbadge"; tb.dataset.tmr="todo:"+td.id;
     tb.textContent=fmtShort(todoMeasuredMin(day,td));
     const act=td.actId? actById(td.actId):null;
-    const tag=document.createElement("span"); tag.className="tag"+(act?" linked":""); tag.textContent=act? act.name:(td.area||"");
-    if(act){ const ar=areaByName(act.area); if(ar) tag.style.color=ar.color; }
+    const ar=act? areaByName(act.area) : (td.area? areaByName(td.area):null);
+    const tag=document.createElement("button"); tag.type="button";
+    if(act){
+      tag.className="tag linked";
+      tag.innerHTML=(ar?'<span class="tag-ar" style="color:'+ar.color+'">'+esc(act.area)+'</span><span class="tag-dot">·</span>':'')+'<span class="tag-act" style="background:'+hexToRgba(act.color,.26)+'">'+esc(act.name)+'</span>';
+    }else if(td.area){
+      tag.className="tag linked";
+      tag.innerHTML='<span class="tag-ar"'+(ar?' style="color:'+ar.color+'"':'')+'>'+esc(td.area)+'</span>';
+    }else{
+      tag.className="tag ghost"; tag.textContent="영역·활동";
+    }
+    tag.setAttribute("aria-label","영역·활동 연결 변경");
+    (function(item,anchor){
+      anchor.addEventListener("click",function(e){
+        e.preventDefault(); e.stopPropagation();
+        openTagPicker(anchor,{area:item.area||null,actId:item.actId||null},function(v){
+          item.actId=v.actId||null;
+          var _a=v.actId? actById(v.actId):null;
+          item.area=_a? _a.area : (v.area||"");
+          save(); renderTodos(); renderLive();
+        });
+      });
+    })(td,tag);
     const del=document.createElement("button"); del.className="del"; del.textContent="✕"; del.setAttribute("aria-label","삭제");
     del.addEventListener("click",e=>{e.preventDefault();
       const _i=day.todos.indexOf(td);
       day.todos=day.todos.filter(x=>x!==td); save(); renderTodos();
       toast("할일 삭제됨: "+td.title,()=>{ day.todos.splice(Math.min(_i<0?0:_i,day.todos.length),0,td); save(); renderTodos(); });
     });
-    row.append(cb,nm,tb,tag,makeTmrBtn(td,"todo"),del);
+    var ttb=document.createElement("button");
+    ttb.type="button";
+    ttb.className="ttime rt-time"+(td.time&&td.end?" range":"")+(td.time?"":" unset");
+    if(td.time&&td.end){ ttb.innerHTML='<span class="rt-stack"><span class="rt-t1">'+esc(td.time)+'</span><span class="rt-t2">'+esc(td.end)+'</span></span>'; }
+    else{ ttb.textContent=td.time||"--:--"; }
+    ttb.setAttribute("aria-label",td.time?"시간 수정":"시간 지정");
+    (function(item){
+      ttb.addEventListener("click",function(e){
+        e.preventDefault(); e.stopPropagation();
+        openRtTimeDlg({time:item.time||"",end:item.end||""},function(v){
+          item.time=v.time; item.end=v.end; save(); renderTodos(); renderLive();
+        });
+      });
+    })(td);
+    row.append(cb,ttb,nm,tag,tb,makeTmrBtn(td,"todo"),del);
     list.appendChild(row);
   }
 }
@@ -3911,17 +4010,17 @@ function renderRoutines(){
     row.className="check-item rt-row"+(rt.done?" done":"");
     const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=rt.done;
     cb.addEventListener("change",()=>{rt.done=cb.checked; save(); renderRoutines(); renderLive();});
-    var tm=document.createElement("span"); tm.className="rt-time"+(rt.end&&rt.time?" range":""); if(rt.time&&rt.end){ tm.innerHTML='<span class="rt-stack"><span class="rt-t1">'+esc(rt.time)+'</span><span class="rt-t2">'+esc(rt.end)+'</span></span>'; } else { tm.textContent=rt.time||""; }
+    var tm=null; if(rt.time){ tm=document.createElement("span"); tm.className="rt-time"+(rt.end?" range":""); if(rt.end){ tm.innerHTML='<span class="rt-stack"><span class="rt-t1">'+esc(rt.time)+'</span><span class="rt-t2">'+esc(rt.end)+'</span></span>'; } else { tm.textContent=rt.time; } }
     const nm=document.createElement("span"); nm.className="name rt-name"; nm.textContent=rt.name;
     const tb=document.createElement("span"); tb.className="tbadge"; tb.dataset.tmr="routine:"+rt.id;
     tb.textContent=fmtShort(routineMeasuredMin(day,rt));
-    row.append(cb,tm,nm);
+    row.appendChild(cb); if(tm) row.appendChild(tm); row.appendChild(nm);
     const _ra=rt.actId? actById(rt.actId):null;
     const _rar=_ra? areaByName(_ra.area) : (rt.area? areaByName(rt.area):null);
     if(_ra||_rar){
       const atg=document.createElement("span"); atg.className="tag linked";
-      atg.textContent=_ra? (_ra.area+" · "+_ra.name) : _rar.name;
-      if(_rar) atg.style.color=_rar.color;
+      if(_ra){ atg.innerHTML=(_rar?'<span class="tag-ar" style="color:'+_rar.color+'">'+esc(_ra.area)+'</span><span class="tag-dot">·</span>':'')+'<span class="tag-act" style="background:'+hexToRgba(_ra.color,.26)+'">'+esc(_ra.name)+'</span>'; }
+      else{ atg.innerHTML='<span class="tag-ar" style="color:'+_rar.color+'">'+esc(_rar.name)+'</span>'; }
       row.appendChild(atg);
     }
     row.appendChild(tb);
@@ -4191,7 +4290,7 @@ function areaBtn(value,onSelect,opts){
       updateThumb()
     }
     _openAp.list=list
-    document.body.appendChild(list)
+    ;(ct||document.body).appendChild(list)
     positionList()
     document.addEventListener('scroll',_apReposition,true)
     document.addEventListener('click',_apOutClick,true)
@@ -4208,6 +4307,67 @@ function areaBtn(value,onSelect,opts){
   btn._getValue=function(){return cur}
   return btn
 }
+function openTagPicker(btn,value,onPick){
+  if(btn._tpClose){ btn._tpClose(); return; }
+  _closeAp();
+  _openAp.btn=btn;
+  btn.classList.add('open');
+  var cur={area:(value&&value.area)||null,actId:(value&&value.actId)||null};
+  var list=document.createElement('div');
+  list.className='ap-list';
+  var scroll=document.createElement('div'); scroll.className='ap-scroll'; list.appendChild(scroll);
+  var thumb=document.createElement('div'); thumb.className='ap-thumb'; list.appendChild(thumb);
+  list._scroll=scroll;
+  function updateThumb(){
+    var sh=scroll.scrollHeight, ch=scroll.clientHeight;
+    if(sh<=ch+1){ thumb.classList.remove('show'); return; }
+    var trackH=Math.max(0, ch-12);
+    var thumbH=Math.max(20, trackH*ch/sh);
+    var maxTop=trackH-thumbH;
+    var top=(scroll.scrollTop/(sh-ch))*maxTop;
+    thumb.style.height=thumbH+'px'; thumb.style.top=(top+12)+'px'; thumb.classList.add('show');
+  }
+  list._updateThumb=updateThumb;
+  function closeList(){ if(!list) return; list.remove(); list=null; btn._tpClose=null; btn.classList.remove('open'); document.removeEventListener('scroll',_apReposition,true); document.removeEventListener('click',_apOutClick,true); document.removeEventListener('keydown',_apKey,true); window.removeEventListener('resize',_apReposition); if(_openAp.btn===btn){ _openAp.btn=null; _openAp.list=null; } }
+  btn._tpClose=closeList;
+  function pick(area,actId,row){ if(btn._apLock) return; cur={area:area,actId:actId||null}; apPickAnim(btn,list,row,closeList); if(onPick) onPick({area:cur.area,actId:cur.actId}); }
+  var clear=document.createElement('div');
+  clear.className='ac-row clear-link'+((!cur.area&&!cur.actId)?' selected':'');
+  clear.innerHTML='<span class="nm">연결 없음</span>';
+  clear.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();pick(null,null,clear);});
+  clear.addEventListener('pointerdown',function(ev){ev.stopPropagation();});
+  state.settings.areas.forEach(function(a){
+    var hd=document.createElement('div');
+    hd.className='ac-row cat-hd'+((!cur.actId&&cur.area===a.name)?' selected':'');
+    hd.innerHTML='<span class="dot" style="background:'+a.color+'"></span><span class="nm">'+esc(a.name)+'</span><span class="cat-only">카테고리만</span>';
+    hd.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();pick(a.name,null,hd);});
+    hd.addEventListener('pointerdown',function(ev){ev.stopPropagation();});
+    scroll.appendChild(hd);
+    state.settings.activities.filter(function(x){return x.area===a.name;}).forEach(function(x){
+      var row=document.createElement('div');
+      row.className='ac-row cat-sub'+(cur.actId===x.id?' selected':'');
+      row.innerHTML='<span class="dot" style="background:'+x.color+'"></span><span class="nm">'+esc(x.name)+'</span>';
+      row.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();pick(a.name,x.id,row);});
+      row.addEventListener('pointerdown',function(ev){ev.stopPropagation();});
+      scroll.appendChild(row);
+    });
+  });
+  scroll.appendChild(clear);
+  var rows=scroll.querySelectorAll('.ac-row');
+  rows.forEach(function(r,i){ r.addEventListener('pointerenter',function(){rows.forEach(function(x){x.classList.remove('selected')});r.classList.add('selected');if(list)list.dataset.selIdx=i;}); });
+  var selIdx=Array.prototype.findIndex.call(rows,function(r){return r.classList.contains('selected')});
+  list.dataset.selIdx=selIdx<0?0:selIdx;
+  _openAp.list=list;
+  document.body.appendChild(list);
+  placeApList(btn,list); updateThumb();
+  document.addEventListener('scroll',_apReposition,true);
+  document.addEventListener('click',_apOutClick,true);
+  document.addEventListener('keydown',_apKey,true);
+  window.addEventListener('resize',_apReposition);
+  scroll.addEventListener('scroll',function(ev){ev.stopPropagation();updateThumb();});
+  list.addEventListener('click',function(ev){ev.stopPropagation();});
+  list.addEventListener('pointerdown',function(ev){ev.stopPropagation();});
+}
 function catActBtn(value,onSelect,opts){
   opts=opts||{}
   const ct=opts.container||document.body
@@ -4222,7 +4382,7 @@ function catActBtn(value,onSelect,opts){
     const arName=act? act.area:cur.area
     const ar=arName? areaByName(arName):null
     if(act){
-      btn.innerHTML='<span class="ap-nm">'+(ar?'<span class="ca-ar" style="color:'+ar.color+'">'+esc(act.area)+'</span><span class="ca-sep"></span>':'')+'<span class="ca-hl" style="background:'+hexToRgba(act.color,.30)+';color:'+darkTone(act.color)+'">'+esc(act.name)+'</span></span><span class="ap-tri">▾</span>'
+      btn.innerHTML='<span class="ap-nm">'+(ar?'<span class="ca-ar" style="color:'+ar.color+'">'+esc(act.area)+'</span><span class="ca-sep"></span>':'')+'<span class="ca-hl" style="background:'+hexToRgba(act.color,.30)+'">'+esc(act.name)+'</span></span><span class="ap-tri">▾</span>'
     }else if(ar){
       btn.innerHTML='<span class="ap-nm"><span class="ca-ar" style="color:'+ar.color+'">'+esc(ar.name)+'</span></span><span class="ap-tri">▾</span>'
     }else{
@@ -4290,7 +4450,7 @@ function catActBtn(value,onSelect,opts){
       updateThumb()
     }
     _openAp.list=list
-    document.body.appendChild(list)
+    ;(ct||document.body).appendChild(list)
     positionList()
     document.addEventListener('scroll',_apReposition,true)
     document.addEventListener('click',_apOutClick,true)
@@ -4333,25 +4493,65 @@ function refreshAreaPickers(){
   if(!window._areaPickers)return;
   window._areaPickers.forEach(function(p){p.btn._setValue(p.sel.value);});
 }
-function areaLockBtn(){
+function areaPickerFor(selId){
   if(!window._areaPickers)return null;
-  var p=window._areaPickers.find(function(p){return p.sel&&p.sel.id==='areaSelect';});
+  var p=window._areaPickers.find(function(p){return p.sel&&p.sel.id===selId;});
+  return p||null;
+}
+function areaLockBtn(){
+  var p=areaPickerFor('areaSelect');
   return p?p.btn:null;
 }
-function syncAreaLock(){
-  var inp=document.getElementById('actInput'); if(!inp)return;
-  var btn=areaLockBtn();
+/* Tracker 본문과 기록 편집 공통: 활동명이 확정되면 영역 잠금, 미매칭이면 해제 */
+function syncAreaLockPair(actInpId, areaSelId, paintFn){
+  var inp=document.getElementById(actInpId); if(!inp)return;
+  var pack=areaPickerFor(areaSelId);
+  var btn=pack?pack.btn:null;
+  var sel=pack?pack.sel:document.getElementById(areaSelId);
   var v=inp.value.trim().toLowerCase();
   var act=v? state.settings.activities.find(function(a){return a.name.toLowerCase()===v;}):null;
   if(act){
-    if(areaByName(act.area)){ $("#areaSelect").value=act.area; refreshAreaPickers(); }
+    if(sel && areaByName(act.area)){
+      sel.value=act.area;
+      if(btn&&btn._setValue) btn._setValue(act.area);
+      else if(window.refreshAreaPickers) refreshAreaPickers();
+    }
     if(btn&&btn._setLocked) btn._setLocked(true);
   }else{
     if(btn&&btn._setLocked) btn._setLocked(false);
   }
-  if(window.paintActInput) paintActInput();
+  if(paintFn) paintFn();
+}
+function syncAreaLock(){
+  syncAreaLockPair('actInput','areaSelect', window.paintActInput);
+  syncAreaLockPair('evAct','evArea', window.paintEvAct);
 }
 window.syncAreaLock=syncAreaLock;
+function onEvAreaChange(){
+  var area=$("#evArea").value;
+  var inp=$("#evAct"); if(!inp) return;
+  var v=inp.value.trim();
+  var act=v? (actByName(v)||state.settings.activities.find(function(a){return a.name.toLowerCase()===v.toLowerCase();})) : null;
+  /* 영역 변경 시 다른 영역 활동명이 남아 있으면 비움 — Tracker onMainAreaChange 와 동일 */
+  if(act && act.area!==area){ inp.value=""; }
+  if(window.syncAreaLock) syncAreaLock();
+  if(window.paintEvAct) paintEvAct();
+}
+function paintEvAct(){
+  var el=$("#evAct"); if(!el) return;
+  var v=(el.value||"").trim();
+  var act=v? (actByName(v)||state.settings.activities.find(function(a){return a.name.toLowerCase()===v.toLowerCase();})) : null;
+  if(act && act.color){
+    el.classList.add("act-filled");
+    el.style.setProperty("--act-fill", hexToRgba(act.color, .42));
+    el.style.borderColor="transparent";
+  }else{
+    el.classList.remove("act-filled");
+    el.style.removeProperty("--act-fill");
+    el.style.borderColor="";
+  }
+}
+window.paintEvAct=paintEvAct;
 
 /* ================= selects ================= */
 function renderSelects(){
@@ -4923,7 +5123,7 @@ function applyPlan(json){
     if(td.id && day.todos.some(x=>x.id===td.id)){ st++; continue; }
     let _actId=null,_area=td.area||"";
     if(td.act){ const _a=resolveActivity(td.act,_area||(state.settings.areas[0]&&state.settings.areas[0].name)||"",true); if(_a){ _actId=_a.id; if(!_area) _area=_a.area; } }
-    if(_area && !areaByName(_area)) state.settings.areas.push({name:_area,color:RAINBOW[state.settings.areas.length%RAINBOW.length]}); day.todos.push({id:td.id||uid("m"),title:td.title,area:_area,actId:_actId,done:false});
+    if(_area && !areaByName(_area)) state.settings.areas.push({name:_area,color:RAINBOW[state.settings.areas.length%RAINBOW.length]}); day.todos.push({id:td.id||uid("m"),title:td.title,area:_area,actId:_actId,done:false,time:td.time||"",end:td.end||""});
     nt++;
   }
   for(const er of (json.extraRoutines||[])){
@@ -6390,11 +6590,16 @@ function onMainAreaChange(){
 attachAC($("#actInput"), $("#areaSelect"), document.body);
 attachAC($("#evAct"), $("#evArea"), $("#evDlg"));
 attachNoteAC($("#noteInput"), document.body);
+attachNoteAC($("#evNote"), $("#evDlg"));
 sizeNoteInput();
 linkAreaPicker("#areaSelect");
 $("#areaSelect").addEventListener("change",function(){ onMainAreaChange(); });
 $("#actInput").addEventListener("input",function(){ if(window.syncAreaLock)syncAreaLock(); sizeActInput(); paintActInput(); });
 $("#actInput").addEventListener("change",function(){ if(window.syncAreaLock)syncAreaLock(); sizeActInput(true); paintActInput(); });
+/* 기록 편집: Tracker 본문과 동일 영역 잠금·활동 AC */
+$("#evArea").addEventListener("change",function(){ onEvAreaChange(); });
+$("#evAct").addEventListener("input",function(){ if(window.syncAreaLock)syncAreaLock(); if(window.paintEvAct)paintEvAct(); });
+$("#evAct").addEventListener("change",function(){ if(window.syncAreaLock)syncAreaLock(); if(window.paintEvAct)paintEvAct(); });
 sizeActInput();
 paintActInput();
 attachSlideInd(document.querySelector(".tabbar"));
