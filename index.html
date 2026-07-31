@@ -1411,7 +1411,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.53<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.54<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -2074,6 +2074,19 @@ function addInterval(day,actId,s,e,tags){
     else merged.push(ev);
   }
   day.events=merged;
+}
+/* [s,e) 중 기존 이벤트가 선점하지 않은 빈 구간 목록 */
+function freeRanges(day,s,e){
+  const occ=[];
+  for(const ev of day.events){
+    const es=toMin(ev.start), ee=toMin(ev.end);
+    if(ee>s && es<e) occ.push([Math.max(es,s),Math.min(ee,e)]);
+  }
+  occ.sort((a,b)=>a[0]-b[0]);
+  const out=[]; let cur=s;
+  for(const o of occ){ if(o[0]>cur) out.push([cur,o[0]]); if(o[1]>cur) cur=o[1]; }
+  if(cur<e) out.push([cur,e]);
+  return out;
 }
 
 /* ================= autocomplete (custom) ================= */
@@ -2882,7 +2895,10 @@ function tlCommitRange(d){
     if(e>lim) e=lim;
   }
   if(e<=s) return;
-  addInterval(day,act.id,s,e,ctx.tags);
+  /* 기존 기록이 선점한 구간은 침범하지 않고 빈 구간만 채운다 */
+  const _free=freeRanges(day,s,e);
+  if(!_free.length){ toast("이미 기록이 있는 구간입니다"); return; }
+  for(const _r of _free) addInterval(day,act.id,_r[0],_r[1],ctx.tags);
   save(); renderTimeline(); renderStats(); renderTotal(); renderTodos(); renderRoutines();
 }
 function tlHandleTap(d){
@@ -2999,6 +3015,7 @@ function openEvDlg(ev){
   if(_tagT){ _nEl.value=_tagT; _nEl.readOnly=true; }
   else{ _nEl.value=ev.note||""; _nEl.readOnly=false; }
   $("#evMsg").textContent="";
+  window._evOvAck=null;
   $("#evDlg").showModal();
   /* Tracker와 동일: 확정 활동이면 영역 잠금 + 형광펜, AC는 해당 영역 활동만 */
   if(window.syncAreaLock) syncAreaLock();
@@ -3021,6 +3038,19 @@ $("#evSave").addEventListener("click",()=>{
   if(e<=s){ msg.textContent="종료 시각이 시작보다 늦어야 합니다."; msg.className="msg err"; return; }
   const act=resolveActivity(name, $("#evArea").value, true);
   act.lastUsed=Date.now();
+  /* 수정 구간이 다른 기록을 침범하면 확인 후에만 잠식한다 */
+  const _ov=day.events.filter(x=>{ if(x.id===editingEvId) return false; const xs=toMin(x.start); let xe=toMin(x.end); if(xe===0&&xs>0) xe=1440; return xs<e && xe>s; });
+  if(_ov.length){
+    const _sig=editingEvId+"|"+s+"|"+e+"|"+act.id;
+    if(window._evOvAck!==_sig){
+      window._evOvAck=_sig;
+      const _ls=_ov.slice(0,3).map(x=>{const _a2=actById(x.actId);return (_a2?_a2.name:"?")+" "+x.start+"~"+x.end;}).join(", ");
+      msg.textContent="다른 기록 "+_ov.length+"건("+_ls+(_ov.length>3?" 외":"")+")과 겹칩니다. 겹친 만큼 기존 기록이 잘립니다. 적용하려면 저장을 한 번 더 누르세요.";
+      msg.className="msg err";
+      return;
+    }
+  }
+  window._evOvAck=null;
   const _tags={todoId:ev.todoId||null,routineId:ev.routineId||null};
   if(!_tags.todoId&&!_tags.routineId){ const _nv=$("#evNote").value.trim(); if(_nv) _tags.note=_nv; }
   day.events=day.events.filter(x=>x.id!==editingEvId);
@@ -4225,6 +4255,12 @@ function placeApList(btn,list){
   const top=flip?Math.max(vy+8,r.top-4-actualH):Math.min(r.bottom+4,vy+vh-actualH-8);
   list.style.left=Math.round(left)+'px'; list.style.top=Math.round(top)+'px';
   list.style.bottom='';
+  /* transform이 걸린 조상(패널·다이얼로그)이 fixed의 containing block이 되면
+     viewport 좌표가 그 조상 원점 기준으로 해석되어 어긋난다.
+     실제 렌더 위치를 재측정해 목표 좌표와의 델타만큼 보정한다. */
+  const _got=list.getBoundingClientRect();
+  const _dx=Math.round(_got.left)-Math.round(left), _dy=Math.round(_got.top)-Math.round(top);
+  if(_dx||_dy){ list.style.left=(Math.round(left)-_dx)+'px'; list.style.top=(Math.round(top)-_dy)+'px'; }
   if(list._updateThumb) list._updateThumb();
 }
 function areaBtn(value,onSelect,opts){
@@ -4605,9 +4641,13 @@ function colorField(initial, onChange, opts){
     if(!pop)return;
     const r=sw.getBoundingClientRect(); const ph=pop.offsetHeight, pw=pop.offsetWidth, wh=window.innerHeight, ww=window.innerWidth;
     let left=Math.max(8, Math.min(r.left, ww-pw-8));
-    pop.style.left=left+"px";
     const up=(r.bottom+6+ph>wh-8 && r.top-ph-6>8);
-    if(up){ pop.style.top=""; pop.style.bottom=(wh-r.top+6)+"px"; } else { pop.style.bottom=""; pop.style.top=(r.bottom+6)+"px"; }
+    const top=up? Math.max(8, r.top-ph-6) : (r.bottom+6);
+    pop.style.bottom=""; pop.style.left=left+"px"; pop.style.top=top+"px";
+    /* placeApList와 동일한 containing-block 델타 보정 */
+    const _got=pop.getBoundingClientRect();
+    const _dx=Math.round(_got.left)-Math.round(left), _dy=Math.round(_got.top)-Math.round(top);
+    if(_dx||_dy){ pop.style.left=(Math.round(left)-_dx)+"px"; pop.style.top=(Math.round(top)-_dy)+"px"; }
   }
   function close(){ if(!pop)return; pop.remove(); pop=null; prev=null; hex=null; sw.classList.remove("open"); document.removeEventListener("click",outside,true); document.removeEventListener("keydown",onKey,true); window.removeEventListener("resize",reposition); document.removeEventListener("scroll",reposition,true); }
   function outside(e){ if(pop && !pop.contains(e.target) && e.target!==sw && !sw.contains(e.target)) close(); }
