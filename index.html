@@ -21,7 +21,8 @@
   --text:#2C2C2B; --text2:#7A7773; --text3:#A8A49F;
   --line:#F0EFED; --line2:#E6E5E3; --soft:#F9F8F7;
   --red:#E56458; --ok:#46A171; --amber:#D5803B;
-  --r-sm:8px; --r-md:10px; --r-lg:12px; --r-xl:16px; --r-2xl:24px; --r-round:999px; --ecell:44px; --tag-h:20px;
+  --r-sm:8px; --r-md:10px; --r-lg:12px; --r-xl:16px; --r-2xl:24px; --r-round:999px; --ecell:44px;
+  --tag-h:20px;
   --sh-1:0 1px 4px rgba(0,0,0,.08);
   --sh-2:0 4px 12px rgba(0,0,0,.12);
   --sh-3:0 8px 24px rgba(0,0,0,.16);
@@ -439,6 +440,7 @@ section.block h2 .sub{font-size:13px; font-weight:400; color:var(--text2); margi
 .check-item .name{flex:1; min-width:0;}
 .check-item.done .name{color:var(--text3); text-decoration:line-through;}
 .check-item .tag{font-size:12px; padding:1px 9px; border-radius:var(--r-round); background:var(--soft); color:var(--text2); flex:none;}
+/* v3.12.55: area text + activity chip share one 20px optical frame */
 .check-item .tag.linked{background:none; padding:0; display:inline-flex; align-items:center; gap:5px; line-height:1;}
 .check-item .tag .tag-ar,.check-item .tag .tag-dot,.check-item .tag .tag-act{display:inline-flex; align-items:center; box-sizing:border-box; min-height:var(--tag-h); line-height:1;}
 .check-item .tag .tag-ar{font-weight:600;}
@@ -539,7 +541,7 @@ button.tag.ghost{background:none; border:1px dashed var(--line2); color:var(--te
 @media (prefers-reduced-motion: reduce){.rt-edit-row.rt-edit-enter,.rt-edit-row.rt-edit-restore,.rt-edit-row.rt-edit-exit{animation:none;}}
 .rt-edit-row .del{width:36px; height:36px; border-radius:var(--r-md); color:var(--text3); flex:none;}
 @media (hover: hover) and (pointer: fine){ .rt-edit-row .del:hover{background:var(--soft); color:var(--red);} }
-.rt-dow-tag{display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box; min-height:var(--tag-h); line-height:1; font-size:11px; color:var(--text3); background:var(--soft); border:1px solid var(--line); border-radius:var(--r-round); padding:0 8px; flex:none; margin-left:auto;}
+.rt-dow-tag{font-size:11px; color:var(--text3); background:var(--soft); border:1px solid var(--line); border-radius:var(--r-round); padding:2px 8px; flex:none; margin-left:auto;}
 .dow-pill.sun{color:#B3423A; background:#FBEBE9;}
 .dow-pill.sat{color:#2E5FA3; background:#E9EFF8;}
 .dow-pill.sun.on{background:#CB4F43; color:#fff;}
@@ -834,10 +836,11 @@ input[type=color]{transition:transform var(--dur-1) ease,box-shadow .2s ease;}
 .ap-list .ac-row.cat-hd .nm{font-weight:600;}
 .ap-list .ac-row.cat-hd .cat-only{margin-left:auto;font-size:10px;color:var(--text3);}
 .ap-list .ac-row.cat-sub{padding-left:28px;}
-.area-picker.cat-act .ap-nm{display:inline-flex;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;}
-.area-picker.cat-act .ca-ar{display:inline-flex;align-items:center;box-sizing:border-box;min-height:var(--tag-h);line-height:1;font-weight:600;}
-.area-picker.cat-act .ca-hl{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:var(--tag-h);padding:0 7px;line-height:1;border-radius:var(--r-sm);font-weight:600;position:static;top:auto;}
-.area-picker.cat-act .ca-sep{display:inline-block;width:1.5px;height:16px;background:var(--line2);vertical-align:middle;align-self:center;margin:0 6px;border-radius:1px;}
+/* v3.12.55: picker area/activity centered on one axis (no baseline drift) */
+.area-picker.cat-act .ap-nm{display:inline-flex;align-items:center;min-width:0;white-space:nowrap;overflow:hidden;font-weight:600;}
+.area-picker.cat-act .ca-ar,.area-picker.cat-act .ca-hl{display:inline-flex;align-items:center;box-sizing:border-box;min-height:var(--tag-h);line-height:1;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.area-picker.cat-act .ca-hl{justify-content:center;padding:0 7px;border-radius:var(--r-sm);position:static;top:auto;}
+.area-picker.cat-act .ca-sep{display:inline-block;flex:none;align-self:center;width:1.5px;height:16px;background:var(--line2);margin:0 6px;border-radius:1px;}
 .rt-edit-row .area-picker.cat-act{flex:none;max-width:44%;}
 /* ---- json hub v2: link tab + history ---- */
 .cmd-box{background:var(--soft);border-radius:var(--r-md);padding:10px 12px;font-size:13px;line-height:1.55;margin-bottom:8px;}
@@ -1208,20 +1211,38 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
   .jdrop-btns .btn:hover{background:var(--soft);}
 }
 @media (prefers-reduced-motion: reduce){ .jcode textarea{transition:none;} }
+/* ---------- v3.12.55: planner row column grid ----------
+   Problem: name used flex:1, so tag / badge / weekday were pushed right and
+   every row started at a different x (ragged left edge).
+   Fix: todo + routine lists become shared column grids; each row is a subgrid,
+   so the same column contract holds across every row. */
 @supports (grid-template-columns: subgrid){
-#todoList{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto auto auto auto;column-gap:8px;align-items:center;}
-#routineList.rt-list{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto auto auto auto;column-gap:10px;align-items:center;}
-#todoList > .check-item,#routineList.rt-list > .rt-row{display:grid;grid-template-columns:subgrid;grid-column:1/-1;align-items:center;}
-#todoList > .check-item > input[type="checkbox"],#routineList.rt-list > .rt-row > input[type="checkbox"]{grid-column:1;}
-#todoList > .check-item > .todo-time,#routineList.rt-list > .rt-row > .rt-time{grid-column:2;}
-#todoList > .check-item > .name,#routineList.rt-list > .rt-row > .name{grid-column:3;}
-#todoList > .check-item > .tag,#routineList.rt-list > .rt-row > .tag{grid-column:4;}
-#todoList > .check-item > .todo-measure{grid-column:5;}
-#routineList.rt-list > .rt-row > .rt-dow-tag{grid-column:6;justify-self:stretch;margin-left:0;}
-#routineList.rt-list > .rt-row > .rt-act-btn{grid-column:7;}
-#routineList.rt-list > .rt-row.no-time > .name{grid-column:2/4;margin-left:0;}
-#todoList > .empty-cta,#routineList.rt-list > .empty{grid-column:1/-1;}
+  #todoList{display:grid; grid-template-columns:auto auto minmax(0,1fr) auto auto auto auto; align-items:center; column-gap:8px;}
+  #todoList > .check-item{display:grid; grid-template-columns:subgrid; grid-column:1/-1; align-items:center;}
+  #todoList > .check-item > input[type=checkbox]{grid-column:1;}
+  #todoList > .check-item > .ttime{grid-column:2;}
+  #todoList > .check-item > .name{grid-column:3;}
+  #todoList > .check-item > .tag{grid-column:4; justify-self:start;}
+  #todoList > .check-item > .tbadge{grid-column:5; justify-self:end;}
+  #todoList > .check-item > .tmr{grid-column:6;}
+  #todoList > .check-item > .del{grid-column:7;}
+  #todoList > .empty-cta{grid-column:1/-1;}
+
+  #routineList.rt-list{display:grid; grid-template-columns:auto auto minmax(0,1fr) auto auto auto auto; align-items:center; column-gap:10px;}
+  #routineList.rt-list > .rt-row{display:grid; grid-template-columns:subgrid; grid-column:1/-1; align-items:center; min-height:40px;}
+  #routineList.rt-list > .rt-row > input[type=checkbox]{grid-column:1;}
+  #routineList.rt-list > .rt-row > .rt-time{grid-column:2;}
+  #routineList.rt-list > .rt-row > .name{grid-column:3;}
+  /* time-less routines keep the v3.12.49 rule: name starts on the time column */
+  #routineList.rt-list > .rt-row.no-time > .name{grid-column:2/4; margin-left:0;}
+  #routineList.rt-list > .rt-row > .tag{grid-column:4; justify-self:start;}
+  #routineList.rt-list > .rt-row > .tbadge{grid-column:5; justify-self:end;}
+  #routineList.rt-list > .rt-row > .rt-dow-tag{grid-column:6; justify-self:stretch; margin-left:0;}
+  #routineList.rt-list > .rt-row > .tmr{grid-column:7;}
+  #routineList.rt-list > .empty{grid-column:1/-1;}
 }
+/* weekday chip: one fixed, centered column instead of a content-width pill */
+.rt-dow-tag{display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box; min-height:var(--tag-h); line-height:1; padding:0 8px; white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -1426,7 +1447,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.55<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.56<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -3903,7 +3924,10 @@ function fmtDays(days){
   const sorted=[...days].sort((a,b)=>a-b);
   if(sorted.length===5&&!sorted.includes(0)&&!sorted.includes(6)) return "주중";
   if(sorted.length===2&&sorted[0]===0&&sorted[1]===6) return "주말";
-  if(sorted.length>=5){ const miss=[0,1,2,3,4,5,6].filter(i=>!sorted.includes(i)); return miss.map(i=>D[i]).join("·")+" 제외"; }
+  if(sorted.length>=5){
+    const miss=[0,1,2,3,4,5,6].filter(i=>!sorted.includes(i));
+    return miss.map(i=>D[i]).join("·")+" 제외";
+  }
   return sorted.map(i=>D[i]).join("·");
 }
 function timeBtn(value,onChange){
@@ -4042,7 +4066,8 @@ function commitRoutineDefs(rerender){
   renderTimeline(); renderLive();
 }
 function renderRoutines(){
-  const list=$("#routineList"); list.innerHTML=""; list.classList.toggle("rt-list", !rtEditMode);
+  const list=$("#routineList"); list.innerHTML="";
+  list.classList.toggle("rt-list", !rtEditMode);
   if(rtEditMode){ renderRoutineEditor(list); return; }
   const day=ensureDay(state.viewDate);
   syncDayRoutines(state.viewDate);
