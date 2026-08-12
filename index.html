@@ -21,7 +21,7 @@
   --text:#2C2C2B; --text2:#7A7773; --text3:#A8A49F;
   --line:#F0EFED; --line2:#E6E5E3; --soft:#F9F8F7;
   --red:#E56458; --ok:#46A171; --amber:#D5803B;
-  --r-sm:8px; --r-md:10px; --r-lg:12px; --r-xl:16px; --r-2xl:24px; --r-round:999px; --ecell:44px;
+  --r-sm:8px; --r-md:10px; --r-lg:12px; --r-xl:16px; --r-2xl:24px; --r-round:999px; --ecell:44px; --tag-h:20px;
   --sh-1:0 1px 4px rgba(0,0,0,.08);
   --sh-2:0 4px 12px rgba(0,0,0,.12);
   --sh-3:0 8px 24px rgba(0,0,0,.16);
@@ -439,14 +439,15 @@ section.block h2 .sub{font-size:13px; font-weight:400; color:var(--text2); margi
 .check-item .name{flex:1; min-width:0;}
 .check-item.done .name{color:var(--text3); text-decoration:line-through;}
 .check-item .tag{font-size:12px; padding:1px 9px; border-radius:var(--r-round); background:var(--soft); color:var(--text2); flex:none;}
-.check-item .tag.linked{background:none; padding:0; display:inline-flex; align-items:center; gap:5px;}
+.check-item .tag.linked{background:none; padding:0; display:inline-flex; align-items:center; gap:5px; line-height:1;}
+.check-item .tag .tag-ar,.check-item .tag .tag-dot,.check-item .tag .tag-act{display:inline-flex; align-items:center; box-sizing:border-box; min-height:var(--tag-h); line-height:1;}
 .check-item .tag .tag-ar{font-weight:600;}
 .check-item .tag .tag-dot{color:var(--text3); font-weight:400;}
-.check-item .tag .tag-act{display:inline-flex; align-items:center; padding:2px 7px; border-radius:var(--r-sm); color:var(--text); font-weight:600; line-height:1.2;}
+.check-item .tag .tag-act{justify-content:center; padding:0 7px; border-radius:var(--r-sm); color:var(--text); font-weight:600;}
 button.tag{border:0; font:inherit; font-size:12px; cursor:pointer; touch-action:manipulation; position:relative; transition:opacity var(--dur-1) ease;}
 button.tag::after{content:""; position:absolute; inset:-8px -5px;}
 button.tag:active{transform:scale(.95);}
-button.tag.ghost{background:none; border:1px dashed var(--line2); color:var(--text3); padding:1px 8px; border-radius:var(--r-round); transition:opacity var(--dur-1) ease, border-color var(--dur-1) ease, color var(--dur-1) ease;}
+button.tag.ghost{background:none; border:1px dashed var(--line2); color:var(--text3); display:inline-flex; align-items:center; box-sizing:border-box; min-height:var(--tag-h); line-height:1; padding:0 8px; border-radius:var(--r-round); transition:opacity var(--dur-1) ease, border-color var(--dur-1) ease, color var(--dur-1) ease;}
 @media (hover: hover) and (pointer: fine){ button.tag:hover{opacity:.72;} button.tag.ghost:hover{opacity:1; border-color:var(--text3); color:var(--text2);} }
 .check-item.done .tag{opacity:.55;}
 .check-item .del{color:var(--text2); font-size:15px; padding:6px 8px; border-radius:var(--r-sm);}
@@ -538,7 +539,7 @@ button.tag.ghost{background:none; border:1px dashed var(--line2); color:var(--te
 @media (prefers-reduced-motion: reduce){.rt-edit-row.rt-edit-enter,.rt-edit-row.rt-edit-restore,.rt-edit-row.rt-edit-exit{animation:none;}}
 .rt-edit-row .del{width:36px; height:36px; border-radius:var(--r-md); color:var(--text3); flex:none;}
 @media (hover: hover) and (pointer: fine){ .rt-edit-row .del:hover{background:var(--soft); color:var(--red);} }
-.rt-dow-tag{font-size:11px; color:var(--text3); background:var(--soft); border:1px solid var(--line); border-radius:var(--r-round); padding:2px 8px; flex:none; margin-left:auto;}
+.rt-dow-tag{display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box; min-height:var(--tag-h); line-height:1; font-size:11px; color:var(--text3); background:var(--soft); border:1px solid var(--line); border-radius:var(--r-round); padding:0 8px; flex:none; margin-left:auto;}
 .dow-pill.sun{color:#B3423A; background:#FBEBE9;}
 .dow-pill.sat{color:#2E5FA3; background:#E9EFF8;}
 .dow-pill.sun.on{background:#CB4F43; color:#fff;}
@@ -833,10 +834,10 @@ input[type=color]{transition:transform var(--dur-1) ease,box-shadow .2s ease;}
 .ap-list .ac-row.cat-hd .nm{font-weight:600;}
 .ap-list .ac-row.cat-hd .cat-only{margin-left:auto;font-size:10px;color:var(--text3);}
 .ap-list .ac-row.cat-sub{padding-left:28px;}
-.area-picker.cat-act .ap-nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;}
-.area-picker.cat-act .ca-ar{font-weight:600;}
-.area-picker.cat-act .ca-hl{display:inline-flex;align-items:center;justify-content:center;padding:3px 7px;line-height:1;border-radius:var(--r-sm);font-weight:600;position:relative;top:1px;}
-.area-picker.cat-act .ca-sep{display:inline-block;width:1.5px;height:22px;background:var(--line2);vertical-align:middle;margin:0 6px;border-radius:1px;}
+.area-picker.cat-act .ap-nm{display:inline-flex;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;}
+.area-picker.cat-act .ca-ar{display:inline-flex;align-items:center;box-sizing:border-box;min-height:var(--tag-h);line-height:1;font-weight:600;}
+.area-picker.cat-act .ca-hl{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:var(--tag-h);padding:0 7px;line-height:1;border-radius:var(--r-sm);font-weight:600;position:static;top:auto;}
+.area-picker.cat-act .ca-sep{display:inline-block;width:1.5px;height:16px;background:var(--line2);vertical-align:middle;align-self:center;margin:0 6px;border-radius:1px;}
 .rt-edit-row .area-picker.cat-act{flex:none;max-width:44%;}
 /* ---- json hub v2: link tab + history ---- */
 .cmd-box{background:var(--soft);border-radius:var(--r-md);padding:10px 12px;font-size:13px;line-height:1.55;margin-bottom:8px;}
@@ -1207,6 +1208,20 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
   .jdrop-btns .btn:hover{background:var(--soft);}
 }
 @media (prefers-reduced-motion: reduce){ .jcode textarea{transition:none;} }
+@supports (grid-template-columns: subgrid){
+#todoList{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto auto auto auto;column-gap:8px;align-items:center;}
+#routineList.rt-list{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto auto auto auto;column-gap:10px;align-items:center;}
+#todoList > .check-item,#routineList.rt-list > .rt-row{display:grid;grid-template-columns:subgrid;grid-column:1/-1;align-items:center;}
+#todoList > .check-item > input[type="checkbox"],#routineList.rt-list > .rt-row > input[type="checkbox"]{grid-column:1;}
+#todoList > .check-item > .todo-time,#routineList.rt-list > .rt-row > .rt-time{grid-column:2;}
+#todoList > .check-item > .name,#routineList.rt-list > .rt-row > .name{grid-column:3;}
+#todoList > .check-item > .tag,#routineList.rt-list > .rt-row > .tag{grid-column:4;}
+#todoList > .check-item > .todo-measure{grid-column:5;}
+#routineList.rt-list > .rt-row > .rt-dow-tag{grid-column:6;justify-self:stretch;margin-left:0;}
+#routineList.rt-list > .rt-row > .rt-act-btn{grid-column:7;}
+#routineList.rt-list > .rt-row.no-time > .name{grid-column:2/4;margin-left:0;}
+#todoList > .empty-cta,#routineList.rt-list > .empty{grid-column:1/-1;}
+}
 </style>
 </head>
 <body>
@@ -1411,7 +1426,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.54<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.55<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -3888,6 +3903,7 @@ function fmtDays(days){
   const sorted=[...days].sort((a,b)=>a-b);
   if(sorted.length===5&&!sorted.includes(0)&&!sorted.includes(6)) return "주중";
   if(sorted.length===2&&sorted[0]===0&&sorted[1]===6) return "주말";
+  if(sorted.length>=5){ const miss=[0,1,2,3,4,5,6].filter(i=>!sorted.includes(i)); return miss.map(i=>D[i]).join("·")+" 제외"; }
   return sorted.map(i=>D[i]).join("·");
 }
 function timeBtn(value,onChange){
@@ -4026,7 +4042,7 @@ function commitRoutineDefs(rerender){
   renderTimeline(); renderLive();
 }
 function renderRoutines(){
-  const list=$("#routineList"); list.innerHTML="";
+  const list=$("#routineList"); list.innerHTML=""; list.classList.toggle("rt-list", !rtEditMode);
   if(rtEditMode){ renderRoutineEditor(list); return; }
   const day=ensureDay(state.viewDate);
   syncDayRoutines(state.viewDate);
@@ -4037,7 +4053,7 @@ function renderRoutines(){
   });
   for(const rt of _sorted){
     const row=document.createElement("label");
-    row.className="check-item rt-row"+(rt.done?" done":"");
+    row.className="check-item rt-row"+(rt.done?" done":"")+(rt.time?"":" no-time");
     const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=rt.done;
     cb.addEventListener("change",()=>{rt.done=cb.checked; save(); renderRoutines(); renderLive();});
     var tm=null; if(rt.time){ tm=document.createElement("span"); tm.className="rt-time"+(rt.end?" range":""); if(rt.end){ tm.innerHTML='<span class="rt-stack"><span class="rt-t1">'+esc(rt.time)+'</span><span class="rt-t2">'+esc(rt.end)+'</span></span>'; } else { tm.textContent=rt.time; } }
