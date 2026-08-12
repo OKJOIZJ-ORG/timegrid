@@ -492,15 +492,20 @@ button.tag.ghost{background:none; border:1px dashed var(--line2); color:var(--te
 .check-item .rt-time + .name{margin-left:-4px;}
 .check-item.rt-row .rt-time + .name{margin-left:-6px;}
 #todoList .check-item input[type=checkbox]{margin-right:10px;}
-.check-item .rt-time.range .rt-stack{display:inline-block; text-align:left; vertical-align:middle;}
-.check-item .rt-time.range .rt-t1{display:block; line-height:1.15;}
-.check-item .rt-time.range .rt-t2{display:block; margin-top:2px; font-size:11px; color:var(--text3); opacity:.75; line-height:1; white-space:nowrap;}
-.check-item .rt-time.range .rt-t2::before{content:"–"; margin-right:1px;}
-.check-item.done .rt-time{color:var(--text3); opacity:.6;}
-/* v3.12.47: todo time = bordered chip button; border marks a real interactive surface */
-.check-item .ttime{font:inherit;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;min-width:44px;min-height:24px;padding:1px 5px;border:1px solid var(--line2);border-radius:6px;background:#fff;font-size:13px;color:var(--text3);font-variant-numeric:tabular-nums;white-space:nowrap;cursor:pointer;position:relative;flex:none;transition:border-color var(--dur-1) ease,color var(--dur-1) ease;touch-action:manipulation;}
+.check-item .rt-time.range .rt-stack,.check-item .ttime.range .rt-stack{display:inline-block; text-align:left; vertical-align:middle;}
+.check-item .rt-time.range .rt-t1,.check-item .ttime.range .rt-t1{display:block; line-height:1.15;}
+.check-item .rt-time.range .rt-t2,.check-item .ttime.range .rt-t2{display:block; margin-top:2px; font-size:11px; color:var(--text3); opacity:.75; line-height:1; white-space:nowrap;}
+.check-item .rt-time.range .rt-t2::before,.check-item .ttime.range .rt-t2::before{content:"–"; margin-right:1px;}
+.check-item.done .rt-time,.check-item.done .ttime{color:var(--text3); opacity:.6;}
+/* v3.12.57: todo time owns an independent 44x24 center frame.
+   Do not add .rt-time: that read-only routine class carries conflicting width/text metrics. */
+.check-item .ttime{font:inherit;-webkit-appearance:none;appearance:none;display:inline-grid;place-items:center;align-self:center;box-sizing:border-box;width:44px;min-width:44px;min-height:24px;padding:0 5px;border:1px solid var(--line2);border-radius:6px;background:#fff;font-size:13px;line-height:1;text-align:center;color:var(--text3);font-variant-numeric:tabular-nums;white-space:nowrap;cursor:pointer;position:relative;flex:none;transition:border-color var(--dur-1) ease,color var(--dur-1) ease;touch-action:manipulation;}
+.check-item .ttime.single{height:24px;}
+.check-item .ttime.range{display:inline-flex;align-items:center;justify-content:center;padding:1px 5px;}
+.check-item .ttime .ttime-v{display:grid;place-items:center;width:100%;height:100%;line-height:1;text-align:center;transform:translateY(-1px);}
 .check-item .ttime::after{content:"";position:absolute;inset:-7px -4px;}
-.check-item .ttime.unset{color:var(--text3);letter-spacing:.02em;}
+.check-item .ttime.unset{color:var(--text3);}
+.check-item .ttime.unset .ttime-v{letter-spacing:.02em;}
 @media (hover: hover) and (pointer: fine){ .check-item .ttime:hover{border-color:var(--text3);color:var(--text);} }
 .check-item .ttime:active{transform:scale(.95);border-color:var(--text3);}
 .rt-row.done .rt-name{color:var(--text3); text-decoration:line-through;}
@@ -1283,7 +1288,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
     <select id="areaSelect" aria-label="영역 선택"></select>
     <input type="text" id="actInput" placeholder="활동 입력" autocomplete="off" aria-label="활동 입력">
     <button type="button" class="note-tgl" id="noteTgl" aria-label="세부 입력 열기"><span class="nt-sym">+</span><span class="nt-txt">메모</span></button>
-    <button class="pill dark" id="swBtn">▶ 시작</button>
+    <button class="pill dark" id="swBtn" disabled>동기화 확인 중…</button>
   </div>
   <div class="sw-row note-row" id="noteRow">
     <span class="note-chip" id="noteChip" style="display:none"><span class="nc-k" id="noteChipK"></span><span class="nc-t" id="noteChipT"></span><button type="button" class="nc-x" id="noteChipX" aria-label="선택 해제">✕</button></span>
@@ -1447,7 +1452,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.56<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.59<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -1839,6 +1844,26 @@ function acPickAnim(input,list,row,onCommit){
 }
 
 /* ================= state ================= */
+const TG_MAX_RUNNING_MS=20*60*60*1000; /* hard guard: a forgotten session never becomes multi-day data */
+const TG_DEVICE_KEY="timegrid-device-id-v1";
+function tgDeviceId(){
+  try{
+    let v=localStorage.getItem(TG_DEVICE_KEY);
+    if(!v){ v="dev-"+Math.random().toString(36).slice(2,10)+Date.now().toString(36); localStorage.setItem(TG_DEVICE_KEY,v); }
+    return v;
+  }catch(e){ return "dev-memory"; }
+}
+function tgQuarantineRunning(r,reason){
+  if(!r) return;
+  try{
+    const key="timegrid-running-conflicts-v1";
+    const a=JSON.parse(localStorage.getItem(key)||"[]");
+    const id=(r.sessionId||"")+"|"+(r.startTs||"")+"|"+(reason||"unknown");
+    if(!a.some(function(x){return x.key===id;})) a.push({key:id,reason:reason||"unknown",capturedAt:Date.now(),running:JSON.parse(JSON.stringify(r))});
+    while(a.length>20) a.shift();
+    localStorage.setItem(key,JSON.stringify(a));
+  }catch(e){}
+}
 let state = {
   settings:{version:2, areas:DEFAULT_AREAS.map(a=>({...a})), activities:DEFAULT_ACTS.map(a=>({...a})), routineDefs:DEFAULT_ROUTINES.slice()},
   days:{},
@@ -1934,6 +1959,7 @@ function hhmm(min){
 /* running timer slice on dateStr as [rs,re) seconds from midnight; null if none. */
 function runningDayBounds(r, dateStr){
   if(!r||!r.startTs||!dateStr) return null;
+  if(Date.now()-Number(r.startTs)>TG_MAX_RUNNING_MS) return null;
   const startD=new Date(r.startTs), now=new Date();
   if(!Number.isFinite(startD.getTime())||startD>now) return null;
   const startDay=ymd(startD), endDay=ymd(now);
@@ -2048,6 +2074,7 @@ function save(){
   if(DEMO) return;
   state._localUpdatedAt=Date.now();
   try{localStorage.setItem(LS_KEY,JSON.stringify({settings:state.settings,days:state.days,running:state.running,updatedAt:state._localUpdatedAt}));}catch(e){}
+  if(window.tgCloud&&window.tgCloud.markDirty) window.tgCloud.markDirty();
   if(window.tgCloud&&window.tgCloud.schedulePush) window.tgCloud.schedulePush();
 }
 function load(){
@@ -2067,7 +2094,11 @@ function load(){
         if(ev&&ev.end==="00:00"&&ev.start&&ev.start!=="00:00") ev.end="24:00";
       }
     }
-    if(s.running) state.running=s.running;
+    if(s.running){
+      const age=Date.now()-Number(s.running.startTs||0);
+      if(Number.isFinite(age)&&age>=0&&age<=TG_MAX_RUNNING_MS) state.running=s.running;
+      else{ tgQuarantineRunning(s.running,"local-stale-on-load"); state.running=null; }
+    }
     if(s.updatedAt) state._localUpdatedAt=s.updatedAt;
   }catch(e){}
 }
@@ -2396,105 +2427,87 @@ function currentActivity(create){
 }
 
 /* ================= stopwatch / total ================= */
-function swStart(){
-  const ctx=resolveStartContext(true);
-  if(!ctx) return;
-  const act=ctx.act, tags=ctx.tags;
-  if(tags.todoId||tags.routineId){
-    swStartTagged(act.id, tags);
-    return;
-  }
+async function beginRun(candidate,act,extra){
+  if(!window.tgCloud||!window.tgCloud.requestStart){ if(typeof toast==="function")toast("동기화 확인 중입니다"); return false; }
+  const result=await window.tgCloud.requestStart(candidate);
+  if(!result||!result.ok){ renderSw(); renderTimeline(); return false; }
+  state.running=copyRun(result.running||candidate);
   act.lastUsed=Date.now();
-  state.running={actId:act.id,startTs:Date.now()};
-  if(tags.note) state.running.note=tags.note;
   save(); renderSw(); renderTimeline();
+  if(extra){ renderTodos(); renderRoutines(); }
+  return true;
 }
-function swStartTagged(actId,tags){
-  if(state.running) swStop();
-  const act=actById(actId); if(!act) return;
-  act.lastUsed=Date.now();
-  state.running={actId:act.id,startTs:Date.now(),todoId:(tags&&tags.todoId)||null,routineId:(tags&&tags.routineId)||null};
-  save(); renderSw(); renderTimeline(); renderTodos(); renderRoutines();
+function copyRun(r){ return r?JSON.parse(JSON.stringify(r)):null; }
+async function swStart(){
+  if(state.running){ if(typeof toast==="function")toast("진행 중인 측정을 먼저 종료하세요"); return false; }
+  const gate=window.tgCloud&&window.tgCloud.startGate?window.tgCloud.startGate():{allowed:false,message:"동기화 확인 중입니다"};
+  if(!gate.allowed){ if(typeof toast==="function")toast(gate.message||"동기화 확인 중입니다"); renderSw(); return false; }
+  const ctx=resolveStartContext(true);
+  if(!ctx) return false;
+  const act=ctx.act,tags=ctx.tags;
+  if(tags.todoId||tags.routineId) return swStartTagged(act.id,tags);
+  const candidate={sessionId:uid("run"),deviceId:tgDeviceId(),actId:act.id,startTs:Date.now()};
+  if(tags.note) candidate.note=tags.note;
+  return beginRun(candidate,act,false);
 }
-function swStop(){
-  const r=state.running; if(!r) return;
-  const startD=new Date(r.startTs), endD=new Date();
+async function swStartTagged(actId,tags){
+  if(state.running){ setTab("tracker"); if(typeof toast==="function")toast("진행 중인 측정을 먼저 종료하세요"); return false; }
+  const gate=window.tgCloud&&window.tgCloud.startGate?window.tgCloud.startGate():{allowed:false,message:"동기화 확인 중입니다"};
+  if(!gate.allowed){ if(typeof toast==="function")toast(gate.message||"동기화 확인 중입니다"); renderSw(); return false; }
+  const act=actById(actId); if(!act) return false;
+  const candidate={sessionId:uid("run"),deviceId:tgDeviceId(),actId:act.id,startTs:Date.now(),todoId:(tags&&tags.todoId)||null,routineId:(tags&&tags.routineId)||null};
+  return beginRun(candidate,act,true);
+}
+function materializeStoppedRun(r,endTs){
+  if(!r) return false;
+  const startD=new Date(r.startTs),endD=new Date(endTs||Date.now());
   const endDayStr=ymd(endD);
   const endMin=endD.getHours()*60+endD.getMinutes()+(endD.getSeconds()>=30?1:0);
   let curDayStr=ymd(startD);
   let curStart=startD.getHours()*60+startD.getMinutes();
   let guard=0;
-  while(curDayStr!==endDayStr && guard<31){
-    const dd=ensureDay(curDayStr);
-    addInterval(dd,r.actId,curStart,1440,r);
-    const nd=dateOf(curDayStr); nd.setDate(nd.getDate()+1);
-    curDayStr=ymd(nd);
-    curStart=0;
-    guard++;
+  while(curDayStr!==endDayStr&&guard<31){
+    const dd=ensureDay(curDayStr);addInterval(dd,r.actId,curStart,1440,r);
+    const nd=dateOf(curDayStr);nd.setDate(nd.getDate()+1);curDayStr=ymd(nd);curStart=0;guard++;
   }
-  let e=(curDayStr===endDayStr)? endMin : 1440;
-  /* 자정 정확히 종료한 경우: 전날은 while에서 24:00까지 저장됐으므로
-     새 날짜에 00:00–00:01 가짜 1분 기록을 만들지 않는다. */
-  const _crossedDay=(ymd(startD)!==endDayStr);
+  let e=(curDayStr===endDayStr)?endMin:1440;
+  const crossed=(ymd(startD)!==endDayStr);
   if(e<=curStart){
-    if(_crossedDay && curStart===0 && e===0){
-      state.running=null;
-      noteClear(); noteRowOpen(false);
-      save(); renderAll();
-      return;
-    }
+    if(crossed&&curStart===0&&e===0){state.running=null;noteClear();noteRowOpen(false);save();renderAll();return true;}
     e=Math.min(curStart+1,1440);
   }
-  const day=ensureDay(curDayStr);
-  addInterval(day,r.actId,curStart,e,r);
-  state.running=null;
-  noteClear(); noteRowOpen(false);
-  save(); renderAll();
+  addInterval(ensureDay(curDayStr),r.actId,curStart,e,r);
+  state.running=null;noteClear();noteRowOpen(false);save();renderAll();return true;
 }
+async function swStop(){
+  const r=copyRun(state.running);if(!r)return false;
+  if(!window.tgCloud||!window.tgCloud.requestStop) return false;
+  const result=await window.tgCloud.requestStop(r);
+  if(!result||!result.ok){renderSw();return false;}
+  return materializeStoppedRun(result.running||r,result.endedAt||Date.now());
+}
+
 function renderSw(){
-  const btn=$("#swBtn"), r=state.running;
+  const btn=$("#swBtn"),r=state.running;
+  const action=window.tgCloud&&window.tgCloud.actionState?window.tgCloud.actionState():{locking:false,label:""};
+  const gate=window.tgCloud&&window.tgCloud.startGate?window.tgCloud.startGate():{allowed:false,label:"동기화 확인 중…"};
   if(r){
-    btn.textContent="■ 정지"; btn.className="pill stop";
-    const act=actById(r.actId);
-    const _tt=runTagTitle(r);
-    $("#runName").textContent=(act? act.name:"?")+(_tt?" · "+_tt:"");
-    $("#runDot").style.background=act? act.color:"#999";
-    const d=new Date(r.startTs);
-    $("#runSince").textContent=hhmm(d.getHours()*60+d.getMinutes())+" ";
-    $("#runChip").classList.add("on");
-    if(act){ $("#actInput").value=act.name; if(window.sizeActInput)sizeActInput(true); if(areaByName(act.area)){ $("#areaSelect").value=act.area; if(window.refreshAreaPickers)refreshAreaPickers(); } }
-    if(r.todoId||r.routineId){
-      noteTag=r.todoId? {kind:"todo",id:r.todoId}:{kind:"routine",id:r.routineId};
-      $("#noteChipK").textContent=r.todoId? "할일":"루틴";
-      $("#noteChipT").textContent=runTagTitle(r)||"?";
-      $("#noteChip").style.display="inline-flex";
-      $("#noteInput").style.display="none";
-      noteRowOpen(true);
-    }else if(r.note){
-      noteTag=null;
-      $("#noteChip").style.display="none";
-      $("#noteInput").style.display="";
-      $("#noteInput").value=r.note;
-      noteRowOpen(true);
-    }else{
-      noteTag=null;
-      $("#noteChip").style.display="none";
-      $("#noteInput").style.display="";
-      $("#noteInput").value="";
-      noteRowOpen(false);
-    }
-    $("#noteInput").readOnly=true;
-    $("#noteTgl").disabled=true;
+    btn.textContent=action.locking?(action.label||"중지 중…"):"■ 정지";btn.className="pill stop";btn.disabled=!!action.locking;
+    const act=actById(r.actId),tt=runTagTitle(r);
+    $("#runName").textContent=(act?act.name:"?")+(tt?" · "+tt:"");$("#runDot").style.background=act?act.color:"#999";
+    const d=new Date(r.startTs);$("#runSince").textContent=hhmm(d.getHours()*60+d.getMinutes())+" ";$("#runChip").classList.add("on");
+    if(act){$("#actInput").value=act.name;if(window.sizeActInput)sizeActInput(true);if(areaByName(act.area)){$("#areaSelect").value=act.area;if(window.refreshAreaPickers)refreshAreaPickers();}}
+    if(r.todoId||r.routineId){noteTag=r.todoId?{kind:"todo",id:r.todoId}:{kind:"routine",id:r.routineId};$("#noteChipK").textContent=r.todoId?"할일":"루틴";$("#noteChipT").textContent=runTagTitle(r)||"?";$("#noteChip").style.display="inline-flex";$("#noteInput").style.display="none";noteRowOpen(true);}
+    else if(r.note){noteTag=null;$("#noteChip").style.display="none";$("#noteInput").style.display="";$("#noteInput").value=r.note;noteRowOpen(true);}
+    else{noteTag=null;$("#noteChip").style.display="none";$("#noteInput").style.display="";$("#noteInput").value="";noteRowOpen(false);}
+    $("#noteInput").readOnly=true;$("#noteTgl").disabled=true;
   }else{
-    btn.textContent="▶ 시작"; btn.className="pill dark";
-    $("#runChip").classList.remove("on");
-    $("#noteInput").readOnly=false;
-    $("#noteTgl").disabled=false;
+    btn.textContent=gate.allowed?"▶ 시작":(gate.label||"동기화 확인 중…");btn.className="pill dark";btn.disabled=!gate.allowed;
+    $("#runChip").classList.remove("on");$("#noteInput").readOnly=false;$("#noteTgl").disabled=false;
   }
-  if(window.syncAreaLock)syncAreaLock();
-  if(window.paintActInput) paintActInput();
-  else if(window.paintSwReady) paintSwReady();
+  if(window.syncAreaLock)syncAreaLock();if(window.paintActInput)paintActInput();else if(window.paintSwReady)paintSwReady();
 }
+
 function totalSec(){
   const day=ensureDay(state.viewDate);
   let sec=0;
@@ -3707,7 +3720,7 @@ function renderStMonth(){
     if(v) base= moAct!=="__all__"? ((actById(moAct)||{}).color||areaColor(moCat)) : moCat==="__all__"? areaColor(domOf(x)||"") : areaColor(moCat);
     cell.style.background=v? hexToRgba(base,.16+.6*(v/moMax)) : "var(--soft)";
     const sub= moAct!=="__all__"? " · "+esc((actById(moAct)||{}).name||"") : moCat==="__all__"? (v&&domOf(x)? " · 주로 "+esc(domOf(x)):"") : " · "+esc(moCat);
-    attachTip(cell,'<span class="rt-tip-cap">'+fmtDateK(x.ds)+'</span>'+(v?'<span class="rt-tip-row"><span class="ar">'+(moAct!="__all__"?esc((actById(moAct)||{}).name||""):(moCat=="__all__"?(domOf(x)?"주롛 "+esc(domOf(x)):"") : esc(moCat)))+'</span><span class="vl">'+fmtDur(v)+'</span></span>':'<span class="rt-tip-s">기록 없음</span>')+'');
+    attachTip(cell,'<span class="rt-tip-cap">'+fmtDateK(x.ds)+'</span>'+(v?'<span class="rt-tip-row"><span class="ar">'+(moAct!="__all__"?esc((actById(moAct)||{}).name||""):(moCat=="__all__"?(domOf(x)?"주로 "+esc(domOf(x)):"") : esc(moCat)))+'</span><span class="vl">'+fmtDur(v)+'</span></span>':'<span class="rt-tip-s">기록 없음</span>')+'');
     cell.innerHTML='<span>'+dt.getDate()+'</span>'+(v?'<b>'+fmtShort(v)+'</b>':'');
     moBox.appendChild(cell);
   }
@@ -3878,9 +3891,9 @@ function renderTodos(){
     });
     var ttb=document.createElement("button");
     ttb.type="button";
-    ttb.className="ttime rt-time"+(td.time&&td.end?" range":"")+(td.time?"":" unset");
+    ttb.className="ttime"+(td.time&&td.end?" range":" single")+(td.time?"":" unset");
     if(td.time&&td.end){ ttb.innerHTML='<span class="rt-stack"><span class="rt-t1">'+esc(td.time)+'</span><span class="rt-t2">'+esc(td.end)+'</span></span>'; }
-    else{ ttb.textContent=td.time||"--:--"; }
+    else{ ttb.innerHTML='<span class="ttime-v">'+esc(td.time||"--:--")+'</span>'; }
     ttb.setAttribute("aria-label",td.time?"시간 수정":"시간 지정");
     (function(item){
       ttb.addEventListener("click",function(e){
@@ -6723,7 +6736,7 @@ if(document.body.dataset.tab) setTab(document.body.dataset.tab);
 if(document.body.dataset.open==="acts"){ renderManager(); openFsPanel($("#actsDlg")); }
 if(document.body.dataset.open==="edit"){ const d=ensureDay(state.viewDate); if(d.events[1]) openEvDlg(d.events[1]); }
 if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.dispatchEvent(new Event("focus")); }
-/* ================= Firebase Auth + Firestore sync ================= */
+/* ================= Firebase Auth + Firestore realtime merge sync (v3.12.59) ================= */
 (function(){
   const FB_CONFIG={
     apiKey:"AIzaSyB9zuqe0G7DjBNtb-EAtFfI0VVI5Bmeu_s",
@@ -6735,7 +6748,12 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     measurementId:"G-899TTNC45F"
   };
   const ALLOWED_EMAIL="yundda2@gmail.com";
-  const PUSH_DEBOUNCE_MS=450;
+  const SYNC_BASE_KEY="timegrid-sync-base-v2";
+  const SYNC_OUTBOX_KEY="timegrid-sync-outbox-v2";
+  const RUN_CONFLICT_KEY="timegrid-running-conflicts-v1";
+  const CLOUD_ACCOUNT_KEY="timegrid-cloud-account-v1";
+  const PUSH_DEBOUNCE_MS=250;
+  const RETRY_PULSE_MS=10000;
 
   const ui={
     name:()=>document.getElementById("scName"),
@@ -6744,446 +6762,591 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     av:()=>document.getElementById("scAv"),
     login:()=>document.getElementById("scLogin"),
     logout:()=>document.getElementById("scLogout"),
-    sync:()=>document.getElementById("scSyncNow"),
-    banner:()=>document.getElementById("cloudBanner"),
-    bannerCopy:()=>document.getElementById("cloudBannerCopy"),
-    bannerOk:()=>document.getElementById("cloudBannerOk"),
-    bannerAlt:()=>document.getElementById("cloudBannerAlt")
+    sync:()=>document.getElementById("scSyncNow")
   };
 
-  let app=null, auth=null, db=null, user=null;
-  let pushTimer=null, pushing=false, pulling=false;
-  let unsubSettings=null, unsubSync=null, dayUnsubs={};
-  let ready=false;
-  let lastPushTs=0;
+  let app=null,auth=null,db=null,user=null,ready=false,authKnown=false,cloudUnavailable=false;
+  let pushTimer=null,flushing=false,flushAgain=false,renderQueued=false;
+  let runLocking=false,runLockLabel="";
+  let unsubSettings=null,unsubDays=null,unsubRunning=null;
 
-  function setStatus(msg, kind){
+  function blankBase(){
+    return {schema:2,uid:null,settings:null,settingsMeta:{rev:0,at:0},days:{},dayMeta:{},running:null,runningVersion:0,runningAt:0};
+  }
+  function blankOutbox(){ return {schema:2,settingsAt:0,days:{},run:null}; }
+  function loadJson(key,fallback){
+    try{ const v=JSON.parse(localStorage.getItem(key)||"null"); return v&&typeof v==="object"?v:fallback; }
+    catch(e){ return fallback; }
+  }
+  let syncBase=Object.assign(blankBase(),loadJson(SYNC_BASE_KEY,blankBase()));
+  let outbox=Object.assign(blankOutbox(),loadJson(SYNC_OUTBOX_KEY,blankOutbox()));
+  if(!syncBase.days) syncBase.days={};
+  if(!syncBase.dayMeta) syncBase.dayMeta={};
+  if(!outbox.days) outbox.days={};
+
+  function setStatus(msg,kind){
     const el=ui.status(); if(!el) return;
     el.textContent=msg||"";
     el.className="sc-st"+(kind?(" "+kind):"");
   }
-  function paintUser(){
-    const n=ui.name(), e=ui.email(), av=ui.av();
-    const login=ui.login(), logout=ui.logout(), sync=ui.sync();
-    if(!n) return;
-    if(user){
-      n.textContent=user.displayName||"로그인됨";
-      e.textContent=user.email||"";
-      if(login) login.hidden=true;
-      if(logout) logout.hidden=false;
-      if(sync) sync.hidden=false;
-      if(av){
-        if(user.photoURL){
-          av.className="sc-av"; av.textContent="";
-          av.style.backgroundImage="url("+user.photoURL+")"; av.style.backgroundSize="cover";
-        }else{
-          av.className="sc-av ph"; av.style.backgroundImage="";
-          av.textContent=(user.displayName||user.email||"U").slice(0,1).toUpperCase();
-        }
-      }
-    }else{
-      n.textContent="로그인 안 됨";
-      e.textContent="이 기기 localStorage만 사용 중";
-      if(login) login.hidden=false;
-      if(logout) logout.hidden=true;
-      if(sync) sync.hidden=true;
-      if(av){ av.className="sc-av ph"; av.style.backgroundImage=""; av.textContent="G"; }
-      setStatus("Google 로그인하면 세 기기에 같은 기록이 동기화됩니다.");
-    }
+  function nowLabel(){
+    try{return new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});}
+    catch(e){return "방금";}
   }
-
-  function localSnapshot(){
+  function copy(v){ return v==null?v:JSON.parse(JSON.stringify(v)); }
+  function canonical(v){
+    if(Array.isArray(v)) return v.map(canonical);
+    if(v&&typeof v==="object"){
+      const o={};
+      Object.keys(v).sort().forEach(function(k){ if(v[k]!==undefined) o[k]=canonical(v[k]); });
+      return o;
+    }
+    return v;
+  }
+  function stable(v){ return JSON.stringify(canonical(v)); }
+  function same(a,b){ return stable(a)===stable(b); }
+  function emptyDay(){ return {events:[],todos:[],routines:[]}; }
+  function normDay(d){
+    d=d||{};
     return {
-      settings: state.settings,
-      days: state.days,
-      running: state.running,
-      updatedAt: state._localUpdatedAt || 0
+      events:Array.isArray(d.events)?copy(d.events):[],
+      todos:Array.isArray(d.todos)?copy(d.todos):[],
+      routines:Array.isArray(d.routines)?copy(d.routines):[]
     };
   }
-  function applySnapshot(s, opts){
-    opts=opts||{};
-    if(!s) return;
-    if(s.settings) state.settings=s.settings;
-    if(!state.settings.areas || !state.settings.areas.length){
-      state.settings.areas=DEFAULT_AREAS.map(a=>({...a}));
-      state.settings.version=2;
-    }
-    if(s.days) state.days=s.days;
-    for(const k in state.days){
-      const dd=state.days[k];
-      if(dd&&Array.isArray(dd.events)) for(const ev of dd.events){
-        if(ev&&ev.end==="00:00"&&ev.start&&ev.start!=="00:00") ev.end="24:00";
-      }
-    }
-    if("running" in s) state.running=s.running||null;
-    if(s.updatedAt) state._localUpdatedAt=s.updatedAt;
+  function normSettings(s){
+    s=s||{};
+    return {
+      version:Number(s.version)||2,
+      areas:Array.isArray(s.areas)?copy(s.areas):[],
+      activities:Array.isArray(s.activities)?copy(s.activities):[],
+      routineDefs:Array.isArray(s.routineDefs)?copy(s.routineDefs):[]
+    };
+  }
+  function itemKey(x,i,prefix){
+    if(x&&x.id!=null) return String(x.id);
+    if(prefix==="area"&&x&&x.name!=null) return "name:"+x.name;
+    if(prefix==="routine"&&x) return "legacy:"+(x.time||"")+"|"+(x.name||"");
+    return "idx:"+i+":"+stable(x);
+  }
+  function mergeList(base,local,remote,preferLocal,prefix){
+    base=Array.isArray(base)?base:[]; local=Array.isArray(local)?local:[]; remote=Array.isArray(remote)?remote:[];
+    function mapOf(a){ const m=new Map(); a.forEach((x,i)=>m.set(itemKey(x,i,prefix),x)); return m; }
+    const B=mapOf(base),L=mapOf(local),R=mapOf(remote),order=[];
+    [local,remote,base].forEach(function(a){a.forEach(function(x,i){const k=itemKey(x,i,prefix);if(!order.includes(k))order.push(k);});});
+    const out=[];
+    order.forEach(function(k){
+      const b=B.get(k),l=L.get(k),r=R.get(k);
+      const lc=!same(l,b), rc=!same(r,b);
+      let pick;
+      if(lc&&!rc) pick=l;
+      else if(!lc&&rc) pick=r;
+      else if(!lc&&!rc) pick=(r!==undefined?r:l);
+      else if(same(l,r)) pick=l;
+      else pick=preferLocal?l:r;
+      if(pick!==undefined) out.push(copy(pick));
+    });
+    return out;
+  }
+  function mergeDay(base,local,remote,preferLocal){
+    base=normDay(base); local=normDay(local); remote=normDay(remote);
+    const d={
+      events:mergeList(base.events,local.events,remote.events,preferLocal,"event"),
+      todos:mergeList(base.todos,local.todos,remote.todos,preferLocal,"todo"),
+      routines:mergeList(base.routines,local.routines,remote.routines,preferLocal,"routine")
+    };
+    d.events.sort(function(a,b){return toMin(a.start||"00:00")-toMin(b.start||"00:00");});
+    return d;
+  }
+  function mergeSettings(base,local,remote,preferLocal){
+    base=normSettings(base); local=normSettings(local); remote=normSettings(remote);
+    return {
+      version:Math.max(2,base.version||0,local.version||0,remote.version||0),
+      areas:mergeList(base.areas,local.areas,remote.areas,preferLocal,"area"),
+      activities:mergeList(base.activities,local.activities,remote.activities,preferLocal,"activity"),
+      routineDefs:mergeList(base.routineDefs,local.routineDefs,remote.routineDefs,preferLocal,"routine")
+    };
+  }
+  function stampMs(v){
+    if(!v) return 0;
+    if(typeof v==="number") return v;
+    if(typeof v.toMillis==="function") return v.toMillis();
+    if(typeof v.seconds==="number") return v.seconds*1000+Math.floor((v.nanoseconds||0)/1e6);
+    return 0;
+  }
+  function metaOf(d){
+    d=d||{};
+    return {rev:Number(d.syncRev)||0,at:Number(d.updatedAtMs)||stampMs(d.serverUpdatedAt)||Number(d.updatedAt)||0};
+  }
+  function serverStamp(){ return firebase.firestore.FieldValue.serverTimestamp(); }
+  function normRun(r){
+    if(!r||!r.startTs||!r.actId) return null;
+    const x=copy(r);
+    if(!x.sessionId) x.sessionId="legacy-"+String(x.startTs)+"-"+String(x.actId);
+    if(!x.deviceId) x.deviceId="legacy";
+    return x;
+  }
+  function runStale(r){ return !!(r&&r.startTs&&Date.now()-Number(r.startTs)>TG_MAX_RUNNING_MS); }
+  function effectiveRun(r){ return runStale(r)?null:normRun(r); }
+
+  function persistBase(){ try{localStorage.setItem(SYNC_BASE_KEY,JSON.stringify(syncBase));}catch(e){} }
+  function persistOutbox(){ try{localStorage.setItem(SYNC_OUTBOX_KEY,JSON.stringify(outbox));}catch(e){} }
+  function persistLocal(){
+    try{localStorage.setItem(LS_KEY,JSON.stringify({settings:state.settings,days:state.days,running:state.running,updatedAt:state._localUpdatedAt||Date.now()}));}catch(e){}
+  }
+  function queueRender(){
+    if(renderQueued) return;
+    renderQueued=true;
+    requestAnimationFrame(function(){renderQueued=false;try{renderAll();}catch(e){}});
+  }
+  function quarantineRun(r,reason){
+    if(!r) return;
     try{
-      localStorage.setItem(LS_KEY,JSON.stringify({settings:state.settings,days:state.days,running:state.running,updatedAt:state._localUpdatedAt||Date.now()}));
+      const a=loadJson(RUN_CONFLICT_KEY,[]);
+      const key=(r.sessionId||"")+"|"+(r.startTs||"")+"|"+reason;
+      if(!a.some(function(x){return x.key===key;})) a.push({key:key,reason:reason,capturedAt:Date.now(),running:copy(r)});
+      while(a.length>20)a.shift();
+      localStorage.setItem(RUN_CONFLICT_KEY,JSON.stringify(a));
     }catch(e){}
-    if(!opts.silent){
-      try{ renderAll(); }catch(e){}
+    if(typeof tgQuarantineRunning==="function") tgQuarantineRunning(r,reason);
+  }
+
+  function markDirty(){
+    const now=Date.now(),localAt=Number(state._localUpdatedAt)||now;
+    if(runStale(state.running)){
+      quarantineRun(state.running,"hard-limit");
+      state.running=null;
+      state._localUpdatedAt=now;
+      persistLocal();
     }
+    const ls=normSettings(state.settings),bs=syncBase.settings?normSettings(syncBase.settings):null;
+    if(!same(ls,bs)){ if(!outbox.settingsAt) outbox.settingsAt=localAt; }
+    else outbox.settingsAt=0;
+    Object.keys(state.days||{}).forEach(function(k){
+      const l=normDay(state.days[k]),b=syncBase.days[k]?normDay(syncBase.days[k]):emptyDay();
+      if(!same(l,b)){ if(!outbox.days[k]) outbox.days[k]={at:localAt}; }
+      else delete outbox.days[k];
+    });
+    const lr=normRun(state.running),br=normRun(syncBase.running);
+    if(!same(lr,br)){
+      if(lr){
+        if(!lr.sessionId){ lr.sessionId=uid("run"); lr.deviceId=tgDeviceId(); state.running=copy(lr); persistLocal(); }
+        if(!outbox.run||outbox.run.type!=="set"||!same(outbox.run.running,lr)){
+          outbox.run={type:"set",running:copy(lr),baseVersion:Number(syncBase.runningVersion)||0,at:Number(lr.startTs)||now};
+        }
+      }else if(br){
+        if(!outbox.run||outbox.run.type!=="clear"||outbox.run.sessionId!==br.sessionId){
+          outbox.run={type:"clear",sessionId:br.sessionId||null,baseVersion:Number(syncBase.runningVersion)||0,at:now};
+        }
+      }
+    }else outbox.run=null;
+    persistOutbox();
+    return outbox;
   }
-  function hasLocalData(){
-    const days=state.days||{};
-    for(const k in days){
-      const d=days[k];
-      if(d&&((d.events&&d.events.length)||(d.todos&&d.todos.length))) return true;
-    }
-    const acts=(state.settings&&state.settings.activities)||[];
-    // default seed alone is not "user data"
-    return false;
-  }
-  function localPayloadBytes(){
-    try{ return JSON.stringify(localSnapshot()).length; }catch(e){ return 0; }
-  }
+  function hasDirty(){ return !!(outbox.settingsAt||outbox.run||Object.keys(outbox.days||{}).length); }
 
   function userPaths(uid){
+    const root=db.collection("users").doc(uid);
     return {
-      settings: db.collection("users").doc(uid).collection("settings").doc("main"),
-      days: db.collection("users").doc(uid).collection("days"),
-      metaRunning: db.collection("users").doc(uid).collection("meta").doc("running")
+      settings:root.collection("settings").doc("main"),
+      days:root.collection("days"),
+      running:root.collection("meta").doc("running")
     };
   }
 
-  function showBanner(html, primaryLabel, onPrimary, altLabel, onAlt){
-    const b=ui.banner(), c=ui.bannerCopy(), ok=ui.bannerOk(), alt=ui.bannerAlt();
-    if(!b||!c||!ok) return;
-    c.innerHTML=html;
-    ok.textContent=primaryLabel||"확인";
-    ok.onclick=function(){ b.classList.remove("show"); if(onPrimary) onPrimary(); };
-    if(altLabel&&onAlt){
-      alt.hidden=false; alt.textContent=altLabel;
-      alt.onclick=function(){ b.classList.remove("show"); onAlt(); };
-    }else{
-      alt.hidden=true; alt.onclick=null;
+  function applyRemoteSettings(raw,meta,quiet){
+    if(!raw) return;
+    const remote=normSettings(raw),base=syncBase.settings?normSettings(syncBase.settings):normSettings({}),local=normSettings(state.settings);
+    const dirty=!!outbox.settingsAt||!same(local,base);
+    const prefer=(outbox.settingsAt||state._localUpdatedAt||0)>=(meta.at||0);
+    const merged=dirty?mergeSettings(base,local,remote,prefer):remote;
+    state.settings=merged;
+    syncBase.settings=remote;
+    syncBase.settingsMeta=meta;
+    if(same(merged,remote)) outbox.settingsAt=0;
+    else if(!outbox.settingsAt) outbox.settingsAt=Date.now();
+    persistBase();persistOutbox();persistLocal();
+    if(!quiet) queueRender();
+  }
+  function applyRemoteDay(date,raw,meta,quiet){
+    const remote=normDay(raw),base=syncBase.days[date]?normDay(syncBase.days[date]):emptyDay();
+    const hasLocal=!!(state.days&&state.days[date]);
+    const local=hasLocal?normDay(state.days[date]):emptyDay();
+    const dirty=!!outbox.days[date]||(hasLocal&&!same(local,base));
+    const prefer=((outbox.days[date]&&outbox.days[date].at)||state._localUpdatedAt||0)>=(meta.at||0);
+    const merged=dirty?mergeDay(base,local,remote,prefer):remote;
+    state.days[date]=merged;
+    syncBase.days[date]=remote;
+    syncBase.dayMeta[date]=meta;
+    if(same(merged,remote)) delete outbox.days[date];
+    else if(!outbox.days[date]) outbox.days[date]={at:Date.now()};
+    persistBase();persistOutbox();persistLocal();
+    if(!quiet) queueRender();
+  }
+  function applyRemoteRunning(raw,meta,quiet){
+    markDirty();
+    const remoteRaw=normRun(raw);
+    syncBase.running=remoteRaw;
+    syncBase.runningVersion=Number(meta.rev)||0;
+    syncBase.runningAt=Number(meta.at)||0;
+    if(!outbox.run){
+      const eff=effectiveRun(remoteRaw);
+      if(remoteRaw&&!eff) quarantineRun(remoteRaw,"remote-stale");
+      state.running=eff;
+      persistLocal();
     }
-    b.classList.add("show");
+    persistBase();persistOutbox();
+    markDirty();
+    if(!quiet) queueRender();
   }
 
-  async function readCloud(uid){
+  async function readAndApply(uid,quiet){
     const p=userPaths(uid);
-    const settingsSnap=await p.settings.get();
-    const daysSnap=await p.days.get();
-    const runSnap=await p.metaRunning.get();
-    if(!settingsSnap.exists && daysSnap.empty) return null;
-    const settings=settingsSnap.exists? settingsSnap.data() : null;
-    const days={};
-    daysSnap.forEach(function(doc){
-      const data=doc.data()||{};
-      days[doc.id]={
-        events:data.events||[],
-        todos:data.todos||[],
-        routines:data.routines||[],
-        updatedAt:data.updatedAt||0
-      };
+    const all=await Promise.all([p.settings.get(),p.days.get(),p.running.get()]);
+    const ss=all[0],ds=all[1],rs=all[2];
+    if(ss.exists) applyRemoteSettings(ss.data()||{},metaOf(ss.data()||{}),true);
+    ds.forEach(function(doc){const d=doc.data()||{};applyRemoteDay(doc.id,d,metaOf(d),true);});
+    const rd=rs.exists?(rs.data()||{}):{};
+    applyRemoteRunning(rd.running||null,metaOf(rd),true);
+    persistBase();persistOutbox();persistLocal();
+    if(!quiet) queueRender();
+  }
+
+  async function flushSettings(uid){
+    if(!outbox.settingsAt) return;
+    const p=userPaths(uid),ref=p.settings;
+    const captured=normSettings(state.settings),base=syncBase.settings?normSettings(syncBase.settings):normSettings({});
+    const localAt=outbox.settingsAt||Date.now(),sent=stable(captured);
+    const result=await db.runTransaction(async function(tx){
+      const snap=await tx.get(ref),raw=snap.exists?(snap.data()||{}):{};
+      const remote=snap.exists?normSettings(raw):normSettings({}),meta=metaOf(raw);
+      const merged=mergeSettings(base,captured,remote,localAt>=meta.at);
+      if(snap.exists&&same(merged,remote)) return {value:remote,meta:meta,wrote:false};
+      const now=Date.now(),rev=meta.rev+1;
+      tx.set(ref,{version:merged.version,areas:merged.areas,activities:merged.activities,routineDefs:merged.routineDefs,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
+      return {value:merged,meta:{rev:rev,at:now},wrote:true};
     });
-    let updatedAt=0;
-    if(settings&&settings.updatedAt) updatedAt=Math.max(updatedAt, settings.updatedAt);
-    for(const k in days) updatedAt=Math.max(updatedAt, days[k].updatedAt||0);
-    const running=runSnap.exists? (runSnap.data().running||null) : null;
-    return {
-      settings: settings? {
-        version:settings.version||2,
-        areas:settings.areas||[],
-        activities:settings.activities||[],
-        routineDefs:settings.routineDefs||[]
-      } : state.settings,
-      days: days,
-      running: running,
-      updatedAt: updatedAt
-    };
+    syncBase.settings=copy(result.value);syncBase.settingsMeta=result.meta;
+    if(stable(normSettings(state.settings))===sent) state.settings=copy(result.value);
+    else state.settings=mergeSettings(captured,normSettings(state.settings),result.value,true);
+    outbox.settingsAt=0;
+    persistBase();persistLocal();markDirty();
   }
 
-  async function writeCloud(uid, snap){
-    const p=userPaths(uid);
-    const ts=snap.updatedAt||Date.now();
-    const batch=db.batch();
-    batch.set(p.settings, {
-      version: (snap.settings&&snap.settings.version)||2,
-      areas: (snap.settings&&snap.settings.areas)||[],
-      activities: (snap.settings&&snap.settings.activities)||[],
-      routineDefs: (snap.settings&&snap.settings.routineDefs)||[],
-      updatedAt: ts
-    }, {merge:true});
-    batch.set(p.metaRunning, {running: snap.running||null, updatedAt: ts}, {merge:true});
-    // lightweight multi-device wake signal (other devices listen and pull)
-    batch.set(db.collection("users").doc(uid).collection("meta").doc("sync"), {
-      updatedAt: ts,
-      rev: ts
-    }, {merge:true});
-    const days=snap.days||{};
-    for(const k in days){
-      const d=days[k]||{};
-      // always stamp ts so deletes/edits overwrite remote arrays promptly
-      batch.set(p.days.doc(k), {
-        events:d.events||[],
-        todos:d.todos||[],
-        routines:d.routines||[],
-        updatedAt: ts
-      }, {merge:true});
-    }
-    // do not mass-delete unknown remote day docs here; full sync path may prune
-    await batch.commit();
-    lastPushTs=ts;
-    return ts;
-  }
-
-  async function writeCloudFull(uid, snap){
-    const p=userPaths(uid);
-    const ts=snap.updatedAt||Date.now();
-    // settings + running
-    await p.settings.set({
-      version:(snap.settings&&snap.settings.version)||2,
-      areas:(snap.settings&&snap.settings.areas)||[],
-      activities:(snap.settings&&snap.settings.activities)||[],
-      routineDefs:(snap.settings&&snap.settings.routineDefs)||[],
-      updatedAt:ts
-    }, {merge:true});
-    await p.metaRunning.set({running:snap.running||null, updatedAt:ts}, {merge:true});
-    await db.collection("users").doc(uid).collection("meta").doc("sync").set({updatedAt:ts, rev:ts}, {merge:true});
-    const days=snap.days||{};
-    const existing=await p.days.get();
-    const remoteIds={};
-    existing.forEach(function(doc){ remoteIds[doc.id]=true; });
-    const ops=[];
-    for(const k in days){
-      const d=days[k]||{};
-      ops.push(p.days.doc(k).set({
-        events:d.events||[], todos:d.todos||[], routines:d.routines||[], updatedAt:d.updatedAt||ts
-      }, {merge:true}));
-      delete remoteIds[k];
-    }
-    for(const k in remoteIds){
-      ops.push(p.days.doc(k).delete());
-    }
-    await Promise.all(ops);
-    return ts;
-  }
-
-  function stopListeners(){
-    if(unsubSettings){ try{unsubSettings();}catch(e){} unsubSettings=null; }
-    if(unsubSync){ try{unsubSync();}catch(e){} unsubSync=null; }
-    for(const k in dayUnsubs){ try{dayUnsubs[k]();}catch(e){} }
-    dayUnsubs={};
-  }
-
-  function startListeners(uid){
-    stopListeners();
-    const p=userPaths(uid);
-    function onRemoteTick(){
-      if(pushing||pulling||!ready) return;
-      pullAndMerge(uid, {fromListener:true}).catch(function(err){
-        setStatus("동기화 수신 실패: "+(err&&err.message||err), "err");
-      });
-    }
-    // settings + meta/sync: either change wakes other devices to pull full snapshot
-    unsubSettings=p.settings.onSnapshot(function(snap){
-      if(!snap || !snap.exists) return;
-      const d=snap.data()||{};
-      if(d.updatedAt && lastPushTs && d.updatedAt===lastPushTs) return; // echo of our own push
-      onRemoteTick();
-    }, function(err){
-      setStatus("실시간 동기화 오류: "+(err&&err.message||err), "err");
+  async function flushDay(uid,date){
+    if(!outbox.days[date]||!state.days[date]) return;
+    const p=userPaths(uid),ref=p.days.doc(date);
+    const captured=normDay(state.days[date]),base=syncBase.days[date]?normDay(syncBase.days[date]):emptyDay();
+    const localAt=(outbox.days[date]&&outbox.days[date].at)||Date.now(),sent=stable(captured);
+    const result=await db.runTransaction(async function(tx){
+      const snap=await tx.get(ref),raw=snap.exists?(snap.data()||{}):{};
+      const remote=snap.exists?normDay(raw):emptyDay(),meta=metaOf(raw);
+      const merged=mergeDay(base,captured,remote,localAt>=meta.at);
+      if(snap.exists&&same(merged,remote)) return {value:remote,meta:meta,wrote:false};
+      const now=Date.now(),rev=meta.rev+1;
+      tx.set(ref,{events:merged.events,todos:merged.todos,routines:merged.routines,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
+      return {value:merged,meta:{rev:rev,at:now},wrote:true};
     });
-    unsubSync=db.collection("users").doc(uid).collection("meta").doc("sync").onSnapshot(function(snap){
-      if(!snap || !snap.exists) return;
-      const d=snap.data()||{};
-      if(d.updatedAt && lastPushTs && d.updatedAt===lastPushTs) return;
-      onRemoteTick();
-    }, function(){ /* non-fatal */ });
+    syncBase.days[date]=copy(result.value);syncBase.dayMeta[date]=result.meta;
+    if(state.days[date]&&stable(normDay(state.days[date]))===sent) state.days[date]=copy(result.value);
+    else if(state.days[date]) state.days[date]=mergeDay(captured,normDay(state.days[date]),result.value,true);
+    delete outbox.days[date];
+    persistBase();persistLocal();markDirty();
   }
 
-  async function pullAndMerge(uid, opts){
-    opts=opts||{};
-    if(pulling) return;
-    pulling=true;
+  function startGate(){
+    if(runLocking) return {allowed:false,mode:"locked",label:runLockLabel||"동기화 중…",message:"측정 상태를 확인하고 있습니다"};
+    if(!authKnown) return {allowed:false,mode:"pending",label:"동기화 확인 중…",message:"계정 동기화 확인이 끝날 때까지 잠시 기다려 주세요"};
+    if(user){
+      if(!ready) return {allowed:false,mode:"pending",label:"동기화 확인 중…",message:"클라우드 측정 상태를 확인하고 있습니다"};
+      if(navigator.onLine===false) return {allowed:false,mode:"offline",label:"오프라인",message:"병렬 측정을 막기 위해 온라인 연결 후 시작할 수 있습니다"};
+      return {allowed:true,mode:"cloud",label:"▶ 시작",message:""};
+    }
+    if(cloudUnavailable){
+      return {allowed:false,mode:"offline",label:"동기화 연결 필요",message:"로그인 계정의 측정 상태를 확인할 수 없어 시작을 차단했습니다"};
+    }
+    return {allowed:true,mode:"local",label:"▶ 시작",message:""};
+  }
+  function setRunLock(on,label){
+    runLocking=!!on;runLockLabel=on?(label||"동기화 중…"):"";queueRender();
+  }
+  async function requestStart(candidate){
+    const desired=normRun(candidate),gate=startGate();
+    if(!desired) return {ok:false,reason:"invalid"};
+    if(!gate.allowed){
+      setStatus(gate.message,"warn");
+      if(typeof toast==="function") toast(gate.message);
+      queueRender();
+      return {ok:false,reason:gate.mode};
+    }
+    if(gate.mode==="local") return {ok:true,started:true,local:true,running:desired};
+    setRunLock(true,"시작 확인 중…");
     try{
-      const cloud=await readCloud(uid);
-      const local=localSnapshot();
-      if(!cloud){
-        if(localPayloadBytes()>40){
-          // first login with local data
-          if(!opts.fromListener){
-            await new Promise(function(resolve){
-              showBanner(
-                "<b>이 기기 기록을 클라우드에 올릴까요?</b><span style=\"display:block;color:var(--text2);padding-top:4px\">다른 기기와 공유하려면 업로드가 필요합니다. 클라우드가 비어 있습니다.</span>",
-                "업로드",
-                async function(){
-                  try{
-                    setStatus("클라우드 업로드 중…");
-                    const ts=Date.now(); state._localUpdatedAt=ts;
-                    await writeCloudFull(uid, Object.assign({}, localSnapshot(), {updatedAt:ts}));
-                    setStatus("클라우드 업로드 완료", "ok");
-                    if(typeof toast==="function") toast("클라우드에 업로드했습니다");
-                  }catch(err){
-                    setStatus("업로드 실패: "+(err&&err.message||err), "err");
-                  }
-                  resolve();
-                },
-                "나중에",
-                function(){ setStatus("로컬만 사용 중 · 원할 때 지금 동기화", "warn"); resolve(); }
-              );
-            });
-          }
-        }else{
-          setStatus("클라우드 비어 있음 · 기록하면 동기화됩니다", "ok");
-        }
-        return;
+      const ref=userPaths(user.uid).running;
+      const result=await db.runTransaction(async function(tx){
+        const snap=await tx.get(ref),raw=snap.exists?(snap.data()||{}):{};
+        const remote=normRun(raw.running||null),meta=metaOf(raw);
+        if(remote&&!runStale(remote)) return {started:false,running:remote,meta:meta};
+        const now=Date.now(),rev=meta.rev+1;
+        tx.set(ref,{running:desired,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
+        return {started:true,running:desired,meta:{rev:rev,at:now}};
+      });
+      syncBase.running=normRun(result.running);syncBase.runningVersion=Number(result.meta.rev)||0;syncBase.runningAt=Number(result.meta.at)||0;
+      state.running=effectiveRun(result.running);outbox.run=null;
+      persistBase();persistOutbox();persistLocal();queueRender();
+      if(!result.started){
+        setStatus("다른 기기에서 측정 중 · 같은 세션을 표시합니다","ok");
+        if(typeof toast==="function") toast("다른 기기에서 이미 측정 중입니다");
+        return {ok:false,active:true,reason:"already-running",running:copy(result.running)};
       }
-      const lu=local.updatedAt||0, cu=cloud.updatedAt||0;
-      if(cu>lu){
-        applySnapshot(cloud);
-        setStatus("클라우드에서 최신 기록 반영 · "+new Date(cu).toLocaleString("ko-KR"), "ok");
-      }else if(lu>cu && !opts.fromListener){
-        await writeCloudFull(uid, local);
-        setStatus("로컬 변경을 클라우드에 반영 · "+new Date(lu).toLocaleString("ko-KR"), "ok");
-      }else{
-        // equal or listener echo
-        if(!opts.fromListener) setStatus("동기화됨 · "+new Date(Math.max(lu,cu)).toLocaleString("ko-KR"), "ok");
-      }
-    }finally{
-      pulling=false;
+      setStatus("측정 시작 동기화 완료 · "+nowLabel(),"ok");
+      return {ok:true,started:true,running:copy(result.running)};
+    }catch(err){
+      setStatus("측정 시작 실패 · 동기화 연결을 확인하세요","err");
+      if(typeof toast==="function") toast("동기화 확인 실패로 측정을 시작하지 않았습니다");
+      return {ok:false,reason:"transaction",error:String(err&&err.message||err)};
+    }finally{setRunLock(false);}
+  }
+  async function requestStop(candidate){
+    const target=normRun(candidate);if(!target)return {ok:false,reason:"invalid"};
+    if(!authKnown) return {ok:false,reason:"pending"};
+    if(!user) return {ok:true,stopped:true,local:true,running:target,endedAt:Date.now()};
+    if(!ready||navigator.onLine===false){
+      setStatus("오프라인 종료 · 재연결 시 클라우드에 반영","warn");
+      return {ok:true,stopped:true,offline:true,running:target,endedAt:Date.now()};
     }
+    setRunLock(true,"중지 중…");
+    try{
+      const ref=userPaths(user.uid).running;
+      const result=await db.runTransaction(async function(tx){
+        const snap=await tx.get(ref),raw=snap.exists?(snap.data()||{}):{};
+        const remote=normRun(raw.running||null),meta=metaOf(raw);
+        if(!remote) return {stopped:false,reason:"already-stopped",running:null,meta:meta};
+        if(remote.sessionId!==target.sessionId) return {stopped:false,reason:"different-session",running:remote,meta:meta};
+        const now=Date.now(),rev=meta.rev+1;
+        tx.set(ref,{running:null,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
+        return {stopped:true,running:remote,endedAt:now,meta:{rev:rev,at:now}};
+      });
+      syncBase.running=result.stopped?null:normRun(result.running);syncBase.runningVersion=Number(result.meta.rev)||0;syncBase.runningAt=Number(result.meta.at)||0;
+      outbox.run=null;
+      if(result.stopped) state.running=null; else state.running=effectiveRun(result.running);
+      persistBase();persistOutbox();persistLocal();queueRender();
+      if(!result.stopped){
+        if(result.running){setStatus("다른 기기의 최신 측정을 표시합니다","ok");if(typeof toast==="function")toast("측정 상태가 다른 기기에서 변경되었습니다");}
+        return {ok:false,reason:result.reason,running:copy(result.running)};
+      }
+      setStatus("측정 중지 동기화 완료 · "+nowLabel(),"ok");
+      return {ok:true,stopped:true,running:copy(result.running),endedAt:result.endedAt};
+    }catch(err){
+      setStatus("측정 중지 실패 · 다시 시도하세요","err");
+      if(typeof toast==="function")toast("클라우드 중지 확인에 실패했습니다");
+      return {ok:false,reason:"transaction",error:String(err&&err.message||err)};
+    }finally{setRunLock(false);}
+  }
+
+  async function flushRunning(uid){
+    const op=outbox.run;if(!op)return;
+    const ref=userPaths(uid).running,captured=copy(op);
+    const result=await db.runTransaction(async function(tx){
+      const snap=await tx.get(ref),raw=snap.exists?(snap.data()||{}):{};
+      const remote=normRun(raw.running||null),meta=metaOf(raw),remoteStale=runStale(remote);
+      if(captured.type==="set"){
+        const desired=normRun(captured.running);
+        if(!desired||runStale(desired)) return {applied:false,reason:"stale",running:remote,meta:meta};
+        const sameSession=!!(remote&&remote.sessionId===desired.sessionId);
+        const newerAfterClear=!remote&&Number(captured.at)>Number(meta.at||0);
+        const allowed=meta.rev===Number(captured.baseVersion||0)||sameSession||remoteStale||newerAfterClear;
+        if(!allowed) return {applied:false,reason:"newer-remote",running:remote,meta:meta};
+        const now=Date.now(),rev=meta.rev+1;
+        tx.set(ref,{running:desired,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
+        return {applied:true,running:desired,meta:{rev:rev,at:now}};
+      }
+      if(!remote) return {applied:true,running:null,meta:meta};
+      const sameSession=!!(captured.sessionId&&remote.sessionId===captured.sessionId);
+      const allowed=sameSession||(!captured.sessionId&&meta.rev===Number(captured.baseVersion||0))||remoteStale;
+      if(!allowed) return {applied:false,reason:"different-session",running:remote,meta:meta};
+      const now=Date.now(),rev=meta.rev+1;
+      tx.set(ref,{running:null,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
+      return {applied:true,running:null,meta:{rev:rev,at:now}};
+    });
+    syncBase.running=normRun(result.running);syncBase.runningVersion=Number(result.meta.rev)||0;syncBase.runningAt=Number(result.meta.at)||0;
+    if(!result.applied){
+      if(captured.type==="set") quarantineRun(captured.running,"sync-conflict-"+result.reason);
+      state.running=effectiveRun(result.running);
+      setStatus("다른 기기의 최신 측정을 유지했습니다 · 충돌 세션은 복구용으로 보관", "warn");
+      if(typeof toast==="function") toast("다른 기기의 최신 측정을 유지했습니다");
+    }else if(captured.type==="set"){
+      if(state.running&&state.running.sessionId===captured.running.sessionId) state.running=copy(result.running);
+    }else if(!state.running||state.running.sessionId===captured.sessionId){
+      state.running=null;
+    }
+    outbox.run=null;
+    persistBase();persistLocal();markDirty();queueRender();
   }
 
   async function pushNow(){
-    if(!user||!db||DEMO) return;
-    if(pushing) return;
-    pushing=true;
+    if(!user||!db||!ready||DEMO) return;
+    markDirty();
+    if(flushing){flushAgain=true;return;}
+    flushing=true;
+    let ok=true;
     try{
-      const snap=localSnapshot();
-      snap.updatedAt=Date.now();
-      state._localUpdatedAt=snap.updatedAt;
-      // keep localStorage clock aligned so later pulls compare correctly
-      try{
-        localStorage.setItem(LS_KEY,JSON.stringify({settings:state.settings,days:state.days,running:state.running,updatedAt:state._localUpdatedAt}));
-      }catch(e){}
-      await writeCloud(user.uid, snap);
-      setStatus("동기화됨 · "+new Date(snap.updatedAt).toLocaleString("ko-KR"), "ok");
+      let pass=0;
+      do{
+        flushAgain=false;pass++;markDirty();
+        const runType=outbox.run&&outbox.run.type;
+        if(runType==="set") await flushRunning(user.uid);
+        if(outbox.settingsAt) await flushSettings(user.uid);
+        const dates=Object.keys(outbox.days||{}).sort();
+        for(const date of dates) await flushDay(user.uid,date);
+        if(outbox.run&&outbox.run.type==="clear") await flushRunning(user.uid);
+      }while((flushAgain||hasDirty())&&pass<4);
+      if(hasDirty()) schedulePush();
     }catch(err){
-      setStatus("동기화 실패: "+(err&&err.message||err), "err");
+      ok=false;
+      setStatus("동기화 재시도 대기 · "+(err&&err.message||err),"warn");
     }finally{
-      pushing=false;
+      flushing=false;persistBase();persistOutbox();persistLocal();
+    }
+    if(ok&&!hasDirty()) setStatus("실시간 동기화 활성 · "+nowLabel(),"ok");
+  }
+  function schedulePush(){
+    markDirty();
+    if(!user||!ready)return;
+    if(pushTimer)clearTimeout(pushTimer);
+    pushTimer=setTimeout(function(){pushTimer=null;pushNow();},PUSH_DEBOUNCE_MS);
+  }
+
+  function stopListeners(){
+    [unsubSettings,unsubDays,unsubRunning].forEach(function(fn){if(fn)try{fn();}catch(e){}});
+    unsubSettings=unsubDays=unsubRunning=null;
+  }
+  function startListeners(uid){
+    stopListeners();
+    const p=userPaths(uid);
+    unsubSettings=p.settings.onSnapshot(function(snap){
+      if(!snap.exists)return;
+      const d=snap.data()||{};applyRemoteSettings(d,metaOf(d),false);schedulePush();
+    },function(err){setStatus("설정 실시간 수신 오류 · "+(err&&err.message||err),"err");});
+    unsubDays=p.days.onSnapshot(function(snap){
+      snap.docChanges().forEach(function(ch){
+        const date=ch.doc.id;
+        if(ch.type==="removed"){
+          const base=syncBase.days[date]?normDay(syncBase.days[date]):emptyDay();
+          const local=state.days[date]?normDay(state.days[date]):emptyDay();
+          if(same(local,base)){delete state.days[date];delete syncBase.days[date];delete syncBase.dayMeta[date];}
+          else if(!outbox.days[date])outbox.days[date]={at:Date.now()};
+        }else{
+          const d=ch.doc.data()||{};applyRemoteDay(date,d,metaOf(d),true);
+        }
+      });
+      persistBase();persistOutbox();persistLocal();queueRender();schedulePush();
+    },function(err){setStatus("기록 실시간 수신 오류 · "+(err&&err.message||err),"err");});
+    unsubRunning=p.running.onSnapshot(function(snap){
+      const d=snap.exists?(snap.data()||{}):{};
+      applyRemoteRunning(d.running||null,metaOf(d),false);schedulePush();
+    },function(err){setStatus("측정 상태 실시간 수신 오류 · "+(err&&err.message||err),"err");});
+  }
+
+  async function bootstrap(uid){
+    if(syncBase.uid&&syncBase.uid!==uid){syncBase=blankBase();outbox=blankOutbox();}
+    syncBase.uid=uid;
+    markDirty();
+    await readAndApply(uid,true);
+    markDirty();persistBase();persistOutbox();persistLocal();queueRender();
+  }
+
+  function paintUser(){
+    const n=ui.name(),e=ui.email(),av=ui.av(),login=ui.login(),logout=ui.logout(),sync=ui.sync();
+    if(!n)return;
+    if(user){
+      n.textContent=user.displayName||"로그인됨";e.textContent=user.email||"";
+      if(login)login.hidden=true;if(logout)logout.hidden=false;if(sync)sync.hidden=false;
+      if(av){if(user.photoURL){av.className="sc-av";av.textContent="";av.style.backgroundImage="url("+user.photoURL+")";av.style.backgroundSize="cover";}else{av.className="sc-av ph";av.style.backgroundImage="";av.textContent=(user.displayName||user.email||"U").slice(0,1).toUpperCase();}}
+    }else{
+      n.textContent="로그인 안 됨";e.textContent="이 기기 localStorage만 사용 중";
+      if(login)login.hidden=false;if(logout)logout.hidden=true;if(sync)sync.hidden=true;
+      if(av){av.className="sc-av ph";av.style.backgroundImage="";av.textContent="G";}
+      setStatus("Google 로그인하면 세 기기에 같은 기록이 실시간 동기화됩니다.");
     }
   }
-
-  function schedulePush(){
-    if(!user||!ready) return;
-    if(pushTimer) clearTimeout(pushTimer);
-    pushTimer=setTimeout(function(){ pushNow(); }, PUSH_DEBOUNCE_MS);
-  }
-
   async function onSignedIn(u){
-    const email=(u.email||"").toLowerCase();
-    if(email!==ALLOWED_EMAIL.toLowerCase()){
-      setStatus("허용되지 않은 계정입니다. 로그아웃합니다.", "err");
-      try{ await auth.signOut(); }catch(e){}
-      if(typeof toast==="function") toast("이 앱은 지정된 Google 계정만 사용할 수 있습니다");
+    authKnown=true;cloudUnavailable=false;
+    if((u.email||"").toLowerCase()!==ALLOWED_EMAIL.toLowerCase()){
+      setStatus("허용되지 않은 계정입니다. 로그아웃합니다.","err");
+      try{await auth.signOut();}catch(e){}
+      if(typeof toast==="function")toast("이 앱은 지정된 Google 계정만 사용할 수 있습니다");
       return;
     }
-    user=u;
-    paintUser();
-    setStatus("동기화 준비 중…");
+    user=u;ready=false;
+    try{localStorage.setItem(CLOUD_ACCOUNT_KEY,u.uid);}catch(e){}
+    paintUser();setStatus("실시간 동기화 준비 중…");queueRender();
     try{
-      await pullAndMerge(u.uid, {});
-      startListeners(u.uid);
+      await bootstrap(u.uid);
       ready=true;
-      setStatus(ui.status().textContent.indexOf("실패")>=0? ui.status().textContent : ("로그인됨 · 동기화 활성"), "ok");
-    }catch(err){
-      setStatus("초기 동기화 실패: "+(err&&err.message||err), "err");
-    }
+      startListeners(u.uid);
+      queueRender();
+      await pushNow();
+      if(!hasDirty())setStatus("실시간 동기화 활성 · "+nowLabel(),"ok");
+    }catch(err){ready=false;queueRender();setStatus("초기 동기화 실패 · 측정 시작 차단 · "+(err&&err.message||err),"err");}
   }
-
   function onSignedOut(){
-    ready=false;
-    user=null;
-    stopListeners();
-    if(pushTimer){ clearTimeout(pushTimer); pushTimer=null; }
-    paintUser();
+    authKnown=true;cloudUnavailable=false;ready=false;user=null;stopListeners();
+    try{localStorage.removeItem(CLOUD_ACCOUNT_KEY);}catch(e){}
+    if(pushTimer){clearTimeout(pushTimer);pushTimer=null;}
+    paintUser();queueRender();
   }
-
   async function login(){
-    if(!auth){ setStatus("Firebase를 불러오지 못했습니다", "err"); return; }
+    if(!auth){setStatus("Firebase를 불러오지 못했습니다","err");return;}
     try{
       setStatus("Google 로그인 창 여는 중…");
-      const provider=new firebase.auth.GoogleAuthProvider();
-      provider.setCustomParameters({prompt:"select_account"});
-      // popup first; redirect fallback for strict browsers
-      try{
-        await auth.signInWithPopup(provider);
-      }catch(err){
+      const provider=new firebase.auth.GoogleAuthProvider();provider.setCustomParameters({prompt:"select_account"});
+      try{await auth.signInWithPopup(provider);}catch(err){
         const code=err&&err.code||"";
-        if(code==="auth/popup-blocked"||code==="auth/operation-not-supported-in-this-environment"){
-          await auth.signInWithRedirect(provider);
-          return;
-        }
+        if(code==="auth/popup-blocked"||code==="auth/operation-not-supported-in-this-environment"){await auth.signInWithRedirect(provider);return;}
         throw err;
       }
-    }catch(err){
-      if(err&&err.code==="auth/popup-closed-by-user"){ setStatus("로그인이 취소되었습니다", "warn"); return; }
-      setStatus("로그인 실패: "+(err&&err.message||err), "err");
-    }
+    }catch(err){if(err&&err.code==="auth/popup-closed-by-user"){setStatus("로그인이 취소되었습니다","warn");return;}setStatus("로그인 실패: "+(err&&err.message||err),"err");}
   }
-  async function logout(){
-    try{ await auth.signOut(); if(typeof toast==="function") toast("로그아웃했습니다"); }
-    catch(err){ setStatus("로그아웃 실패: "+(err&&err.message||err), "err"); }
-  }
+  async function logout(){try{await auth.signOut();if(typeof toast==="function")toast("로그아웃했습니다");}catch(err){setStatus("로그아웃 실패: "+(err&&err.message||err),"err");}}
 
   function init(){
     paintUser();
     if(typeof firebase==="undefined"){
-      setStatus("오프라인 또는 Firebase SDK 로드 실패 · 로컬만 사용", "warn");
-      return;
+      authKnown=true;
+      try{cloudUnavailable=!!localStorage.getItem(CLOUD_ACCOUNT_KEY);}catch(e){cloudUnavailable=true;}
+      setStatus(cloudUnavailable?"클라우드 상태 확인 불가 · 측정 시작 차단":"오프라인 로컬 모드","warn");queueRender();return;
     }
     try{
-      app=firebase.initializeApp(FB_CONFIG);
-      auth=firebase.auth();
-      db=firebase.firestore();
-      try{ db.enablePersistence({synchronizeTabs:true}); }catch(e){
-        // multi-tab or unsupported — ignore
-      }
-    }catch(err){
-      setStatus("Firebase 초기화 실패: "+(err&&err.message||err), "err");
-      return;
-    }
-    const loginBtn=ui.login(), logoutBtn=ui.logout(), syncBtn=ui.sync();
-    if(loginBtn) loginBtn.addEventListener("click", function(){ login(); });
-    if(logoutBtn) logoutBtn.addEventListener("click", function(){ logout(); });
-    if(syncBtn) syncBtn.addEventListener("click", function(){
-      if(!user) return;
-      setStatus("수동 동기화 중…");
-      pullAndMerge(user.uid, {}).then(function(){ return pushNow(); });
+      app=firebase.initializeApp(FB_CONFIG);auth=firebase.auth();db=firebase.firestore();
+      try{db.enablePersistence({synchronizeTabs:true}).catch(function(){});}catch(e){}
+    }catch(err){setStatus("Firebase 초기화 실패: "+(err&&err.message||err),"err");return;}
+    if(ui.login())ui.login().addEventListener("click",login);
+    if(ui.logout())ui.logout().addEventListener("click",logout);
+    if(ui.sync())ui.sync().addEventListener("click",async function(){
+      if(!user)return;setStatus("실시간 상태 재확인 중…");
+      try{await readAndApply(user.uid,false);markDirty();await pushNow();}catch(err){setStatus("수동 재확인 실패 · "+(err&&err.message||err),"warn");}
     });
-    auth.getRedirectResult().catch(function(err){
-      if(err&&err.code&&err.code!=="auth/redirect-cancelled-by-user"){
-        setStatus("로그인 리다이렉트 오류: "+(err.message||err), "err");
-      }
-    });
-    auth.onAuthStateChanged(function(u){
-      if(u) onSignedIn(u);
-      else onSignedOut();
-    });
-    // multi-device: when returning to this tab/app or network, pull latest without manual button
-    function resumePull(){
-      if(!user||!ready||pushing||pulling) return;
-      pullAndMerge(user.uid, {fromListener:true}).catch(function(){});
-    }
-    document.addEventListener("visibilitychange", function(){
-      if(document.visibilityState==="visible") resumePull();
-    });
-    window.addEventListener("focus", resumePull);
-    window.addEventListener("online", resumePull);
+    auth.getRedirectResult().catch(function(err){if(err&&err.code&&err.code!=="auth/redirect-cancelled-by-user")setStatus("로그인 리다이렉트 오류: "+(err.message||err),"err");});
+    auth.onAuthStateChanged(function(u){if(u)onSignedIn(u);else onSignedOut();});
+    function resume(){if(!user||!ready)return;markDirty();pushNow();}
+    document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible")resume();else{markDirty();pushNow();}});
+    window.addEventListener("focus",resume);window.addEventListener("online",resume);window.addEventListener("pagehide",function(){markDirty();pushNow();});
+    setInterval(function(){if(user&&ready){markDirty();if(hasDirty())pushNow();}},RETRY_PULSE_MS);
   }
 
   window.tgCloud={
-    schedulePush: schedulePush,
-    pushNow: pushNow,
-    user: function(){ return user; }
+    markDirty:markDirty,
+    schedulePush:schedulePush,
+    pushNow:pushNow,
+    requestStart:requestStart,
+    requestStop:requestStop,
+    startGate:startGate,
+    actionState:function(){return {locking:runLocking,label:runLockLabel};},
+    user:function(){return user;},
+    _test:{mergeDay:mergeDay,mergeSettings:mergeSettings,mergeList:mergeList,same:same,normDay:normDay,runStale:runStale,base:function(){return copy(syncBase);},outbox:function(){return copy(outbox);}}
   };
-
-  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", init);
-  else init();
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
 })();
 
 /* ================= PWA service worker / safe update flow ================= */
