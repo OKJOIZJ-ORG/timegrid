@@ -1452,7 +1452,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.60<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.61<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -2433,8 +2433,11 @@ async function beginRun(candidate,act,extra){
   if(!result||!result.ok){ renderSw(); renderTimeline(); return false; }
   state.running=copyRun(result.running||candidate);
   act.lastUsed=Date.now();
-  save(); renderSw(); renderTimeline();
+  save();
+  const synced=result.local?true:(window.tgCloud.syncAction?await window.tgCloud.syncAction("start"):false);
+  renderSw(); renderTimeline();
   if(extra){ renderTodos(); renderRoutines(); }
+  if(!synced&&!result.local&&typeof toast==="function")toast("측정은 시작됐지만 일부 데이터는 재동기화 대기 중입니다");
   return true;
 }
 function copyRun(r){ return r?JSON.parse(JSON.stringify(r)):null; }
@@ -2484,7 +2487,12 @@ async function swStop(){
   if(!window.tgCloud||!window.tgCloud.requestStop) return false;
   const result=await window.tgCloud.requestStop(r);
   if(!result||!result.ok){renderSw();return false;}
-  return materializeStoppedRun(result.running||r,result.endedAt||Date.now());
+  const materialized=materializeStoppedRun(result.running||r,result.endedAt||Date.now());
+  if(!materialized)return false;
+  if(result.local)return true;
+  const synced=window.tgCloud.syncAction?await window.tgCloud.syncAction("stop"):false;
+  if(!synced&&typeof toast==="function")toast("종료 기록은 보관됐고 재연결 즉시 동기화됩니다");
+  return true;
 }
 
 function renderSw(){
@@ -6024,7 +6032,7 @@ initShellWidth();
 function openSideNav(){ $("#sideNav").classList.add("open"); $("#sideOverlay").classList.add("open"); requestAnimationFrame(()=>$("#sideOverlay").classList.add("show")); }
 function closeSideNav(){ $("#sideNav").classList.remove("open"); $("#sideOverlay").classList.remove("show"); setTimeout(()=>$("#sideOverlay").classList.remove("open"),260); }
 function updateSnToday(){ const el=$("#snTodayVal"); if(el) el.textContent=fmtDur(dayDetail(ymd(new Date())).total); }
-$("#menuBtn").addEventListener("click",()=>{ updateSnToday(); openSideNav(); });
+$("#menuBtn").addEventListener("click",()=>{ updateSnToday(); if(window.tgCloud&&window.tgCloud.refreshStatus)window.tgCloud.refreshStatus(); openSideNav(); });
 $("#sideClose").addEventListener("click",closeSideNav);
 $("#sideOverlay").addEventListener("click",closeSideNav);
 document.addEventListener("keydown",e=>{
@@ -6736,7 +6744,7 @@ if(document.body.dataset.tab) setTab(document.body.dataset.tab);
 if(document.body.dataset.open==="acts"){ renderManager(); openFsPanel($("#actsDlg")); }
 if(document.body.dataset.open==="edit"){ const d=ensureDay(state.viewDate); if(d.events[1]) openEvDlg(d.events[1]); }
 if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.dispatchEvent(new Event("focus")); }
-/* ================= Firebase Auth + Firestore realtime merge sync (v3.12.59) ================= */
+/* ================= Firebase Auth + Firestore realtime action barriers (v3.12.61) ================= */
 (function(){
   const FB_CONFIG={
     apiKey:"AIzaSyB9zuqe0G7DjBNtb-EAtFfI0VVI5Bmeu_s",
@@ -6754,6 +6762,8 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
   const CLOUD_ACCOUNT_KEY="timegrid-cloud-account-v1";
   const PUSH_DEBOUNCE_MS=250;
   const RETRY_PULSE_MS=10000;
+  const LIVE_HEARTBEAT_MS=60000;
+  const LIVE_STALE_MS=90000;
 
   const ui={
     name:()=>document.getElementById("scName"),
@@ -6766,8 +6776,9 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
   };
 
   let app=null,auth=null,db=null,user=null,ready=false,authKnown=false,cloudUnavailable=false;
-  let pushTimer=null,flushing=false,flushAgain=false,renderQueued=false;
+  let pushTimer=null,flushing=false,flushAgain=false,flushPromise=null,renderQueued=false;
   let runLocking=false,runLockLabel="";
+  let liveStatus=false,lastServerOkAt=0,heartbeatBusy=false;
   let unsubSettings=null,unsubDays=null,unsubRunning=null;
 
   function blankBase(){
@@ -6784,14 +6795,35 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
   if(!syncBase.dayMeta) syncBase.dayMeta={};
   if(!outbox.days) outbox.days={};
 
-  function setStatus(msg,kind){
+  function paintStatus(msg,kind){
     const el=ui.status(); if(!el) return;
     el.textContent=msg||"";
     el.className="sc-st"+(kind?(" "+kind):"");
   }
+  function setStatus(msg,kind){
+    liveStatus=false;
+    paintStatus(msg,kind);
+  }
   function nowLabel(){
     try{return new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});}
     catch(e){return "방금";}
+  }
+  function setLiveStatus(){
+    liveStatus=true;
+    paintStatus("실시간 동기화 활성 · "+nowLabel(),"ok");
+  }
+  function tickLiveStatus(){
+    if(!liveStatus||!user||!ready||navigator.onLine===false) return;
+    if(lastServerOkAt&&Date.now()-lastServerOkAt>LIVE_STALE_MS){
+      setStatus("실시간 동기화 연결 재확인 중…","warn");
+      heartbeat();
+      return;
+    }
+    paintStatus("실시간 동기화 활성 · "+nowLabel(),"ok");
+  }
+  function markServerOk(){
+    lastServerOkAt=Date.now();
+    setLiveStatus();
   }
   function copy(v){ return v==null?v:JSON.parse(JSON.stringify(v)); }
   function canonical(v){
@@ -6960,8 +6992,8 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     const dirty=!!outbox.settingsAt||!same(local,base);
     const prefer=(outbox.settingsAt||state._localUpdatedAt||0)>=(meta.at||0);
     const merged=dirty?mergeSettings(base,local,remote,prefer):remote;
-    state.settings=merged;
-    syncBase.settings=remote;
+    state.settings=copy(merged);
+    syncBase.settings=copy(remote);
     syncBase.settingsMeta=meta;
     if(same(merged,remote)) outbox.settingsAt=0;
     else if(!outbox.settingsAt) outbox.settingsAt=Date.now();
@@ -6975,8 +7007,8 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     const dirty=!!outbox.days[date]||(hasLocal&&!same(local,base));
     const prefer=((outbox.days[date]&&outbox.days[date].at)||state._localUpdatedAt||0)>=(meta.at||0);
     const merged=dirty?mergeDay(base,local,remote,prefer):remote;
-    state.days[date]=merged;
-    syncBase.days[date]=remote;
+    state.days[date]=copy(merged);
+    syncBase.days[date]=copy(remote);
     syncBase.dayMeta[date]=meta;
     if(same(merged,remote)) delete outbox.days[date];
     else if(!outbox.days[date]) outbox.days[date]={at:Date.now()};
@@ -7000,9 +7032,12 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     if(!quiet) queueRender();
   }
 
-  async function readAndApply(uid,quiet){
+  async function readAndApply(uid,quiet,serverOnly){
     const p=userPaths(uid);
-    const all=await Promise.all([p.settings.get(),p.days.get(),p.running.get()]);
+    const all=serverOnly
+      ? await Promise.all([p.settings.get({source:"server"}),p.days.get({source:"server"}),p.running.get({source:"server"})])
+      : await Promise.all([p.settings.get(),p.days.get(),p.running.get()]);
+    if(serverOnly) markServerOk();
     const ss=all[0],ds=all[1],rs=all[2];
     if(ss.exists) applyRemoteSettings(ss.data()||{},metaOf(ss.data()||{}),true);
     ds.forEach(function(doc){const d=doc.data()||{};applyRemoteDay(doc.id,d,metaOf(d),true);});
@@ -7026,6 +7061,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
       tx.set(ref,{version:merged.version,areas:merged.areas,activities:merged.activities,routineDefs:merged.routineDefs,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
       return {value:merged,meta:{rev:rev,at:now},wrote:true};
     });
+    markServerOk();
     syncBase.settings=copy(result.value);syncBase.settingsMeta=result.meta;
     if(stable(normSettings(state.settings))===sent) state.settings=copy(result.value);
     else state.settings=mergeSettings(captured,normSettings(state.settings),result.value,true);
@@ -7047,6 +7083,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
       tx.set(ref,{events:merged.events,todos:merged.todos,routines:merged.routines,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
       return {value:merged,meta:{rev:rev,at:now},wrote:true};
     });
+    markServerOk();
     syncBase.days[date]=copy(result.value);syncBase.dayMeta[date]=result.meta;
     if(state.days[date]&&stable(normDay(state.days[date]))===sent) state.days[date]=copy(result.value);
     else if(state.days[date]) state.days[date]=mergeDay(captured,normDay(state.days[date]),result.value,true);
@@ -7080,8 +7117,9 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
       return {ok:false,reason:gate.mode};
     }
     if(gate.mode==="local") return {ok:true,started:true,local:true,running:desired};
-    setRunLock(true,"시작 확인 중…");
+    setRunLock(true,"시작 전 동기화 중…");
     try{
+      await syncBarrier(true);
       const ref=userPaths(user.uid).running;
       const result=await db.runTransaction(async function(tx){
         const snap=await tx.get(ref),raw=snap.exists?(snap.data()||{}):{};
@@ -7091,6 +7129,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
         tx.set(ref,{running:desired,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
         return {started:true,running:desired,meta:{rev:rev,at:now}};
       });
+      markServerOk();
       syncBase.running=normRun(result.running);syncBase.runningVersion=Number(result.meta.rev)||0;syncBase.runningAt=Number(result.meta.at)||0;
       state.running=effectiveRun(result.running);outbox.run=null;
       persistBase();persistOutbox();persistLocal();queueRender();
@@ -7099,7 +7138,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
         if(typeof toast==="function") toast("다른 기기에서 이미 측정 중입니다");
         return {ok:false,active:true,reason:"already-running",running:copy(result.running)};
       }
-      setStatus("측정 시작 동기화 완료 · "+nowLabel(),"ok");
+      setStatus("측정 시작 확정 · 데이터 동기화 중…","ok");
       return {ok:true,started:true,running:copy(result.running)};
     }catch(err){
       setStatus("측정 시작 실패 · 동기화 연결을 확인하세요","err");
@@ -7127,6 +7166,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
         tx.set(ref,{running:null,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
         return {stopped:true,running:remote,endedAt:now,meta:{rev:rev,at:now}};
       });
+      markServerOk();
       syncBase.running=result.stopped?null:normRun(result.running);syncBase.runningVersion=Number(result.meta.rev)||0;syncBase.runningAt=Number(result.meta.at)||0;
       outbox.run=null;
       if(result.stopped) state.running=null; else state.running=effectiveRun(result.running);
@@ -7135,7 +7175,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
         if(result.running){setStatus("다른 기기의 최신 측정을 표시합니다","ok");if(typeof toast==="function")toast("측정 상태가 다른 기기에서 변경되었습니다");}
         return {ok:false,reason:result.reason,running:copy(result.running)};
       }
-      setStatus("측정 중지 동기화 완료 · "+nowLabel(),"ok");
+      setStatus("측정 종료 확정 · 기록 동기화 중…","ok");
       return {ok:true,stopped:true,running:copy(result.running),endedAt:result.endedAt};
     }catch(err){
       setStatus("측정 중지 실패 · 다시 시도하세요","err");
@@ -7169,6 +7209,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
       tx.set(ref,{running:null,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
       return {applied:true,running:null,meta:{rev:rev,at:now}};
     });
+    markServerOk();
     syncBase.running=normRun(result.running);syncBase.runningVersion=Number(result.meta.rev)||0;syncBase.runningAt=Number(result.meta.at)||0;
     if(!result.applied){
       if(captured.type==="set") quarantineRun(captured.running,"sync-conflict-"+result.reason);
@@ -7184,31 +7225,37 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     persistBase();persistLocal();markDirty();queueRender();
   }
 
-  async function pushNow(){
-    if(!user||!db||!ready||DEMO) return;
+  function pushNow(){
+    if(!user||!db||!ready||DEMO) return Promise.resolve(false);
     markDirty();
-    if(flushing){flushAgain=true;return;}
+    if(flushPromise){flushAgain=true;return flushPromise;}
     flushing=true;
-    let ok=true;
-    try{
-      let pass=0;
-      do{
-        flushAgain=false;pass++;markDirty();
-        const runType=outbox.run&&outbox.run.type;
-        if(runType==="set") await flushRunning(user.uid);
-        if(outbox.settingsAt) await flushSettings(user.uid);
-        const dates=Object.keys(outbox.days||{}).sort();
-        for(const date of dates) await flushDay(user.uid,date);
-        if(outbox.run&&outbox.run.type==="clear") await flushRunning(user.uid);
-      }while((flushAgain||hasDirty())&&pass<4);
-      if(hasDirty()) schedulePush();
-    }catch(err){
-      ok=false;
-      setStatus("동기화 재시도 대기 · "+(err&&err.message||err),"warn");
-    }finally{
-      flushing=false;persistBase();persistOutbox();persistLocal();
-    }
-    if(ok&&!hasDirty()) setStatus("실시간 동기화 활성 · "+nowLabel(),"ok");
+    const runPromise=(async function(){
+      let ok=true;
+      try{
+        let pass=0;
+        do{
+          flushAgain=false;pass++;markDirty();
+          const runType=outbox.run&&outbox.run.type;
+          if(runType==="set") await flushRunning(user.uid);
+          if(outbox.settingsAt) await flushSettings(user.uid);
+          const dates=Object.keys(outbox.days||{}).sort();
+          for(const date of dates) await flushDay(user.uid,date);
+          if(outbox.run&&outbox.run.type==="clear") await flushRunning(user.uid);
+        }while((flushAgain||hasDirty())&&pass<4);
+        if(hasDirty()) schedulePush();
+      }catch(err){
+        ok=false;
+        setStatus("동기화 재시도 대기 · "+(err&&err.message||err),"warn");
+      }finally{
+        flushing=false;persistBase();persistOutbox();persistLocal();
+      }
+      const clean=ok&&!hasDirty();
+      if(clean&&lastServerOkAt) setLiveStatus();
+      return clean;
+    })();
+    flushPromise=runPromise.finally(function(){flushPromise=null;});
+    return flushPromise;
   }
   function schedulePush(){
     markDirty();
@@ -7216,6 +7263,47 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     if(pushTimer)clearTimeout(pushTimer);
     pushTimer=setTimeout(function(){pushTimer=null;pushNow();},PUSH_DEBOUNCE_MS);
   }
+  async function syncBarrier(pullFirst){
+    if(!user||!ready||navigator.onLine===false) throw new Error("cloud-unavailable");
+    markDirty();
+    if(pullFirst) await readAndApply(user.uid,true,true);
+    markDirty();
+    const clean=await pushNow();
+    if(!clean||hasDirty()) throw new Error("sync-incomplete");
+    return true;
+  }
+  async function syncAction(kind){
+    if(!user) return true;
+    if(!ready||navigator.onLine===false){
+      setStatus(kind==="stop"?"오프라인 종료 · 재연결 시 기록 동기화":"오프라인 · 측정 데이터 동기화 대기","warn");
+      return false;
+    }
+    setRunLock(true,kind==="stop"?"기록 동기화 중…":"시작 데이터 동기화 중…");
+    try{
+      await syncBarrier(false);
+      setLiveStatus();
+      return true;
+    }catch(err){
+      setStatus((kind==="stop"?"종료 기록":"측정 시작 데이터")+" 동기화 재시도 대기","warn");
+      schedulePush();
+      return false;
+    }finally{setRunLock(false);}
+  }
+  async function heartbeat(){
+    if(heartbeatBusy||!user||!ready||navigator.onLine===false||document.visibilityState==="hidden") return false;
+    heartbeatBusy=true;
+    try{
+      const snap=await userPaths(user.uid).running.get({source:"server"});
+      const d=snap.exists?(snap.data()||{}):{};
+      applyRemoteRunning(d.running||null,metaOf(d),true);
+      markServerOk();queueRender();schedulePush();
+      return true;
+    }catch(err){
+      setStatus("실시간 동기화 연결 재확인 중…","warn");
+      return false;
+    }finally{heartbeatBusy=false;}
+  }
+  function refreshStatus(){tickLiveStatus();heartbeat();}
 
   function stopListeners(){
     [unsubSettings,unsubDays,unsubRunning].forEach(function(fn){if(fn)try{fn();}catch(e){}});
@@ -7226,7 +7314,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     const p=userPaths(uid);
     unsubSettings=p.settings.onSnapshot(function(snap){
       if(!snap.exists)return;
-      const d=snap.data()||{};applyRemoteSettings(d,metaOf(d),false);schedulePush();
+      const d=snap.data()||{};applyRemoteSettings(d,metaOf(d),false);if(!snap.metadata||!snap.metadata.fromCache)markServerOk();schedulePush();
     },function(err){setStatus("설정 실시간 수신 오류 · "+(err&&err.message||err),"err");});
     unsubDays=p.days.onSnapshot(function(snap){
       snap.docChanges().forEach(function(ch){
@@ -7240,11 +7328,11 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
           const d=ch.doc.data()||{};applyRemoteDay(date,d,metaOf(d),true);
         }
       });
-      persistBase();persistOutbox();persistLocal();queueRender();schedulePush();
+      persistBase();persistOutbox();persistLocal();queueRender();if(!snap.metadata||!snap.metadata.fromCache)markServerOk();schedulePush();
     },function(err){setStatus("기록 실시간 수신 오류 · "+(err&&err.message||err),"err");});
     unsubRunning=p.running.onSnapshot(function(snap){
       const d=snap.exists?(snap.data()||{}):{};
-      applyRemoteRunning(d.running||null,metaOf(d),false);schedulePush();
+      applyRemoteRunning(d.running||null,metaOf(d),false);if(!snap.metadata||!snap.metadata.fromCache)markServerOk();schedulePush();
     },function(err){setStatus("측정 상태 실시간 수신 오류 · "+(err&&err.message||err),"err");});
   }
 
@@ -7252,7 +7340,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     if(syncBase.uid&&syncBase.uid!==uid){syncBase=blankBase();outbox=blankOutbox();}
     syncBase.uid=uid;
     markDirty();
-    await readAndApply(uid,true);
+    await readAndApply(uid,true,true);
     markDirty();persistBase();persistOutbox();persistLocal();queueRender();
   }
 
@@ -7287,7 +7375,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
       startListeners(u.uid);
       queueRender();
       await pushNow();
-      if(!hasDirty())setStatus("실시간 동기화 활성 · "+nowLabel(),"ok");
+      if(!hasDirty()&&lastServerOkAt)setLiveStatus();
     }catch(err){ready=false;queueRender();setStatus("초기 동기화 실패 · 측정 시작 차단 · "+(err&&err.message||err),"err");}
   }
   function onSignedOut(){
@@ -7325,13 +7413,15 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     if(ui.logout())ui.logout().addEventListener("click",logout);
     if(ui.sync())ui.sync().addEventListener("click",async function(){
       if(!user)return;setStatus("실시간 상태 재확인 중…");
-      try{await readAndApply(user.uid,false);markDirty();await pushNow();}catch(err){setStatus("수동 재확인 실패 · "+(err&&err.message||err),"warn");}
+      try{await readAndApply(user.uid,false,true);markDirty();await pushNow();}catch(err){setStatus("수동 재확인 실패 · "+(err&&err.message||err),"warn");}
     });
     auth.getRedirectResult().catch(function(err){if(err&&err.code&&err.code!=="auth/redirect-cancelled-by-user")setStatus("로그인 리다이렉트 오류: "+(err.message||err),"err");});
     auth.onAuthStateChanged(function(u){if(u)onSignedIn(u);else onSignedOut();});
-    function resume(){if(!user||!ready)return;markDirty();pushNow();}
+    function resume(){if(!user||!ready)return;heartbeat();markDirty();pushNow();}
     document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible")resume();else{markDirty();pushNow();}});
-    window.addEventListener("focus",resume);window.addEventListener("online",resume);window.addEventListener("pagehide",function(){markDirty();pushNow();});
+    window.addEventListener("focus",resume);window.addEventListener("online",resume);window.addEventListener("offline",function(){if(user)setStatus("오프라인 · 동기화 재개 대기","warn");});window.addEventListener("pagehide",function(){markDirty();pushNow();});
+    setInterval(tickLiveStatus,1000);
+    setInterval(heartbeat,LIVE_HEARTBEAT_MS);
     setInterval(function(){if(user&&ready){markDirty();if(hasDirty())pushNow();}},RETRY_PULSE_MS);
   }
 
@@ -7341,10 +7431,12 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     pushNow:pushNow,
     requestStart:requestStart,
     requestStop:requestStop,
+    syncAction:syncAction,
+    refreshStatus:refreshStatus,
     startGate:startGate,
     actionState:function(){return {locking:runLocking,label:runLockLabel};},
     user:function(){return user;},
-    _test:{mergeDay:mergeDay,mergeSettings:mergeSettings,mergeList:mergeList,same:same,normDay:normDay,runStale:runStale,base:function(){return copy(syncBase);},outbox:function(){return copy(outbox);}}
+    _test:{mergeDay:mergeDay,mergeSettings:mergeSettings,mergeList:mergeList,same:same,normDay:normDay,runStale:runStale,base:function(){return copy(syncBase);},outbox:function(){return copy(outbox);},lastServerOkAt:function(){return lastServerOkAt;},liveStatus:function(){return liveStatus;}}
   };
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
 })();
