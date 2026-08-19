@@ -1062,7 +1062,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
 .area-picker.cat-act .ap-nm.ph{font-weight:400;}
 #importText,#exportText{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.6;}
 .jkind{display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:2px 8px;border-radius:var(--r-round);background:var(--soft);color:var(--text2);flex:none;}
-.jkind.plan{background:#EDF1FB;color:#3B5BD9;}
+.jkind.plan,.jkind.plans{background:#EDF1FB;color:#3B5BD9;}
 .jkind.log,.jkind.logs{background:#E8F4EC;color:#2F7D4F;}
 .jkind.backup{background:#FBF3E4;color:#9A6B15;}
 .jkind.routines,.jkind.routineDefs{background:#F3ECFA;color:#7048A8;}
@@ -1452,7 +1452,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.61<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.62<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -5265,6 +5265,7 @@ function detectJsonKind(json){
   if(json.kind==="plan") return "plan";
   if(json.kind==="log") return "log";
   if(json.kind==="logs"&&Array.isArray(json.days)) return "logs";
+  if(json.kind==="plans"&&Array.isArray(json.days)) return "plans";
   if(json.kind==="routineDefs"&&Array.isArray(json.defs)) return "routineDefs";
   return null;
 }
@@ -5287,6 +5288,12 @@ function newItemsWarning(json,kind){
       for(const td of (lg.todos||[])) if(td&&typeof td==="object") chk(td.act,td.area);
       for(const rt of (lg.routines||[])) if(rt&&typeof rt==="object") chk(rt.act,rt.area);
     }
+  }else if(kind==="plans"){
+    for(const pl of (json.days||[])){
+      if(!pl||typeof pl!=="object") continue;
+      for(const td of (pl.todos||[])) if(td&&typeof td==="object") chk(td.act,td.area);
+      for(const er of (pl.extraRoutines||[])) if(er&&typeof er==="object") chk(er.act,er.area);
+    }
   }else if(kind==="routineDefs"){
     for(const d of (json.defs||[])) chk(d.act,d.area);
   }else if(kind==="routines"){
@@ -5305,6 +5312,7 @@ function importSummary(kind,json){
     sum="<b>기록</b> · "+esc(json.date||"?")+" · 이벤트 "+((json.events||[]).length)+"개"+(dup? ' · <span class="warn">이 날짜에 기존 기록 있음</span>':"");
   }
   else if(kind==="logs") sum="<b>기록 묶음</b> · "+json.days.length+"일치 ("+esc(json.from||"?")+" ~ "+esc(json.to||"?")+")";
+  else if(kind==="plans") sum="<b>계획 묶음</b> · "+json.days.length+"일치 ("+esc(json.from||"?")+" ~ "+esc(json.to||"?")+") · 병합/교체 모드와 무관 (항상 추가)";
   else if(kind==="routines") sum="<b>루틴 정의(v1 배열)</b> · "+json.length+"개 · 적용 시 루틴 목록 전체 교체";
   else if(kind==="routineDefs") sum="<b>루틴 정의</b> · "+json.defs.length+"개 · 적용 시 루틴 목록 전체 교체";
   else if(kind==="backup"){
@@ -5324,7 +5332,7 @@ function previewImport(){
   try{
     const json=JSON.parse(raw);
     const kind=detectJsonKind(json);
-    if(!kind){ msg.textContent="알 수 없는 JSON 형식입니다. (plan/log/logs/routineDefs/backup/루틴 배열)"; msg.className="msg err"; return; }
+    if(!kind){ msg.textContent="알 수 없는 JSON 형식입니다. (plan/plans/log/logs/routineDefs/backup/루틴 배열)"; msg.className="msg err"; return; }
     box.hidden=false; box.innerHTML=importSummary(kind,json);
   }catch(err){ msg.textContent="JSON 파싱 오류: "+err.message; msg.className="msg err"; }
 }
@@ -5423,6 +5431,7 @@ $("#importApply").addEventListener("click",()=>{
     if(kind==="plan"){ res=applyPlan(json); }
     else if(kind==="log"){ res="기록 "+applyLog(json,mode)+"개 반영 ("+json.date+")"; state.viewDate=json.date; tlAnimPending=true; }
     else if(kind==="logs"){ let t=0,last=""; for(const lg of json.days){ t+=applyLog(lg,mode); if(lg.date) last=lg.date; } res="기록 묶음 반영: 이벤트 "+t+"개"; if(last){ state.viewDate=last; tlAnimPending=true; } }
+    else if(kind==="plans"){ let n2=0; const _pls=[...(json.days||[])].filter(p=>p&&p.kind==="plan"&&p.date).sort((a,b)=>a.date<b.date?-1:(a.date>b.date?1:0)); for(const pl of _pls){ applyPlan(pl); n2++; } res="계획 묶음 반영: "+n2+"일치 적용"; }
     else if(kind==="routines"){ res="루틴 "+applyRoutineDefs(json)+"개로 교체 완료"; }
     else if(kind==="routineDefs"){ res="루틴 "+applyRoutineDefs(json.defs)+"개로 교체 완료"; }
     else if(kind==="backup"){
@@ -5533,33 +5542,53 @@ function buildPlan(ds){
   const extras=(day.routines||[]).filter(r=>r.extra).map(r=>{ const a=r.actId? actById(r.actId):null; const o={time:r.time||"",name:r.name}; if(r.end) o.end=r.end; o.act=a? a.name:null; const _ar=r.area||(a? a.area:null); if(_ar) o.area=_ar; return o; });
   return {v:2,kind:"plan",date:ds,todos:todos,extraRoutines:extras};
 }
+function buildPlanRange(){
+  expDates();
+  if(expMode==="day") return buildPlan(expDay);
+  const skip=$("#expSkipEmpty").checked;
+  const arr=[];
+  const cur=dateOf(expFrom), end=dateOf(expTo);
+  let guard=0;
+  while(cur<=end && guard<3660){
+    const ds=ymd(cur);
+    const d=state.days[ds];
+    const has=!!(d&&(((d.todos||[]).length)||((d.routines||[]).some(r=>r.extra))));
+    if(!(skip&&!has)) arr.push(buildPlan(ds));
+    cur.setDate(cur.getDate()+1); guard++;
+  }
+  return {v:2, kind:"plans", from:expFrom, to:expTo, days:arr};
+}
 let expTarget="log";
 function buildExport(){
-  if(expTarget==="plan"){ expDates(); return buildPlan(expDay); }
+  if(expTarget==="plan"){ expDates(); return expMode==="day"? buildPlan(expDay) : buildPlanRange(); }
   if(expTarget==="routineDefs") return buildRoutineDefs();
   if(expTarget==="backup") return buildBackup();
   return buildLogRange();
 }
 function expLabel(){
-  if(expTarget==="plan"){ expDates(); return "계획 ("+expDay+")"; }
+  if(expTarget==="plan"){ expDates(); return expMode==="day"? "계획 ("+expDay+")" : "계획 ("+expFrom+" ~ "+expTo+")"; }
   if(expTarget==="routineDefs") return "루틴 정의 "+state.settings.routineDefs.length+"개";
   if(expTarget==="backup") return "전체 백업 (기록 "+Object.keys(state.days).length+"일치)";
   expDates();
   return expMode==="day"? "기록 ("+expDay+")" : "기록 ("+expFrom+" ~ "+expTo+")";
 }
 function refreshExport(){
-  if(expTarget==="plan"&&expMode==="range") expMode="day";
   $("#expLogOpts").style.display= (expTarget==="log"||expTarget==="plan")? "":"none";
-  (function(){const p7=document.querySelector('.exp-preset[data-epre="7d"]'); if(p7) p7.style.display= expTarget==="plan"? "none":"";})();
   expDates();
   $("#expDateLbl").textContent=expDateLabel();
   $("#expSkipWrap").style.display= expMode==="range"? "":"none";
   const dsc=$("#expDesc");
-  if(dsc){ dsc.textContent= expTarget==="log"? "선택한 날짜·기간의 이벤트·할일·루틴·통계를 내보냅니다. 윤투 '기록 반영'에 사용합니다." : expTarget==="plan"? "선택한 날짜의 할일·일회성 루틴을 계획(plan) JSON으로 내보냅니다. 다른 날짜·기기로 계획을 옮기거나 가져오기로 재적용할 때 사용합니다." : expTarget==="routineDefs"? "반복 루틴 마스터 정의를 내보냅니다. 기기 간 루틴 동기화에 사용합니다." : "설정과 모든 날짜 기록을 통째로 내보냅니다. 복원·기기 이전용입니다."; }
+  if(dsc){ dsc.textContent= expTarget==="log"? "선택한 날짜·기간의 이벤트·할일·루틴·통계를 내보냅니다. 윤투 '기록 반영'에 사용합니다." : expTarget==="plan"? "선택한 날짜·기간의 할일·일회성 루틴을 계획(plan) JSON으로 내보냅니다. 다른 날짜·기기로 계획을 옮기거나 가져오기로 재적용할 때 사용합니다." : expTarget==="routineDefs"? "반복 루틴 마스터 정의를 내보냅니다. 기기 간 루틴 동기화에 사용합니다." : "설정과 모든 날짜 기록을 통째로 내보냅니다. 복원·기기 이전용입니다."; }
   const info=$("#exportInfo");
   if(expTarget==="backup"){
     info.hidden=false;
     info.textContent="현재 데이터: 기록 "+Object.keys(state.days).length+"일치 · 영역 "+state.settings.areas.length+"개 · 활동 "+state.settings.activities.length+"개 · 루틴 "+state.settings.routineDefs.length+"개";
+  }else if(expTarget==="plan"&&expMode==="range"){
+    const o=buildPlanRange();
+    const _nt=o.days.reduce((s2,p)=>s2+((p.todos||[]).length),0);
+    const _nr=o.days.reduce((s2,p)=>s2+((p.extraRoutines||[]).length),0);
+    info.hidden=false;
+    info.textContent=o.from+" ~ "+o.to+" · 포함된 날 "+o.days.length+"일 · 할일 "+_nt+"개 · 일회성 루틴 "+_nr+"개";
   }else if(expTarget==="plan"){
     const o=buildPlan(expDay);
     info.hidden=false;
@@ -5571,6 +5600,11 @@ function refreshExport(){
     const o=buildLogRange();
     info.hidden=false;
     info.textContent=o.from+" ~ "+o.to+" · 포함된 날 "+o.days.length+"일";
+  }else if(expTarget==="routineDefs"){
+    const _rdefs=state.settings.routineDefs||[];
+    const _ranged=_rdefs.filter(d=>d&&d.end).length;
+    info.hidden=false;
+    info.textContent="루틴 정의 "+_rdefs.length+"개"+(_ranged? " · 구간 "+_ranged+"개":"");
   }else info.hidden=true;
   $("#exportText").value=JSON.stringify(buildExport(),null,2);
   (function(){const m=$("#expMeta"); if(m){const v=$("#exportText").value; m.textContent=(v.length/1024).toFixed(1)+" KB · "+v.length.toLocaleString("ko-KR")+"자";}})();
@@ -5766,7 +5800,7 @@ function downloadJson(obj,filename){
   setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 }
 $("#fileBtn").addEventListener("click",()=>{
-  const fn= expTarget==="plan"? "timegrid-plan-"+expDay+".json" : expTarget==="routineDefs"? "timegrid-routines-"+ymd(new Date())+".json" : expTarget==="backup"? "timegrid-backup-"+ymd(new Date())+".json" : expMode==="day"? "timegrid-log-"+expDay+".json" : "timegrid-log-"+expFrom+"_"+expTo+".json";
+  const fn= expTarget==="plan"? (expMode==="day"? "timegrid-plan-"+expDay+".json" : "timegrid-plan-"+expFrom+"_"+expTo+".json") : expTarget==="routineDefs"? "timegrid-routines-"+ymd(new Date())+".json" : expTarget==="backup"? "timegrid-backup-"+ymd(new Date())+".json" : expMode==="day"? "timegrid-log-"+expDay+".json" : "timegrid-log-"+expFrom+"_"+expTo+".json";
   downloadJson(buildExport(),fn);
   const msg=$("#exportMsg"); msg.textContent="파일 저장을 시작했습니다."; msg.className="msg ok";
   jsonLog("out",expLabel()+" 파일 저장");
@@ -6179,7 +6213,7 @@ $("#lnkCopyPlan").addEventListener("click",async function(){
 })();
 const _impTa=$("#importText"), _impPrev=$("#importPreview");
 let _impTimer=0;
-function impKindLabel(k){ return {plan:"계획",log:"기록",logs:"기록 묶음",routines:"루틴",routineDefs:"루틴 정의",backup:"전체 백업"}[k]||k; }
+function impKindLabel(k){ return {plan:"계획",plans:"계획 묶음",log:"기록",logs:"기록 묶음",routines:"루틴",routineDefs:"루틴 정의",backup:"전체 백업"}[k]||k; }
 function impPreview(){
   const v=_impTa.value.trim();
   if(!v){ _impPrev.hidden=true; _impPrev.innerHTML=""; return; }
@@ -6190,6 +6224,7 @@ function impPreview(){
     let meta="";
     if(kind==="log") meta=(j.date||"?")+" · 이벤트 "+((j.events||[]).length)+"개 · 할일 "+((j.todos||[]).length)+"개 · 루틴 "+((j.routines||[]).length)+"개";
     else if(kind==="logs") meta=(j.from||"?")+" ~ "+(j.to||"?")+" · "+((j.days||[]).length)+"일치";
+    else if(kind==="plans") meta=(j.from||"?")+" ~ "+(j.to||"?")+" · "+((j.days||[]).length)+"일치";
     else if(kind==="plan") meta=(j.date||"?")+" · 할일 "+((j.todos||[]).length)+"개 · 추가 루틴 "+((j.extraRoutines||[]).length)+"개";
     else if(kind==="routines") meta="루틴 "+j.length+"개";
     else if(kind==="routineDefs") meta="루틴 정의 "+((j.defs||[]).length)+"개";
