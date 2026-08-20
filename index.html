@@ -856,7 +856,7 @@ input[type=color]{transition:transform var(--dur-1) ease,box-shadow .2s ease;}
 .todo-action-item{width:100%;min-height:46px;padding:6px 9px;border:0;border-radius:12px;background:transparent;display:grid;grid-template-columns:30px minmax(0,1fr);column-gap:9px;align-items:center;text-align:left;color:var(--text);cursor:pointer;outline:none;transition:background-color .14s cubic-bezier(.23,1,.32,1),transform .12s cubic-bezier(.23,1,.32,1);-webkit-tap-highlight-color:transparent;}
 .todo-action-item:focus, .todo-action-item:focus-visible{outline:none!important;box-shadow:none!important;background:var(--soft);}
 .todo-action-ico{grid-row:1/3;width:30px;height:30px;border-radius:9px;background:var(--soft);display:flex;align-items:center;justify-content:center;color:var(--text2);transition:background-color .14s ease,color .14s ease,transform .12s ease;}
-.todo-action-ico svg{width:15px;height:15px;flex:none;}
+.todo-action-ico svg{width:15px;height:15px;flex:none;overflow:visible;}
 .todo-action-item strong{font-size:13.5px;font-weight:600;line-height:1.2;color:var(--text);}
 .todo-action-item small{display:block;padding-top:2px;color:var(--text3);font-size:11px;line-height:1.25;}
 .todo-action-item.danger strong{color:var(--red);}
@@ -1551,7 +1551,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.65<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.66<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -1627,7 +1627,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
     </button>
     <button type="button" class="todo-action-item danger" data-todo-action="delete" role="menuitem">
       <span class="todo-action-ico" aria-hidden="true">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5h11M5.5 4.5V3a1.5 1.5 0 0 1 1.5-1.5h2a1.5 1.5 0 0 1 1.5 1.5v1.5M13 4.5v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9M6.5 7.5v5M9.5 7.5v5"/></svg>
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5h11M5.5 4.5V3a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.5M12.5 4.5v7.5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2V4.5M6.5 7.5v4M9.5 7.5v4"/></svg>
       </span>
       <span><strong>삭제</strong><small>5초 동안 실행취소할 수 있습니다</small></span>
     </button>
