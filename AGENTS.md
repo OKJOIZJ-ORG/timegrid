@@ -21,7 +21,9 @@
 - **배포 게이트**: 배치 배포는 사용자 명시 지시가 있을 때만. push = Pages 배포.
 - **보안**: 인증 토큰·UID 원문을 노션/코드/저장소/대화에 기록·재공유 금지. 임베드 파일 교체는 세션 권한 밖.
 
-- 운영 버전: **v3.12.65** (검증 완료·배포 대기, 2026-08-20)
-  - index.html sha1: `e194923fbf0166d0b44abb38098c2ff41b2f8c19`
-  - sw.js sha1: `dbb9b146134f62296c3bafd7729b72b10a5240bd`
-- v3.12.65 변경: 할일 날짜 이동 모달 전면 재디자인 및 Emil Design Engineering 표준 폴리싱 (전역 44px 텍스트 닫기 버튼 대신 28px 소프트 원형 SVG 닫기 버튼 `.dlg-close-btn` 적용, 과도한 압축을 교정하여 13px/14px 황금비 여백과 시각적 호흡감 복원, `다음 주` 칩 및 커스텀 캘린더 단일 모드 완성).
+- 운영 버전: **v3.12.67** (배포 완료, 2026-08-31)
+  - 릴리스 코드 커밋: `3a38039cb523a0738c3936e9f75c841ae28262f4`
+  - index.html sha1: `32a1d4c6ebe5786edbd85fde21a4f839c54f42d9`
+  - sw.js sha1: `ca9f186a4cdbe1feb50cad4e20027d1a0dfb7797`
+  - SW: `timegrid-v3.12.67-20260831`
+- v3.12.67 변경: 할일 `move`/`delete`/`restore`를 명시적 `todoMutations`로 기록해 배열 부재 추론을 제거하고 TimeGrid ID를 이동 시에도 보존한다. Firestore 날짜 문서의 로컬/원격 3-way merge와 materialize가 mutation을 왕복하며, 삭제·복원 실행취소도 역 mutation으로 남긴다. v3.12.66의 휴지통 아이콘 클리핑/광학 정렬 수정은 그대로 보존했다.
