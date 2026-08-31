@@ -1551,7 +1551,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.66<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.67<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -2222,6 +2222,122 @@ function routineNoteColor(hex){
   return hslToHex(h,Math.min(Math.max(s,42),58),91);
 }
 function uid(p){return p+Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-4);}
+/* TODO_MUTATIONS_CORE_START */
+const TG_TODO_MUTATIONS=(function(){
+  const RETENTION_MS=180*24*60*60*1000,MAX_PER_DAY=256;
+  function clone(v){return v==null?v:JSON.parse(JSON.stringify(v));}
+  function ymdOk(v){return typeof v==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(v);}
+  function stamp(m){return Number(m&&((m.kind==="delete"&&m.deletedAt)||(m.kind==="move"&&m.movedAt)||(m.kind==="restore"&&m.restoredAt)||m.at))||0;}
+  function normSnapshot(todo,id){
+    const out=todo&&typeof todo==="object"&&!Array.isArray(todo)?clone(todo):{id:id};
+    out.id=String(id||out.id||"");
+    return out.id?out:null;
+  }
+  function normalize(raw){
+    if(!raw||typeof raw!=="object")return null;
+    const kind=String(raw.kind||""),id=String(raw.id||""),todoId=String(raw.todoId||""),at=stamp(raw);
+    if(!id||!todoId||!at||!["delete","move","restore"].includes(kind))return null;
+    const out={id:id,kind:kind,todoId:todoId,at:at};
+    if(raw.deviceId)out.deviceId=String(raw.deviceId);
+    const todo=normSnapshot(raw.todo,todoId);if(todo)out.todo=todo;
+    if(kind==="delete"){
+      if(!ymdOk(raw.fromDate))return null;
+      out.fromDate=raw.fromDate;out.deletedAt=at;
+    }else if(kind==="move"){
+      if(!ymdOk(raw.fromDate)||!ymdOk(raw.toDate)||raw.fromDate===raw.toDate)return null;
+      out.fromDate=raw.fromDate;out.toDate=raw.toDate;out.movedAt=at;
+    }else{
+      if(!ymdOk(raw.toDate))return null;
+      out.toDate=raw.toDate;out.restoredAt=at;
+    }
+    return out;
+  }
+  function cmp(a,b){return stamp(a)-stamp(b)||String(a.id).localeCompare(String(b.id));}
+  function normalizeList(list,nowMs){
+    const now=Number(nowMs)||Date.now(),cutoff=now-RETENTION_MS,byId=new Map();
+    for(const raw of (Array.isArray(list)?list:[])){
+      const m=normalize(raw);if(!m||stamp(m)<cutoff)continue;
+      const prev=byId.get(m.id);
+      if(!prev||JSON.stringify(m)>JSON.stringify(prev))byId.set(m.id,m);
+    }
+    return [...byId.values()].sort(cmp).slice(-MAX_PER_DAY).map(clone);
+  }
+  function latestByTodo(days,nowMs){
+    const byMutation=new Map();
+    for(const ds of Object.keys(days||{})){
+      for(const m of normalizeList(days[ds]&&days[ds].todoMutations,nowMs)){
+        const prev=byMutation.get(m.id);
+        if(!prev||JSON.stringify(m)>JSON.stringify(prev))byMutation.set(m.id,m);
+      }
+    }
+    const latest=new Map();
+    for(const m of [...byMutation.values()].sort(cmp)){
+      const prev=latest.get(m.todoId);if(!prev||cmp(prev,m)<=0)latest.set(m.todoId,m);
+    }
+    return latest;
+  }
+  function materialize(days,nowMs){
+    days=days||{};const changed=new Set();
+    for(const ds of Object.keys(days)){
+      const day=days[ds]||{};
+      if(!Array.isArray(day.events))day.events=[];
+      if(!Array.isArray(day.todos))day.todos=[];
+      if(!Array.isArray(day.routines))day.routines=[];
+      const before=JSON.stringify(Array.isArray(day.todoMutations)?day.todoMutations:[]);
+      day.todoMutations=normalizeList(day.todoMutations,nowMs);
+      if(before!==JSON.stringify(day.todoMutations))changed.add(ds);
+    }
+    for(const m of latestByTodo(days,nowMs).values()){
+      if(m.kind==="delete"){
+        for(const ds of Object.keys(days)){
+          const day=days[ds],next=day.todos.filter(function(t){return String(t&&t.id||"")!==m.todoId;});
+          if(next.length!==day.todos.length){day.todos=next;changed.add(ds);}
+        }
+        continue;
+      }
+      const targetDate=m.toDate;
+      if(!days[targetDate])days[targetDate]={events:[],todos:[],routines:[],todoMutations:[clone(m)]};
+      const target=days[targetDate];if(!Array.isArray(target.todos))target.todos=[];
+      let keep=target.todos.find(function(t){return String(t&&t.id||"")===m.todoId;})||null;
+      if(!keep){
+        for(const ds of Object.keys(days)){
+          const found=(days[ds].todos||[]).find(function(t){return String(t&&t.id||"")===m.todoId;});
+          if(found){keep=clone(found);break;}
+        }
+      }
+      if(!keep&&m.todo)keep=clone(m.todo);
+      for(const ds of Object.keys(days)){
+        const day=days[ds],next=(day.todos||[]).filter(function(t){return String(t&&t.id||"")!==m.todoId;});
+        if(ds===targetDate&&keep)next.push(keep);
+        if(JSON.stringify(next)!==JSON.stringify(day.todos||[])){day.todos=next;changed.add(ds);}
+      }
+    }
+    return [...changed];
+  }
+  function create(kind,todo,fromDate,toDate,opts){
+    opts=opts||{};const at=Number(opts.at)||Date.now(),todoId=String(todo&&todo.id||opts.todoId||"");
+    const random=(globalThis.crypto&&typeof globalThis.crypto.randomUUID==="function")?globalThis.crypto.randomUUID().replace(/-/g,""):Math.random().toString(36).slice(2)+at.toString(36);
+    const raw={id:String(opts.id||("tm_"+random)),kind:kind,todoId:todoId,at:at,deviceId:String(opts.deviceId||""),todo:clone(todo)};
+    if(kind==="delete"){raw.fromDate=fromDate;raw.deletedAt=at;}
+    else if(kind==="move"){raw.fromDate=fromDate;raw.toDate=toDate;raw.movedAt=at;}
+    else if(kind==="restore"){raw.toDate=toDate;raw.restoredAt=at;}
+    return normalize(raw);
+  }
+  return {RETENTION_MS:RETENTION_MS,MAX_PER_DAY:MAX_PER_DAY,normalize:normalize,normalizeList:normalizeList,latestByTodo:latestByTodo,materialize:materialize,create:create,stamp:stamp};
+})();
+/* TODO_MUTATIONS_CORE_END */
+function appendTodoMutation(day,mutation){
+  if(!day||!mutation)return;
+  day.todoMutations=TG_TODO_MUTATIONS.normalizeList([...(day.todoMutations||[]),mutation]);
+}
+function makeTodoMutation(kind,todo,fromDate,toDate){
+  return TG_TODO_MUTATIONS.create(kind,todo,fromDate,toDate,{deviceId:typeof tgDeviceId==="function"?tgDeviceId():"local"});
+}
+function appendTodoRestoreIfNeeded(day,dateStr,todo){
+  if(!todo||!todo.id)return;
+  const latest=TG_TODO_MUTATIONS.latestByTodo(state.days).get(String(todo.id));
+  if(latest&&(latest.kind==="delete"||latest.toDate!==dateStr))appendTodoMutation(day,makeTodoMutation("restore",todo,dateStr,dateStr));
+}
 function actById(id){return state.settings.activities.find(a=>a.id===id);}
 function actByName(name){return state.settings.activities.find(a=>a.name===name);}
 function areaByName(name){return state.settings.areas.find(a=>a.name===name);}
@@ -2255,6 +2371,7 @@ function autoColorActs(areaName,skipSave){
 }
 function save(){
   if(DEMO) return;
+  TG_TODO_MUTATIONS.materialize(state.days);
   state._localUpdatedAt=Date.now();
   try{localStorage.setItem(LS_KEY,JSON.stringify({settings:state.settings,days:state.days,running:state.running,updatedAt:state._localUpdatedAt}));}catch(e){}
   if(window.tgCloud&&window.tgCloud.markDirty) window.tgCloud.markDirty();
@@ -2273,10 +2390,12 @@ function load(){
     if(s.days) state.days=s.days;
     for(const k in state.days){
       const dd=state.days[k];
+      if(dd) dd.todoMutations=TG_TODO_MUTATIONS.normalizeList(dd.todoMutations);
       if(dd&&Array.isArray(dd.events)) for(const ev of dd.events){
         if(ev&&ev.end==="00:00"&&ev.start&&ev.start!=="00:00") ev.end="24:00";
       }
     }
+    TG_TODO_MUTATIONS.materialize(state.days);
     if(s.running){
       const age=Date.now()-Number(s.running.startTs||0);
       if(Number.isFinite(age)&&age>=0&&age<=TG_MAX_RUNNING_MS) state.running=s.running;
@@ -2290,7 +2409,7 @@ function ensureDay(dateStr){
     const dow=dateOf(dateStr).getDay();
     const defs=state.settings.routineDefs.filter(r=>!Array.isArray(r.days)||!r.days.length||r.days.includes(dow));
     state.days[dateStr]={
-      events:[], todos:[],
+      events:[], todos:[], todoMutations:[],
       routines:defs.map(r=>({id:uid("r"),time:r.time||"",end:r.end||"",name:r.name,actId:r.actId||null,area:r.area||null,done:false}))
     };
   }
@@ -4094,18 +4213,20 @@ function moveTodoTo(item,sourceDs,targetDs){
   const sourceIndex=source.todos.indexOf(item);
   if(sourceIndex<0){toast("할일을 찾을 수 없습니다.");return false;}
   const target=ensureDay(targetDs);
-  const moved=target.todos.some(function(x){return x.id===item.id;})?Object.assign({},item,{id:uid("m")}):item;
-  source.todos.splice(sourceIndex,1);target.todos.push(moved);save();renderTodos();renderTimeline();renderStats();renderLive();
+  if(target.todos.some(function(x){return x.id===item.id;})){toast("대상 날짜에 같은 TimeGrid ID가 있어 이동하지 않았습니다.");return false;}
+  const moved=item,mutation=makeTodoMutation("move",moved,sourceDs,targetDs);
+  source.todos.splice(sourceIndex,1);target.todos.push(moved);appendTodoMutation(source,mutation);appendTodoMutation(target,mutation);save();renderTodos();renderTimeline();renderStats();renderLive();
   toast("할일을 "+fmtDateK(targetDs)+"로 이동했습니다",function(){
+    const undoMutation=makeTodoMutation("move",moved,targetDs,sourceDs);
     const i=target.todos.indexOf(moved);if(i>=0)target.todos.splice(i,1);
-    source.todos.splice(Math.min(sourceIndex,source.todos.length),0,item);save();renderTodos();renderTimeline();renderStats();renderLive();
+    source.todos.splice(Math.min(sourceIndex,source.todos.length),0,item);appendTodoMutation(target,undoMutation);appendTodoMutation(source,undoMutation);save();renderTodos();renderTimeline();renderStats();renderLive();
   });
   return true;
 }
-function deleteTodo(day,item){
+function deleteTodo(day,item,dateStr){
   const i=day.todos.indexOf(item);if(i<0)return;
-  day.todos.splice(i,1);save();renderTodos();renderTimeline();renderStats();
-  toast("할일 삭제됨: "+item.title,function(){day.todos.splice(Math.min(i,day.todos.length),0,item);save();renderTodos();renderTimeline();renderStats();});
+  appendTodoMutation(day,makeTodoMutation("delete",item,dateStr,dateStr));day.todos.splice(i,1);save();renderTodos();renderTimeline();renderStats();
+  toast("할일 삭제됨: "+item.title,function(){appendTodoMutation(day,makeTodoMutation("restore",item,dateStr,dateStr));day.todos.splice(Math.min(i,day.todos.length),0,item);save();renderTodos();renderTimeline();renderStats();});
 }
 function updateTodoMoveDestCard(targetDs){
   const card=$("#todoMoveDestCard"),valEl=$("#todoMoveDestVal"),subEl=$("#todoMoveDestSub"),badgeEl=$("#todoMoveDestBadge"),okBtn=$("#todoMoveOk");
@@ -4203,7 +4324,7 @@ $("#todoActionMenu").addEventListener("click",function(e){
   }else if(act==="date"){
     closeTodoAction(true);openTodoMove(item,ds,nextDateStr(ds));
   }else if(act==="delete"){
-    closeTodoAction(true);deleteTodo(day,item);
+    closeTodoAction(true);deleteTodo(day,item,ds);
   }
 });
 const tmPresets=$("#todoMovePresets");
@@ -5640,7 +5761,7 @@ function applyPlan(json){
     if(_ex){ if(_hasTw){ _ex.time=_tw.time; _ex.end=_tw.end; } st++; continue; }
     let _actId=null,_area=td.area||"";
     if(td.act){ const _a=resolveActivity(td.act,_area||(state.settings.areas[0]&&state.settings.areas[0].name)||"",true); if(_a){ _actId=_a.id; if(!_area) _area=_a.area; } }
-    if(_area && !areaByName(_area)) state.settings.areas.push({name:_area,color:RAINBOW[state.settings.areas.length%RAINBOW.length]}); day.todos.push({id:td.id||uid("m"),title:td.title,area:_area,actId:_actId,done:false,time:_tw.time,end:_tw.end});
+    if(_area && !areaByName(_area)) state.settings.areas.push({name:_area,color:RAINBOW[state.settings.areas.length%RAINBOW.length]}); const _newTodo={id:td.id||uid("m"),title:td.title,area:_area,actId:_actId,done:false,time:_tw.time,end:_tw.end};day.todos.push(_newTodo);appendTodoRestoreIfNeeded(day,json.date,_newTodo);
     nt++;
   }
   for(const er of (json.extraRoutines||[])){
@@ -5757,6 +5878,7 @@ function applyLog(json,mode){
       if(td.act){ const _a=resolveActivity(td.act,_area,true); if(_a){ _actId=_a.id; if(!_area) _area=_a.area; } }
       if(_area && !areaByName(_area)) state.settings.areas.push({name:_area,color:RAINBOW[state.settings.areas.length%RAINBOW.length]}); ex={id:td.id||uid("m"),title:td.title,area:_area,actId:_actId,done:!!td.done,time:_tw.time,end:_tw.end};
       day.todos.push(ex);
+      appendTodoRestoreIfNeeded(day,json.date,ex);
     }else{
       if(typeof td.done==="boolean") ex.done=td.done;
       if(_hasTw){ ex.time=_tw.time; ex.end=_tw.end; }
@@ -5824,6 +5946,11 @@ function applyBackup(json,mode){
     for(const ds of Object.keys(json.days)) if(!state.days[ds]||!state.days[ds].events.length) state.days[ds]=json.days[ds];
   }
   if(!Array.isArray(state.settings.routineDefs)) state.settings.routineDefs=[];
+  for(const ds of Object.keys(state.days||{})){
+    const day=state.days[ds]||{};
+    day.todoMutations=TG_TODO_MUTATIONS.normalizeList(day.todoMutations);
+  }
+  TG_TODO_MUTATIONS.materialize(state.days);
   syncDayRoutines(state.viewDate);
 }
 $("#importApply").addEventListener("click",()=>{
@@ -7305,13 +7432,14 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
   }
   function stable(v){ return JSON.stringify(canonical(v)); }
   function same(a,b){ return stable(a)===stable(b); }
-  function emptyDay(){ return {events:[],todos:[],routines:[]}; }
+  function emptyDay(){ return {events:[],todos:[],routines:[],todoMutations:[]}; }
   function normDay(d){
     d=d||{};
     return {
       events:Array.isArray(d.events)?copy(d.events):[],
       todos:Array.isArray(d.todos)?copy(d.todos):[],
-      routines:Array.isArray(d.routines)?copy(d.routines):[]
+      routines:Array.isArray(d.routines)?copy(d.routines):[],
+      todoMutations:TG_TODO_MUTATIONS.normalizeList(d.todoMutations)
     };
   }
   function normSettings(s){
@@ -7353,7 +7481,8 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     const d={
       events:mergeList(base.events,local.events,remote.events,preferLocal,"event"),
       todos:mergeList(base.todos,local.todos,remote.todos,preferLocal,"todo"),
-      routines:mergeList(base.routines,local.routines,remote.routines,preferLocal,"routine")
+      routines:mergeList(base.routines,local.routines,remote.routines,preferLocal,"routine"),
+      todoMutations:TG_TODO_MUTATIONS.normalizeList(mergeList(base.todoMutations,local.todoMutations,remote.todoMutations,preferLocal,"todoMutation"))
     };
     d.events.sort(function(a,b){return toMin(a.start||"00:00")-toMin(b.start||"00:00");});
     return d;
@@ -7470,6 +7599,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
   }
   function applyRemoteDay(date,raw,meta,quiet){
     const remote=normDay(raw),base=syncBase.days[date]?normDay(syncBase.days[date]):emptyDay();
+    const needsGc=!same(Array.isArray(raw&&raw.todoMutations)?raw.todoMutations:[],remote.todoMutations);
     const hasLocal=!!(state.days&&state.days[date]);
     const local=hasLocal?normDay(state.days[date]):emptyDay();
     const dirty=!!outbox.days[date]||(hasLocal&&!same(local,base));
@@ -7480,6 +7610,8 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     syncBase.dayMeta[date]=meta;
     if(same(merged,remote)) delete outbox.days[date];
     else if(!outbox.days[date]) outbox.days[date]={at:Date.now()};
+    if(needsGc&&!outbox.days[date])outbox.days[date]={at:Date.now()};
+    TG_TODO_MUTATIONS.materialize(state.days).forEach(function(ds){if(!outbox.days[ds])outbox.days[ds]={at:Date.now()};});
     persistBase();persistOutbox();persistLocal();
     if(!quiet) queueRender();
   }
@@ -7548,7 +7680,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
       const merged=mergeDay(base,captured,remote,localAt>=meta.at);
       if(snap.exists&&same(merged,remote)) return {value:remote,meta:meta,wrote:false};
       const now=Date.now(),rev=meta.rev+1;
-      tx.set(ref,{events:merged.events,todos:merged.todos,routines:merged.routines,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
+      tx.set(ref,{events:merged.events,todos:merged.todos,routines:merged.routines,todoMutations:merged.todoMutations,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
       return {value:merged,meta:{rev:rev,at:now},wrote:true};
     });
     markServerOk();
@@ -7556,6 +7688,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     if(state.days[date]&&stable(normDay(state.days[date]))===sent) state.days[date]=copy(result.value);
     else if(state.days[date]) state.days[date]=mergeDay(captured,normDay(state.days[date]),result.value,true);
     delete outbox.days[date];
+    TG_TODO_MUTATIONS.materialize(state.days);
     persistBase();persistLocal();markDirty();
   }
 
@@ -7904,7 +8037,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     startGate:startGate,
     actionState:function(){return {locking:runLocking,label:runLockLabel};},
     user:function(){return user;},
-    _test:{mergeDay:mergeDay,mergeSettings:mergeSettings,mergeList:mergeList,same:same,normDay:normDay,runStale:runStale,base:function(){return copy(syncBase);},outbox:function(){return copy(outbox);},lastServerOkAt:function(){return lastServerOkAt;},liveStatus:function(){return liveStatus;}}
+    _test:{mergeDay:mergeDay,mergeSettings:mergeSettings,mergeList:mergeList,same:same,normDay:normDay,todoMutations:TG_TODO_MUTATIONS,runStale:runStale,base:function(){return copy(syncBase);},outbox:function(){return copy(outbox);},lastServerOkAt:function(){return lastServerOkAt;},liveStatus:function(){return liveStatus;}}
   };
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
 })();
