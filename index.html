@@ -35,7 +35,16 @@ body{
   -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; text-rendering:optimizeLegibility;
   height:100dvh; overflow:hidden;
 }
-button{font:inherit; color:inherit; cursor:pointer; background:none; border:none;}
+button{font:inherit; color:inherit; line-height:1.2; cursor:pointer; background:none; border:none; box-sizing:border-box;}
+/* Shared geometry contract: the visual box centers content; touch expansion stays
+   in component pseudo-elements and never changes layout metrics. */
+:where(.icon-btn,.pill,.btn,.note-tgl,.datenav .arrow,.seg-ctl button,.wk-mode button,.tabbar button,.json-tab,.rng,.dow-pill,.tmr,.todo-more,.dlg-close-btn,.fs-back){
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+}
+:where(.pill,.btn,.datenav .arrow,.seg-ctl button,.wk-mode button,.tabbar button,.json-tab,.rng,.dow-pill,.tmr,.todo-more,.dlg-close-btn,.fs-back){display:inline-flex;}
+:where(button) > svg{display:block;flex:none;}
 input,select,textarea{font:inherit; color:inherit;}
 .wrap{width:100%; max-width:none; margin:0 auto; height:100dvh; display:flex; flex-direction:column; background:#fff;}
 
@@ -265,7 +274,7 @@ main::-webkit-scrollbar, .tl::-webkit-scrollbar, .dlg-body::-webkit-scrollbar, d
   min-height:40px; padding:4px 0; border:1px dashed var(--line2); border-radius:var(--r-round);
   background:#fff; color:var(--text3); font-size:15px; font-weight:400; cursor:pointer;
   transition:border-color .18s ease,color .18s ease,background-color .18s ease,transform .12s ease;}
-.note-tgl .nt-sym{font-size:16px; font-weight:600; line-height:1; transform:translateY(-.5px);}
+.note-tgl .nt-sym{font-size:16px; font-weight:600; line-height:1; --optical-y:-.5px; transform:translateY(var(--optical-y));}
 .note-tgl .nt-txt{line-height:1;}
 @media (hover: hover) and (pointer: fine){ .note-tgl:hover{border-color:var(--text3); color:var(--text2);} }
 .note-tgl:active{transform:scale(.97);}
@@ -1300,17 +1309,19 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
    every row started at a different x (ragged left edge).
    Fix: todo + routine lists become shared column grids; each row is a subgrid,
    so the same column contract holds across every row. */
-.rt-main{display:flex;align-items:center;gap:10px;flex:1;min-width:0;}
-.rt-main .name{min-width:0;}
-.rt-meta{display:flex;align-items:center;gap:10px;flex:none;min-width:0;}
+.rt-main,.todo-main{display:flex;align-items:center;gap:10px;flex:1;min-width:0;}
+.rt-main .name,.todo-main .name{min-width:0;}
+.rt-meta,.todo-meta{display:flex;align-items:center;gap:10px;flex:none;min-width:0;}
 @supports (grid-template-columns: subgrid){
   #todoList{display:grid; grid-template-columns:auto auto minmax(0,1fr) auto auto auto; align-items:center; column-gap:8px;}
   #todoList > .check-item{display:grid; grid-template-columns:subgrid; grid-column:1/-1; align-items:center;}
   #todoList > .check-item > input[type=checkbox]{grid-column:1;}
-  #todoList > .check-item > .ttime{grid-column:2;}
-  #todoList > .check-item > .name{grid-column:3;}
-  #todoList > .check-item > .tag{grid-column:4; justify-self:start;}
-  #todoList > .check-item > .tbadge{grid-column:5; justify-self:end;}
+  #todoList > .check-item > .todo-main{display:grid;grid-template-columns:subgrid;grid-column:2/4;align-items:center;}
+  #todoList > .check-item > .todo-main > .ttime{grid-column:1;}
+  #todoList > .check-item > .todo-main > .name{grid-column:2;}
+  #todoList > .check-item > .todo-meta{display:grid;grid-template-columns:subgrid;grid-column:4/6;align-items:center;}
+  #todoList > .check-item > .todo-meta > .tag{grid-column:1;justify-self:start;}
+  #todoList > .check-item > .todo-meta > .tbadge{grid-column:2;justify-self:end;}
   #todoList > .check-item > .todo-more{grid-column:6;}
   #todoList > .empty-cta{grid-column:1/-1;}
 
@@ -1333,6 +1344,15 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
 .rt-dow-tag{display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box; min-height:var(--tag-h); line-height:1; padding:0 8px; white-space:nowrap;}
 /* v3.12.63: mobile routines use two information tiers instead of seven squeezed columns */
 @media (max-width:600px){
+  #todoList{display:block;}
+  #todoList > .check-item{display:grid;grid-template-columns:30px minmax(0,1fr) 40px;grid-template-rows:auto auto;column-gap:10px;row-gap:6px;align-items:center;min-height:66px;padding:9px 0;border-bottom:1px solid var(--line);}
+  #todoList > .check-item:last-child{border-bottom:0;}
+  #todoList > .check-item > input[type=checkbox]{grid-column:1;grid-row:1/3;align-self:center;margin:0;}
+  #todoList > .check-item > .todo-main{grid-column:2;grid-row:1;display:flex;align-items:center;gap:8px;min-width:0;}
+  #todoList > .check-item > .todo-main > .name{margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;font-weight:500;}
+  #todoList > .check-item > .todo-meta{grid-column:2;grid-row:2;display:flex;align-items:center;gap:7px;min-width:0;flex-wrap:wrap;}
+  #todoList > .check-item > .todo-meta > .tbadge:empty{display:none;}
+  #todoList > .check-item > .todo-more{grid-column:3;grid-row:1/3;align-self:center;justify-self:end;width:36px;height:36px;}
   #routineList.rt-list{display:block;}
   #routineList.rt-list > .rt-row{display:grid;grid-template-columns:30px minmax(0,1fr) 40px;grid-template-rows:auto auto;column-gap:10px;row-gap:6px;align-items:center;min-height:66px;padding:9px 0;border-bottom:1px solid var(--line);}
   #routineList.rt-list > .rt-row:last-child{border-bottom:0;}
@@ -1346,6 +1366,11 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
   #routineList.rt-list > .rt-row > .rt-meta > .tbadge:empty{display:none;}
   #routineList.rt-list > .rt-row > .rt-meta > .rt-dow-tag{margin:0;}
   #routineList.rt-list > .rt-row > .tmr{grid-column:3;grid-row:1/3;align-self:center;justify-self:end;width:36px;height:36px;}
+  #routineList.rt-list > .rt-row.no-meta{grid-template-rows:1fr;min-height:52px;padding:6px 0;}
+  #routineList.rt-list > .rt-row.no-meta > input[type=checkbox],
+  #routineList.rt-list > .rt-row.no-meta > .rt-main,
+  #routineList.rt-list > .rt-row.no-meta > .tmr{grid-row:1;}
+  #routineList.rt-list > .rt-row.no-meta > .rt-meta{display:none;}
 }
 </style>
 </head>
@@ -1551,7 +1576,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.12.67<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.13.0<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -1884,21 +1909,51 @@ const DEFAULT_ACTS = [
   {id:"a16",name:"소비기록",color:"#A8B8E0",area:"돈"}
 ];
 const DEFAULT_ROUTINES = [
-  {time:"06:30",name:"기상+물"},{time:"06:40",name:"스트레칭"},{time:"07:30",name:"아침식사"},{time:"07:30",name:"등원(출발)"},{time:"07:40",name:"독서실 도착"},
-  {time:"08:00",name:"아침약"},{time:"13:00",name:"점심산책"},{time:"15:00",name:"물+자세"},{time:"18:00",name:"저녁식사"},{time:"21:00",name:"운동(PT)"},
-  {time:"21:30",name:"독서실 퇴원"},{time:"22:30",name:"내일 할일점검"},{time:"23:00",name:"저녁약"},{time:"23:30",name:"취침"}
+  {id:"rd_default_01",time:"06:30",name:"기상+물"},{id:"rd_default_02",time:"06:40",name:"스트레칭"},{id:"rd_default_03",time:"07:30",name:"아침식사"},{id:"rd_default_04",time:"07:30",name:"등원(출발)"},{id:"rd_default_05",time:"07:40",name:"독서실 도착"},
+  {id:"rd_default_06",time:"08:00",name:"아침약"},{id:"rd_default_07",time:"13:00",name:"점심산책"},{id:"rd_default_08",time:"15:00",name:"물+자세"},{id:"rd_default_09",time:"18:00",name:"저녁식사"},{id:"rd_default_10",time:"21:00",name:"운동(PT)"},
+  {id:"rd_default_11",time:"21:30",name:"독서실 퇴원"},{id:"rd_default_12",time:"22:30",name:"내일 할일점검"},{id:"rd_default_13",time:"23:00",name:"저녁약"},{id:"rd_default_14",time:"23:30",name:"취침"}
 ];
 function parseRoutine(str){
   var m=str.match(/^(\d{1,2}:\d{2})\s+(.*)$/);
   if(m) return {time:m[1],name:m[2]};
   return {time:"",name:str};
 }
+/* ROUTINE_DEFINITION_MIGRATION_CORE_START */
+const TG_ROUTINE_DEFS=(function(){
+  function clone(value){return value==null?value:JSON.parse(JSON.stringify(value));}
+  function parse(value){
+    if(typeof value!=="string")return clone(value||{});
+    const match=value.match(/^(\d{1,2}:\d{2})\s+(.*)$/);
+    return match?{time:match[1],name:match[2]}:{time:"",name:value};
+  }
+  function signature(def){
+    const days=Array.isArray(def&&def.days)?def.days.map(Number).filter(Number.isFinite).sort(function(a,b){return a-b;}):[];
+    return [String(def&&def.time||""),String(def&&def.end||""),String(def&&def.name||""),days.join(",")].join("|");
+  }
+  function hash(value){let out=0x811c9dc5;for(const char of String(value||"")){out^=char.charCodeAt(0);out=Math.imul(out,0x01000193);}return (out>>>0).toString(36);}
+  function normalize(input){
+    const parsed=(Array.isArray(input)?input:[]).map(parse).filter(function(def){return String(def&&def.name||"");});
+    const stable=parsed.filter(function(def){return String(def.id||"");});
+    const seenSemantic=new Set(stable.map(signature)),seenIds=new Set(stable.map(function(def){return String(def.id);}));
+    const out=stable.map(clone);
+    for(const def of parsed){
+      if(def.id)continue;
+      const sig=signature(def);if(seenSemantic.has(sig))continue;
+      seenSemantic.add(sig);
+      let id="rd_legacy_"+hash(sig),suffix=2;
+      while(seenIds.has(id)){id="rd_legacy_"+hash(sig)+"_"+suffix;suffix++;}
+      seenIds.add(id);out.push({...clone(def),id:id});
+    }
+    return out;
+  }
+  return {signature:signature,normalize:normalize};
+})();
+/* ROUTINE_DEFINITION_MIGRATION_CORE_END */
 function migrateRoutines(){
   if(state.settings.routineDefs && state.settings.routineDefs.length){
-    if(typeof state.settings.routineDefs[0]==="string"){
-      state.settings.routineDefs=state.settings.routineDefs.map(parseRoutine);
-    }
+    state.settings.routineDefs=TG_ROUTINE_DEFS.normalize(state.settings.routineDefs);
   }
+  var today=ymd(new Date());
   for(var dk in state.days){
     var day=state.days[dk];
     if(day.routines && day.routines.length){
@@ -1907,6 +1962,9 @@ function migrateRoutines(){
           var p=parseRoutine(r.name); return {id:r.id,time:p.time,name:p.name,done:r.done};
         });
       }
+    }
+    if(dk>=today){
+      day.routines=TG_ROUTINE_IDENTITY.reconcile(state.settings,dk,day.routines||[],day.events||[]).routines;
     }
   }
 }
@@ -2174,7 +2232,9 @@ function statSpan(ev){
   s=Math.max(0,Math.min(1440,s));
   e=Math.max(0,Math.min(1440,e));
   if(e<=s) return null;
-  return {s,e,min:e-s};
+  const exactStart=Number(ev.startTs)||0,exactEnd=Number(ev.endTs)||0;
+  const exactMin=exactStart&&exactEnd>exactStart?(exactEnd-exactStart)/60000:null;
+  return {s,e,min:exactMin==null?e-s:exactMin};
 }
 function statRangeDays(endDs,count){
   const arr=[];
@@ -2296,7 +2356,7 @@ const TG_TODO_MUTATIONS=(function(){
         continue;
       }
       const targetDate=m.toDate;
-      if(!days[targetDate])days[targetDate]={events:[],todos:[],routines:[],todoMutations:[clone(m)]};
+      if(!days[targetDate])days[targetDate]={events:[],todos:[],routines:[],todoMutations:[clone(m)],statusMutations:[]};
       const target=days[targetDate];if(!Array.isArray(target.todos))target.todos=[];
       let keep=target.todos.find(function(t){return String(t&&t.id||"")===m.todoId;})||null;
       if(!keep){
@@ -2326,6 +2386,148 @@ const TG_TODO_MUTATIONS=(function(){
   return {RETENTION_MS:RETENTION_MS,MAX_PER_DAY:MAX_PER_DAY,normalize:normalize,normalizeList:normalizeList,latestByTodo:latestByTodo,materialize:materialize,create:create,stamp:stamp};
 })();
 /* TODO_MUTATIONS_CORE_END */
+/* STATUS_MUTATIONS_CORE_START */
+const TG_STATUS_MUTATIONS=(function(){
+  const RETENTION_MS=180*24*60*60*1000,MAX_PER_DAY=512;
+  function clone(v){return v==null?v:JSON.parse(JSON.stringify(v));}
+  function canonical(v){
+    if(Array.isArray(v))return v.map(canonical);
+    if(v&&typeof v==="object"){const out={};Object.keys(v).sort().forEach(function(k){if(v[k]!==undefined)out[k]=canonical(v[k]);});return out;}
+    return v;
+  }
+  function normalize(raw){
+    if(!raw||typeof raw!=="object")return null;
+    const id=String(raw.id||""),entityType=String(raw.entityType||""),entityId=String(raw.entityId||""),at=Number(raw.at)||0;
+    if(!id||!entityId||!at||!["todo","routine"].includes(entityType)||typeof raw.done!=="boolean")return null;
+    return {id:id,kind:"set_done",entityType:entityType,entityId:entityId,done:raw.done,at:at,deviceId:String(raw.deviceId||"unknown")};
+  }
+  function cmp(a,b){return (Number(a&&a.at)||0)-(Number(b&&b.at)||0)||String(a&&a.deviceId||"").localeCompare(String(b&&b.deviceId||""))||String(a&&a.id||"").localeCompare(String(b&&b.id||""));}
+  function normalizeList(existing,additions,nowMs){
+    const now=Number(nowMs)||Date.now(),cutoff=now-RETENTION_MS,byId=new Map();
+    const all=[...(Array.isArray(existing)?existing:[]),...(Array.isArray(additions)?additions:[])];
+    for(const raw of all){
+      const mutation=normalize(raw);if(!mutation||mutation.at<cutoff)continue;
+      const previous=byId.get(mutation.id);
+      if(!previous||JSON.stringify(canonical(mutation))>JSON.stringify(canonical(previous)))byId.set(mutation.id,mutation);
+    }
+    return [...byId.values()].sort(cmp).slice(-MAX_PER_DAY).map(clone);
+  }
+  function latest(list,nowMs){
+    const out=new Map();
+    for(const mutation of normalizeList(list,[],nowMs)){
+      const key=mutation.entityType+":"+mutation.entityId,previous=out.get(key);
+      if(!previous||cmp(previous,mutation)<=0)out.set(key,mutation);
+    }
+    return out;
+  }
+  function nextStamp(list,wallMs){
+    let max=0;for(const mutation of (Array.isArray(list)?list:[]))max=Math.max(max,Number(mutation&&mutation.at)||0);
+    return Math.max(Number(wallMs)||Date.now(),max+1);
+  }
+  function create(entityType,entityId,done,opts){
+    opts=opts||{};const at=Number(opts.at)||nextStamp(opts.existing,opts.wallMs);
+    const random=(globalThis.crypto&&typeof globalThis.crypto.randomUUID==="function")?globalThis.crypto.randomUUID().replace(/-/g,""):Math.random().toString(36).slice(2)+at.toString(36);
+    return normalize({id:String(opts.id||("sm_"+random)),entityType:entityType,entityId:String(entityId||""),done:!!done,at:at,deviceId:String(opts.deviceId||"local")});
+  }
+  function materializeDay(day,nowMs){
+    if(!day||typeof day!=="object")return {changed:false,applied:0};
+    const before=JSON.stringify({todos:Array.isArray(day.todos)?day.todos:[],routines:Array.isArray(day.routines)?day.routines:[],statusMutations:Array.isArray(day.statusMutations)?day.statusMutations:[]});
+    day.todos=Array.isArray(day.todos)?day.todos:[];day.routines=Array.isArray(day.routines)?day.routines:[];
+    day.statusMutations=normalizeList(day.statusMutations,[],nowMs);
+    const byEntity=latest(day.statusMutations,nowMs);let applied=0;
+    [["todo",day.todos],["routine",day.routines]].forEach(function(pair){
+      pair[1].forEach(function(entity){
+        const mutation=byEntity.get(pair[0]+":"+String(entity&&entity.id||""));
+        if(mutation&&entity.done!==mutation.done){entity.done=mutation.done;applied++;}
+      });
+    });
+    const after=JSON.stringify({todos:day.todos,routines:day.routines,statusMutations:day.statusMutations});
+    return {changed:before!==after,applied:applied};
+  }
+  return {RETENTION_MS:RETENTION_MS,MAX_PER_DAY:MAX_PER_DAY,normalize:normalize,normalizeList:normalizeList,latest:latest,nextStamp:nextStamp,create:create,materializeDay:materializeDay,compare:cmp};
+})();
+/* STATUS_MUTATIONS_CORE_END */
+function setEntityDone(day,entityType,entityId,done){
+  if(!day||!entityId)return null;
+  const mutation=TG_STATUS_MUTATIONS.create(entityType,entityId,!!done,{existing:day.statusMutations,wallMs:Date.now(),deviceId:typeof tgDeviceId==="function"?tgDeviceId():"local"});
+  day.statusMutations=TG_STATUS_MUTATIONS.normalizeList(day.statusMutations,[mutation]);
+  TG_STATUS_MUTATIONS.materializeDay(day);
+  return mutation;
+}
+/* ROUTINE_IDENTITY_CORE_START */
+const TG_ROUTINE_IDENTITY=(function(){
+  function clone(v){return v==null?v:JSON.parse(JSON.stringify(v));}
+  function hash(v){let h=0x811c9dc5;for(const ch of String(v||"")){h^=ch.charCodeAt(0);h=Math.imul(h,0x01000193);}return (h>>>0).toString(36);}
+  function instanceId(date,defId){const safe=String(defId||"").replace(/[^a-zA-Z0-9_-]+/g,"_").slice(0,24)||"definition";return "ri_"+String(date||"").replace(/-/g,"")+"_"+safe+"_"+hash(defId);}
+  function defsForDate(settings,date){
+    const dow=dateOf(date).getDay();
+    return ((settings&&settings.routineDefs)||[]).filter(function(r){return String(r&&r.id||"")&&String(r&&r.name||"");}).filter(function(r){return !Array.isArray(r.days)||!r.days.length||r.days.includes(dow);}).map(function(r){
+      return {id:instanceId(date,r.id),routineDefId:String(r.id),time:r.time||"",end:r.end||"",name:r.name||"",actId:r.actId||null,area:r.area||null,done:false};
+    });
+  }
+  function sig(v){return [v&&v.time||"",v&&v.end||"",v&&v.name||""].join("|");}
+  function reconcile(settings,date,current,events){
+    const expected=defsForDate(settings,date),existing=(Array.isArray(current)?current:[]).map(clone),measured=new Set((Array.isArray(events)?events:[]).map(function(ev){return String(ev&&ev.routineId||"");}).filter(Boolean)),used=new Set();
+    let adoptedLegacy=0,created=0,preservedExtra=0,droppedUnmeasured=0;
+    function choose(def){
+      let rows=existing.map(function(value,index){return {value:value,index:index};}).filter(function(row){return !used.has(row.index)&&String(row.value&&row.value.routineDefId||"")===def.routineDefId;});
+      if(!rows.length)rows=existing.map(function(value,index){return {value:value,index:index};}).filter(function(row){return !used.has(row.index)&&sig(row.value)===sig(def);});
+      if(!rows.length&&expected.filter(function(row){return row.name===def.name;}).length===1)rows=existing.map(function(value,index){return {value:value,index:index};}).filter(function(row){return !used.has(row.index)&&row.value&&row.value.name===def.name;});
+      function score(row){return (measured.has(String(row.value&&row.value.id||""))?16:0)+(row.value&&row.value.done?8:0)+(!(row.value&&row.value.extra)?4:0)+(sig(row.value)===sig(def)?2:0);}
+      rows.sort(function(a,b){return score(b)-score(a)||String(a.value&&a.value.id||"").localeCompare(String(b.value&&b.value.id||""));});
+      return rows[0]||null;
+    }
+    const routines=expected.map(function(def){
+      const match=choose(def);if(!match){created++;return clone(def);}
+      used.add(match.index);if(!match.value.routineDefId)adoptedLegacy++;
+      const out={...match.value,id:match.value.id||def.id,routineDefId:def.routineDefId,time:def.time,end:def.end,name:def.name,actId:def.actId,area:def.area,done:!!match.value.done};
+      delete out.extra;delete out.legacy;return out;
+    });
+    existing.forEach(function(value,index){
+      if(used.has(index))return;
+      if(value&&value.extra||value&&value.done||measured.has(String(value&&value.id||""))){routines.push({...value,extra:true,legacy:value&&value.legacy!==false});preservedExtra++;}
+      else droppedUnmeasured++;
+    });
+    return {routines:routines,changed:JSON.stringify(Array.isArray(current)?current:[])!==JSON.stringify(routines),report:{expected:expected.length,existing:existing.length,created:created,adoptedLegacy:adoptedLegacy,preservedExtra:preservedExtra,droppedUnmeasured:droppedUnmeasured}};
+  }
+  return {instanceId:instanceId,defsForDate:defsForDate,reconcile:reconcile};
+})();
+/* ROUTINE_IDENTITY_CORE_END */
+/* CONTINUITY_CORE_START */
+const TG_CONTINUITY=(function(){
+  const WINDOW_MS=60000;
+  function note(v){return String(v||"").trim().replace(/\s+/g," ");}
+  function identity(v){
+    const actId=String(v&&v.actId||"");if(!actId)return null;
+    if(v&&v.todoId)return {kind:"todo",actId:actId,linkedId:String(v.todoId),note:""};
+    if(v&&v.routineId)return {kind:"routine",actId:actId,linkedId:String(v.routineId),note:""};
+    return {kind:"free",actId:actId,linkedId:"",note:note(v&&v.note)};
+  }
+  function same(a,b){const l=identity(a),r=identity(b);return !!l&&!!r&&l.kind===r.kind&&l.actId===r.actId&&l.linkedId===r.linkedId&&l.note===r.note;}
+  function decide(previous,next,windowMs){
+    const end=Number(previous&&previous.endTs)||0,start=Number(next&&next.startTs)||0,gap=start-end;
+    if(!end||!start)return {merge:false,reason:"missing-exact-time",gapMs:null};
+    if(!same(previous,next))return {merge:false,reason:"different-identity",gapMs:gap};
+    if(gap<0)return {merge:false,reason:"overlap",gapMs:gap};
+    if(gap>(Number(windowMs)||WINDOW_MS))return {merge:false,reason:"gap-too-large",gapMs:gap};
+    return {merge:true,reason:"within-window",gapMs:gap};
+  }
+  function splitSpan(startTs,endTs){
+    const start=Number(startTs)||0,end=Number(endTs)||0,out=[];let cursor=start,guard=0;
+    if(!start||end<=start)return out;
+    while(cursor<end&&guard<32){
+      const base=new Date(cursor);base.setHours(0,0,0,0);
+      const next=new Date(base);next.setDate(next.getDate()+1);
+      const dayStart=base.getTime(),dayEnd=next.getTime(),fragmentEnd=Math.min(end,dayEnd);
+      const date=[base.getFullYear(),String(base.getMonth()+1).padStart(2,"0"),String(base.getDate()).padStart(2,"0")].join("-");
+      out.push({date:date,startTs:cursor,endTs:fragmentEnd,dayStart:dayStart,dayEnd:dayEnd});
+      cursor=fragmentEnd;guard++;
+    }
+    return cursor===end?out:[];
+  }
+  return {WINDOW_MS:WINDOW_MS,identity:identity,same:same,decide:decide,splitSpan:splitSpan};
+})();
+/* CONTINUITY_CORE_END */
 function appendTodoMutation(day,mutation){
   if(!day||!mutation)return;
   day.todoMutations=TG_TODO_MUTATIONS.normalizeList([...(day.todoMutations||[]),mutation]);
@@ -2372,6 +2574,7 @@ function autoColorActs(areaName,skipSave){
 function save(){
   if(DEMO) return;
   TG_TODO_MUTATIONS.materialize(state.days);
+  Object.keys(state.days||{}).forEach(function(ds){TG_STATUS_MUTATIONS.materializeDay(state.days[ds]);});
   state._localUpdatedAt=Date.now();
   try{localStorage.setItem(LS_KEY,JSON.stringify({settings:state.settings,days:state.days,running:state.running,updatedAt:state._localUpdatedAt}));}catch(e){}
   if(window.tgCloud&&window.tgCloud.markDirty) window.tgCloud.markDirty();
@@ -2391,11 +2594,13 @@ function load(){
     for(const k in state.days){
       const dd=state.days[k];
       if(dd) dd.todoMutations=TG_TODO_MUTATIONS.normalizeList(dd.todoMutations);
+      if(dd) dd.statusMutations=TG_STATUS_MUTATIONS.normalizeList(dd.statusMutations,[]);
       if(dd&&Array.isArray(dd.events)) for(const ev of dd.events){
         if(ev&&ev.end==="00:00"&&ev.start&&ev.start!=="00:00") ev.end="24:00";
       }
     }
     TG_TODO_MUTATIONS.materialize(state.days);
+    Object.keys(state.days||{}).forEach(function(ds){TG_STATUS_MUTATIONS.materializeDay(state.days[ds]);});
     if(s.running){
       const age=Date.now()-Number(s.running.startTs||0);
       if(Number.isFinite(age)&&age>=0&&age<=TG_MAX_RUNNING_MS) state.running=s.running;
@@ -2406,24 +2611,43 @@ function load(){
 }
 function ensureDay(dateStr){
   if(!state.days[dateStr]){
-    const dow=dateOf(dateStr).getDay();
-    const defs=state.settings.routineDefs.filter(r=>!Array.isArray(r.days)||!r.days.length||r.days.includes(dow));
+    const routines=TG_ROUTINE_IDENTITY.reconcile(state.settings,dateStr,[],[]).routines;
     state.days[dateStr]={
-      events:[], todos:[], todoMutations:[],
-      routines:defs.map(r=>({id:uid("r"),time:r.time||"",end:r.end||"",name:r.name,actId:r.actId||null,area:r.area||null,done:false}))
+      events:[], todos:[], todoMutations:[], statusMutations:[],
+      routines:routines
     };
   }
+  if(!Array.isArray(state.days[dateStr].statusMutations))state.days[dateStr].statusMutations=[];
+  TG_STATUS_MUTATIONS.materializeDay(state.days[dateStr]);
   return state.days[dateStr];
 }
 
 /* ================= interval engine ================= */
+const EXACT_EVENT_KEYS=["startTs","endTs","continuityId","spanStartTs","spanEndTs","fragmentIndex","fragmentCount","gapIncludedMs","sessionIds"];
+function hasExactEventMeta(ev){return !!(ev&&EXACT_EVENT_KEYS.some(function(k){return ev[k]!=null;}));}
+function detachEventLineage(ev){
+  if(!ev)return ev;
+  for(const key of EXACT_EVENT_KEYS)delete ev[key];
+  return ev;
+}
+function detachContinuityLineage(ev){
+  if(!ev)return;
+  const continuityId=String(ev.continuityId||"");
+  if(!continuityId){detachEventLineage(ev);return;}
+  for(const day of Object.values(state.days||{})){
+    for(const candidate of (day&&Array.isArray(day.events)?day.events:[])){
+      if(String(candidate.continuityId||"")===continuityId)detachEventLineage(candidate);
+    }
+  }
+}
 function subtract(events,s,e){
   const out=[];
   for(const ev of events){
     const es=toMin(ev.start), ee=toMin(ev.end);
     if(ee<=s || es>=e){ out.push(ev); continue; }
-    if(es<s) out.push({...ev,id:uid("e"),end:hhmm(s)});
-    if(ee>e) out.push({...ev,id:uid("e"),start:hhmm(e)});
+    if(hasExactEventMeta(ev))detachContinuityLineage(ev);
+    if(es<s) out.push({...detachEventLineage({...ev}),id:uid("e"),end:hhmm(s)});
+    if(ee>e) out.push({...detachEventLineage({...ev}),id:uid("e"),start:hhmm(e)});
   }
   return out;
 }
@@ -2434,15 +2658,104 @@ function addInterval(day,actId,s,e,tags){
   if(tags&&tags.todoId) nev.todoId=tags.todoId;
   if(tags&&tags.routineId) nev.routineId=tags.routineId;
   if(tags&&tags.note&&!nev.todoId&&!nev.routineId) nev.note=tags.note;
+  if(tags&&tags._event){
+    ["startTs","endTs","continuityId","spanStartTs","spanEndTs","fragmentIndex","fragmentCount","gapIncludedMs","sessionIds"].forEach(function(k){if(tags._event[k]!=null)nev[k]=JSON.parse(JSON.stringify(tags._event[k]));});
+  }
   day.events.push(nev);
   day.events.sort((a,b)=>toMin(a.start)-toMin(b.start));
   const merged=[];
   for(const ev of day.events){
     const last=merged[merged.length-1];
-    if(last && last.actId===ev.actId && last.end===ev.start && (last.todoId||null)===(ev.todoId||null) && (last.routineId||null)===(ev.routineId||null) && (last.note||"")===(ev.note||"")){ last.end=ev.end; }
+    if(last && !hasExactEventMeta(last) && !hasExactEventMeta(ev) && last.actId===ev.actId && last.end===ev.start && (last.todoId||null)===(ev.todoId||null) && (last.routineId||null)===(ev.routineId||null) && (last.note||"")===(ev.note||"")){ last.end=ev.end; }
     else merged.push(ev);
   }
   day.events=merged;
+}
+function exactEventBounds(dateStr,ev){
+  const exactStart=Number(ev&&ev.startTs)||0,exactEnd=Number(ev&&ev.endTs)||0;
+  if(exactStart&&exactEnd>exactStart)return {startTs:exactStart,endTs:exactEnd};
+  if(!ev||!ev.start||!ev.end)return null;
+  const base=dateOf(dateStr);base.setHours(0,0,0,0);
+  const s=toMin(ev.start),e=ev.end==="24:00"?1440:toMin(ev.end);
+  if(!Number.isFinite(s)||!Number.isFinite(e)||e<=s)return null;
+  return {startTs:base.getTime()+s*60000,endTs:base.getTime()+e*60000};
+}
+function continuityCandidate(run){
+  let best=null;
+  for(const ds of Object.keys(state.days||{})){
+    const day=state.days[ds]||{};
+    for(const ev of (day.events||[])){
+      const bounds=exactEventBounds(ds,ev);if(!bounds||bounds.endTs>Number(run.startTs))continue;
+      const decision=TG_CONTINUITY.decide({...ev,endTs:bounds.endTs},{...run,startTs:Number(run.startTs)});
+      if(!decision.merge)continue;
+      if(!best||bounds.endTs>best.bounds.endTs)best={date:ds,event:ev,bounds:bounds,decision:decision};
+    }
+  }
+  if(!best)return null;
+  const spanId=best.event.continuityId||best.event.id;
+  for(const ds of Object.keys(state.days||{})){
+    for(const ev of ((state.days[ds]||{}).events||[])){
+      if(ev===best.event||String(ev.continuityId||ev.id||"")===String(spanId||""))continue;
+      const bounds=exactEventBounds(ds,ev);
+      if(bounds&&bounds.startTs<Number(run.startTs)&&bounds.endTs>best.bounds.endTs)return null;
+    }
+  }
+  return best;
+}
+function materializeExactSpan(run,endTs){
+  const runStart=Number(run&&run.startTs)||0,runEnd=Number(endTs)||0;
+  if(!runStart||!runEnd||runEnd<=runStart)return false;
+  const candidate=continuityCandidate(run);
+  const merging=!!candidate;
+  const spanId=merging?String(candidate.event.continuityId||candidate.event.id):String(run.continuityId||("span_"+(run.sessionId||uid("run"))));
+  const spanStart=merging?Number(candidate.event.spanStartTs||candidate.bounds.startTs):runStart;
+  const oldByDate=new Map(),sessionIds=[];
+  let gapIncludedMs=0;
+  if(merging){
+    gapIncludedMs=(Number(candidate.event.gapIncludedMs)||0)+candidate.decision.gapMs;
+    for(const ds of Object.keys(state.days||{})){
+      const day=state.days[ds]||{},keep=[];
+      for(const ev of (day.events||[])){
+        const sameSpan=String(ev.continuityId||ev.id||"")===spanId;
+        if(sameSpan){
+          if(!oldByDate.has(ds))oldByDate.set(ds,ev.id);
+          for(const sid of (Array.isArray(ev.sessionIds)?ev.sessionIds:[]))if(sid&&!sessionIds.includes(sid))sessionIds.push(sid);
+        }else keep.push(ev);
+      }
+      day.events=keep;
+    }
+  }
+  if(run.sessionId&&!sessionIds.includes(run.sessionId))sessionIds.push(run.sessionId);
+  const pieces=TG_CONTINUITY.splitSpan(spanStart,runEnd);
+  if(!pieces.length)return false;
+  pieces.forEach(function(piece,index){
+    const day=ensureDay(piece.date);
+    const s=Math.max(0,Math.min(1439,Math.floor((piece.startTs-piece.dayStart)/60000)));
+    let e=piece.endTs>=piece.dayEnd?1440:Math.round((piece.endTs-piece.dayStart)/60000);
+    if(e<=s)e=Math.min(1440,s+1);
+    day.events=subtract(day.events,s,e);
+    const ev={
+      id:oldByDate.get(piece.date)||uid("e"),
+      actId:run.actId,
+      start:hhmm(s),
+      end:hhmm(e),
+      startTs:piece.startTs,
+      endTs:piece.endTs,
+      continuityId:spanId,
+      spanStartTs:spanStart,
+      spanEndTs:runEnd,
+      fragmentIndex:index,
+      fragmentCount:pieces.length,
+      gapIncludedMs:gapIncludedMs,
+      sessionIds:sessionIds.slice()
+    };
+    if(run.todoId)ev.todoId=run.todoId;
+    if(run.routineId)ev.routineId=run.routineId;
+    if(run.note&&!ev.todoId&&!ev.routineId)ev.note=run.note;
+    day.events.push(ev);
+    day.events.sort(function(a,b){return toMin(a.start)-toMin(b.start)||String(a.id).localeCompare(String(b.id));});
+  });
+  return true;
 }
 /* [s,e) 중 기존 이벤트가 선점하지 않은 빈 구간 목록 */
 function freeRanges(day,s,e){
@@ -2617,7 +2930,7 @@ function resolveStartContext(create){
         if(!act) return null;
         it.actId=act.id; it.area=act.area;
         if(noteTag.kind==="routine"){
-          const def=state.settings.routineDefs.find(d=>d.name===it.name);
+          const def=state.settings.routineDefs.find(d=>String(d.id||"")===String(it.routineDefId||""))||state.settings.routineDefs.find(d=>d.name===it.name);
           if(def){ def.actId=act.id; def.area=act.area; }
         }
       }
@@ -2765,23 +3078,7 @@ async function swStartTagged(actId,tags){
 }
 function materializeStoppedRun(r,endTs){
   if(!r) return false;
-  const startD=new Date(r.startTs),endD=new Date(endTs||Date.now());
-  const endDayStr=ymd(endD);
-  const endMin=endD.getHours()*60+endD.getMinutes()+(endD.getSeconds()>=30?1:0);
-  let curDayStr=ymd(startD);
-  let curStart=startD.getHours()*60+startD.getMinutes();
-  let guard=0;
-  while(curDayStr!==endDayStr&&guard<31){
-    const dd=ensureDay(curDayStr);addInterval(dd,r.actId,curStart,1440,r);
-    const nd=dateOf(curDayStr);nd.setDate(nd.getDate()+1);curDayStr=ymd(nd);curStart=0;guard++;
-  }
-  let e=(curDayStr===endDayStr)?endMin:1440;
-  const crossed=(ymd(startD)!==endDayStr);
-  if(e<=curStart){
-    if(crossed&&curStart===0&&e===0){state.running=null;noteClear();noteRowOpen(false);save();renderAll();return true;}
-    e=Math.min(curStart+1,1440);
-  }
-  addInterval(ensureDay(curDayStr),r.actId,curStart,e,r);
+  if(!materializeExactSpan(r,Number(endTs)||Date.now()))return false;
   state.running=null;noteClear();noteRowOpen(false);save();renderAll();return true;
 }
 async function swStop(){
@@ -2821,7 +3118,10 @@ function renderSw(){
 function totalSec(){
   const day=ensureDay(state.viewDate);
   let sec=0;
-  for(const ev of day.events) sec+=Math.max(0,(toMin(ev.end)-toMin(ev.start))*60);
+  for(const ev of day.events){
+    const exactStart=Number(ev&&ev.startTs)||0,exactEnd=Number(ev&&ev.endTs)||0;
+    sec+=exactStart&&exactEnd>exactStart?(exactEnd-exactStart)/1000:Math.max(0,(toMin(ev.end)-toMin(ev.start))*60);
+  }
   const r=state.running;
   const b=r && runningDayBounds(r, state.viewDate);
   if(b){
@@ -2913,6 +3213,7 @@ function makeSegDiv(seg,act,extraClass,subLabel){
   return d;
 }
 function renderTimeline(){
+  invalidatePlanMarkers();
   const day=ensureDay(state.viewDate);
   const _W=tlContent.clientWidth||360, _lbl={}, _pick={}, _alnR={};
   const _best=function(sg,marks,nm,area){
@@ -3022,20 +3323,22 @@ function renderLive(){
     bar.style.top=rowTop(Math.floor(nowF/60))+"px";
     bar.style.left=((nowF%60)/60*W-1.5)+"px";
   }
-  renderRtMarkers();
+  if(_rtMarksDirty||!tlContent.querySelector(".rt-strip,.rt-flag,.td-flag,.td-strip-td"))renderRtMarkers();
 }
-var _rtMarkSig=null,_rtMarkDataSig=null,_rtTipEl=null;
+var _rtMarkSig=null,_rtMarkDataSig=null,_rtTipEl=null,_rtMarksDirty=true;
+function invalidatePlanMarkers(){_rtMarksDirty=true;_rtMarkSig=null;}
 function rtTextW(str){ var w=0; for(var i=0;i<str.length;i++){ w+= str.charCodeAt(i)>0x2E80? 10.5:6.2; } return w; }
 function renderRtMarkers(){
   var day=ensureDay(state.viewDate);
   var W=tlContent.clientWidth;
   var rts=(day.routines||[]).filter(function(r){return r.time;});
-  var SC=(window.devicePixelRatio||1)*((window.visualViewport&&window.visualViewport.scale)||1); if(!isFinite(SC)||SC<=0) SC=1;
+  /* CSS-pixel geometry must not be resnapped on every transient pinch-zoom scale. */
+  var SC=(window.devicePixelRatio||1); if(!isFinite(SC)||SC<=0) SC=1;
   var _tdms=(day.todos||[]).filter(function(t){return t.time;});
   var dataSig=state.viewDate+"|"+JSON.stringify(rts.map(function(r){return [r.time,r.end||"",r.name,!!r.done,r.actId||"",r.area||""];}))+ "|T|"+JSON.stringify(_tdms.map(function(t){return [t.time,t.end||"",t.title,!!t.done,t.area||""];}));
   var sig=dataSig+"|"+W+"|"+SC;
   var have=tlContent.querySelector(".rt-strip,.rt-flag,.td-flag,.td-strip-td");
-  if(sig===_rtMarkSig&&(have||(!rts.length&&!_tdms.length))) return;
+  if(!_rtMarksDirty&&sig===_rtMarkSig&&(have||(!rts.length&&!_tdms.length))) return;
   var animOK=(dataSig!==_rtMarkDataSig)||tlAnimPending;
   _rtMarkSig=sig; _rtMarkDataSig=dataSig;
   tlContent.querySelectorAll(".rt-strip,.rt-flag,.td-flag,.td-strip-td").forEach(function(x){x.remove();});
@@ -3171,6 +3474,7 @@ function renderRtMarkers(){
   if(GS&&!rmPref()&&!tlNoAnim&&animOK&&els.length){
     GS.fromTo(els,{opacity:0,y:-5},{opacity:1,y:0,duration:.3,ease:"power2.out",stagger:.015,clearProps:"transform,opacity"});
   }
+  _rtMarksDirty=false;
 }
 setInterval(()=>{renderTotal(); renderLive(); tickTmrBadges();},1000);
 window.addEventListener("resize",function(){ tlNoAnim=true; try{ renderTimeline(); }finally{ tlNoAnim=false; } });
@@ -3412,6 +3716,7 @@ $("#evSave").addEventListener("click",()=>{
   window._evOvAck=null;
   const _tags={todoId:ev.todoId||null,routineId:ev.routineId||null};
   if(!_tags.todoId&&!_tags.routineId){ const _nv=$("#evNote").value.trim(); if(_nv) _tags.note=_nv; }
+  detachContinuityLineage(ev);
   day.events=day.events.filter(x=>x.id!==editingEvId);
   addInterval(day,act.id,s,e,_tags);
   save(); renderAll();
@@ -3422,6 +3727,7 @@ $("#evDelete").addEventListener("click",()=>{
   const day=ensureDay(state.viewDate);
   const _ds=state.viewDate;
   const _removed=day.events.find(x=>x.id===editingEvId);
+  if(_removed)detachContinuityLineage(_removed);
   day.events=day.events.filter(x=>x.id!==editingEvId);
   save(); renderAll();
   $("#evDlg").close();
@@ -4396,7 +4702,7 @@ function renderTodos(){
     const row=document.createElement("label");
     row.className="check-item"+(td.done?" done":"");
     const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=td.done;
-    cb.addEventListener("change",()=>{td.done=cb.checked; save(); renderTodos();});
+    cb.addEventListener("change",()=>{setEntityDone(day,"todo",td.id,cb.checked); save(); invalidatePlanMarkers(); renderTodos(); renderLive();});
     const nm=document.createElement("span"); nm.className="name"; nm.textContent=td.title;
     const tb=document.createElement("span"); tb.className="tbadge"; tb.dataset.tmr="todo:"+td.id;
     tb.textContent=fmtShort(todoMeasuredMin(day,td));
@@ -4438,7 +4744,9 @@ function renderTodos(){
         });
       });
     })(td);
-    row.append(cb,ttb,nm,tag,tb,makeTodoActionBtn(td,day));
+    const main=document.createElement("div");main.className="todo-main";main.append(ttb,nm);
+    const meta=document.createElement("div");meta.className="todo-meta";meta.append(tag,tb);
+    row.append(cb,main,meta,makeTodoActionBtn(td,day));
     list.appendChild(row);
   }
 }
@@ -4590,14 +4898,8 @@ function syncDayRoutines(dateStr){
   const day=state.days[dateStr];
   if(!day) return;
   if(dateStr<ymd(new Date())) return;
-  const dow=dateOf(dateStr).getDay();
-  const defs=state.settings.routineDefs.filter(r=>!Array.isArray(r.days)||!r.days.length||r.days.includes(dow));
-  const extras=(day.routines||[]).filter(x=>x.extra);
-  day.routines=defs.map(r=>{
-    const t=r.time||"";
-    const old=day.routines.find(x=>!x.extra&&x.name===r.name&&x.time===t)||day.routines.find(x=>!x.extra&&x.name===r.name);
-    return {id:old?old.id:uid("r"),time:t,end:r.end||"",name:r.name,actId:r.actId||null,area:r.area||null,done:old?old.done:false};
-  }).concat(extras);
+  day.routines=TG_ROUTINE_IDENTITY.reconcile(state.settings,dateStr,day.routines,day.events).routines;
+  TG_STATUS_MUTATIONS.materializeDay(day);
 }
 function sortRoutineDefsByTime(){
   if(!Array.isArray(state.settings.routineDefs)) return;
@@ -4628,7 +4930,7 @@ function renderRoutines(){
     const row=document.createElement("label");
     row.className="check-item rt-row"+(rt.done?" done":"")+(rt.time?"":" no-time");
     const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=rt.done;
-    cb.addEventListener("change",()=>{rt.done=cb.checked; save(); renderRoutines(); renderLive();});
+    cb.addEventListener("change",()=>{setEntityDone(day,"routine",rt.id,cb.checked); save(); invalidatePlanMarkers(); renderRoutines(); renderLive();});
     var tm=null; if(rt.time){ tm=document.createElement("span"); tm.className="rt-time"+(rt.end?" range":""); if(rt.end){ tm.innerHTML='<span class="rt-stack"><span class="rt-t1">'+esc(rt.time)+'</span><span class="rt-t2">'+esc(rt.end)+'</span></span>'; } else { tm.textContent=rt.time; } }
     const nm=document.createElement("span"); nm.className="name rt-name"; nm.textContent=rt.name;
     const main=document.createElement("div");main.className="rt-main";if(tm)main.appendChild(tm);main.appendChild(nm);
@@ -4644,9 +4946,10 @@ function renderRoutines(){
       meta.appendChild(atg);
     }
     meta.appendChild(tb);
-    const _def=state.settings.routineDefs.find(d=>d.name===rt.name);
+    const _def=state.settings.routineDefs.find(d=>String(d.id||"")===String(rt.routineDefId||""))||state.settings.routineDefs.find(d=>d.name===rt.name);
     const _tag=_def?fmtDays(_def.days):"";
     if(_tag){ const tg=document.createElement("span"); tg.className="rt-dow-tag"; tg.textContent=_tag; meta.appendChild(tg); }
+    if(!meta.textContent.trim()){meta.hidden=true;row.classList.add("no-meta");}
     row.append(cb,main,meta,makeTmrBtn(rt,"routine"));
     list.appendChild(row);
   }
@@ -5879,8 +6182,9 @@ function applyLog(json,mode){
       if(_area && !areaByName(_area)) state.settings.areas.push({name:_area,color:RAINBOW[state.settings.areas.length%RAINBOW.length]}); ex={id:td.id||uid("m"),title:td.title,area:_area,actId:_actId,done:!!td.done,time:_tw.time,end:_tw.end};
       day.todos.push(ex);
       appendTodoRestoreIfNeeded(day,json.date,ex);
+      if(typeof td.done==="boolean") setEntityDone(day,"todo",ex.id,td.done);
     }else{
-      if(typeof td.done==="boolean") ex.done=td.done;
+      if(typeof td.done==="boolean") setEntityDone(day,"todo",ex.id,td.done);
       if(_hasTw){ ex.time=_tw.time; ex.end=_tw.end; }
     }
   }
@@ -5888,14 +6192,16 @@ function applyLog(json,mode){
     if(!rt||typeof rt!=="object"||!rt.name) continue;
     const _t=(rt.time&&/^\d{1,2}:\d{2}$/.test(rt.time)&&toMin(rt.time)<1440)? rt.time:"";
     const _e=(rt.end&&/^\d{1,2}:\d{2}$/.test(rt.end)&&_t&&toMin(rt.end)<=1440&&toMin(rt.end)>toMin(_t))? rt.end:"";
-    let ex=day.routines.find(x=>x.name===rt.name&&(x.time||"")===_t)||day.routines.find(x=>x.name===rt.name);
+    let ex=day.routines.find(x=>rt.id&&x.id===rt.id)||day.routines.find(x=>rt.routineDefId&&x.routineDefId===rt.routineDefId)||day.routines.find(x=>x.name===rt.name&&(x.time||"")===_t)||day.routines.find(x=>x.name===rt.name);
     if(!ex){
       let _actId=null,_area=rt.area||null;
       if(rt.act){ const _a=resolveActivity(rt.act,_area||"",true); if(_a){ _actId=_a.id; if(!_area) _area=_a.area; } }
-      if(_area && !areaByName(_area)) state.settings.areas.push({name:_area,color:RAINBOW[state.settings.areas.length%RAINBOW.length]}); ex={id:uid("r"),time:_t,end:_e,name:rt.name,actId:_actId,area:_area,done:!!rt.done,extra:true};
+      if(_area && !areaByName(_area)) state.settings.areas.push({name:_area,color:RAINBOW[state.settings.areas.length%RAINBOW.length]}); ex={id:rt.id||uid("r"),routineDefId:rt.routineDefId||null,time:_t,end:_e,name:rt.name,actId:_actId,area:_area,done:!!rt.done,extra:!rt.routineDefId};
       day.routines.push(ex);
+      if(typeof rt.done==="boolean") setEntityDone(day,"routine",ex.id,rt.done);
     }else{
-      if(typeof rt.done==="boolean") ex.done=rt.done;
+      if(rt.routineDefId&&!ex.routineDefId)ex.routineDefId=rt.routineDefId;
+      if(typeof rt.done==="boolean") setEntityDone(day,"routine",ex.id,rt.done);
       if(_e&&!ex.end) ex.end=_e;
     }
   }
@@ -5911,11 +6217,12 @@ function applyLog(json,mode){
     if(ev.todo){ const _td=day.todos.find(x=>x.title===ev.todo); if(_td) tags.todoId=_td.id; }
     if(ev.routine){ const _rt=day.routines.find(x=>x.name===ev.routine); if(_rt) tags.routineId=_rt.id; }
     if(!tags.todoId&&!tags.routineId&&ev.note) tags.note=String(ev.note);
+    tags._event=ev;
     addInterval(day,act.id,s0,e0,tags);
     n++;
   }
-  for(const id of (json.todosDone||[])){ const t=day.todos.find(x=>x.id===id); if(t) t.done=true; }
-  for(const nm of (json.routinesDone||[])){ const pr=parseRoutine(nm); const rr=day.routines.find(x=>x.name===pr.name); if(rr) rr.done=true; }
+  for(const id of (json.todosDone||[])){ const t=day.todos.find(x=>x.id===id); if(t) setEntityDone(day,"todo",t.id,true); }
+  for(const nm of (json.routinesDone||[])){ const pr=parseRoutine(nm); const rr=day.routines.find(x=>x.name===pr.name); if(rr) setEntityDone(day,"routine",rr.id,true); }
   return n;
 }
 function applyRoutineDefs(arr){
@@ -5949,6 +6256,8 @@ function applyBackup(json,mode){
   for(const ds of Object.keys(state.days||{})){
     const day=state.days[ds]||{};
     day.todoMutations=TG_TODO_MUTATIONS.normalizeList(day.todoMutations);
+    day.statusMutations=TG_STATUS_MUTATIONS.normalizeList(day.statusMutations,[]);
+    TG_STATUS_MUTATIONS.materializeDay(day);
   }
   TG_TODO_MUTATIONS.materialize(state.days);
   syncDayRoutines(state.viewDate);
@@ -6017,6 +6326,8 @@ function buildLog(ds){
     const act=actById(ev.actId);
     const area=act? act.area:"기타";
     const out={act:act? act.name:"?", area, start:ev.start, end:ev.end};
+    out.id=ev.id;
+    ["startTs","endTs","continuityId","spanStartTs","spanEndTs","fragmentIndex","fragmentCount","gapIncludedMs","sessionIds"].forEach(function(k){if(ev[k]!=null)out[k]=JSON.parse(JSON.stringify(ev[k]));});
     if(ev.todoId){ const _t=day.todos.find(x=>x.id===ev.todoId); if(_t) out.todo=_t.title; }
     if(ev.routineId){ const _r=day.routines.find(x=>x.id===ev.routineId); if(_r) out.routine=_r.name; }
     if(!out.todo&&!out.routine&&ev.note) out.note=ev.note;
@@ -6029,7 +6340,7 @@ function buildLog(ds){
     v:2, kind:"log", date:ds,
     events,
     todos:day.todos.map(t=>{ const a=t.actId? actById(t.actId):null; return {id:t.id,title:t.title,area:t.area||(a? a.area:""),act:a? a.name:null,done:!!t.done,time:t.time||"",end:t.end||"",min:todoMeasuredMin(day,t)}; }),
-    routines:day.routines.map(r=>{ const a=r.actId? actById(r.actId):null; return {time:r.time||"",end:r.end||"",name:r.name,act:a? a.name:null,done:!!r.done,min:routineMeasuredMin(day,r)}; }),
+    routines:day.routines.map(r=>{ const a=r.actId? actById(r.actId):null; return {id:r.id,routineDefId:r.routineDefId||null,time:r.time||"",end:r.end||"",name:r.name,act:a? a.name:null,area:r.area||(a?a.area:""),done:!!r.done,min:routineMeasuredMin(day,r)}; }),
     stats:{ total:det.total, gap:Math.max(1440-det.total,0), areas, acts, todoMin:det.todoMin, routineMin:det.routineMin }
   };
 }
@@ -7432,15 +7743,18 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
   }
   function stable(v){ return JSON.stringify(canonical(v)); }
   function same(a,b){ return stable(a)===stable(b); }
-  function emptyDay(){ return {events:[],todos:[],routines:[],todoMutations:[]}; }
+  function emptyDay(){ return {events:[],todos:[],routines:[],todoMutations:[],statusMutations:[]}; }
   function normDay(d){
     d=d||{};
-    return {
+    const out={
       events:Array.isArray(d.events)?copy(d.events):[],
       todos:Array.isArray(d.todos)?copy(d.todos):[],
       routines:Array.isArray(d.routines)?copy(d.routines):[],
-      todoMutations:TG_TODO_MUTATIONS.normalizeList(d.todoMutations)
+      todoMutations:TG_TODO_MUTATIONS.normalizeList(d.todoMutations),
+      statusMutations:TG_STATUS_MUTATIONS.normalizeList(d.statusMutations,[])
     };
+    TG_STATUS_MUTATIONS.materializeDay(out);
+    return out;
   }
   function normSettings(s){
     s=s||{};
@@ -7448,7 +7762,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
       version:Number(s.version)||2,
       areas:Array.isArray(s.areas)?copy(s.areas):[],
       activities:Array.isArray(s.activities)?copy(s.activities):[],
-      routineDefs:Array.isArray(s.routineDefs)?copy(s.routineDefs):[]
+      routineDefs:TG_ROUTINE_DEFS.normalize(Array.isArray(s.routineDefs)?s.routineDefs:[])
     };
   }
   function itemKey(x,i,prefix){
@@ -7482,8 +7796,10 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
       events:mergeList(base.events,local.events,remote.events,preferLocal,"event"),
       todos:mergeList(base.todos,local.todos,remote.todos,preferLocal,"todo"),
       routines:mergeList(base.routines,local.routines,remote.routines,preferLocal,"routine"),
-      todoMutations:TG_TODO_MUTATIONS.normalizeList(mergeList(base.todoMutations,local.todoMutations,remote.todoMutations,preferLocal,"todoMutation"))
+      todoMutations:TG_TODO_MUTATIONS.normalizeList(mergeList(base.todoMutations,local.todoMutations,remote.todoMutations,preferLocal,"todoMutation")),
+      statusMutations:TG_STATUS_MUTATIONS.normalizeList(mergeList(base.statusMutations,local.statusMutations,remote.statusMutations,preferLocal,"statusMutation"),[])
     };
+    TG_STATUS_MUTATIONS.materializeDay(d);
     d.events.sort(function(a,b){return toMin(a.start||"00:00")-toMin(b.start||"00:00");});
     return d;
   }
@@ -7599,19 +7915,27 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
   }
   function applyRemoteDay(date,raw,meta,quiet){
     const remote=normDay(raw),base=syncBase.days[date]?normDay(syncBase.days[date]):emptyDay();
-    const needsGc=!same(Array.isArray(raw&&raw.todoMutations)?raw.todoMutations:[],remote.todoMutations);
+    const needsGc=!same(Array.isArray(raw&&raw.todoMutations)?raw.todoMutations:[],remote.todoMutations)||!same(Array.isArray(raw&&raw.statusMutations)?raw.statusMutations:[],remote.statusMutations);
     const hasLocal=!!(state.days&&state.days[date]);
     const local=hasLocal?normDay(state.days[date]):emptyDay();
     const dirty=!!outbox.days[date]||(hasLocal&&!same(local,base));
     const prefer=((outbox.days[date]&&outbox.days[date].at)||state._localUpdatedAt||0)>=(meta.at||0);
     const merged=dirty?mergeDay(base,local,remote,prefer):remote;
+    let routineIdentityChanged=false;
+    if(date>=ymd(new Date())){
+      const identity=TG_ROUTINE_IDENTITY.reconcile(state.settings,date,merged.routines,merged.events);
+      routineIdentityChanged=identity.changed;
+      merged.routines=identity.routines;
+    }
     state.days[date]=copy(merged);
     syncBase.days[date]=copy(remote);
     syncBase.dayMeta[date]=meta;
     if(same(merged,remote)) delete outbox.days[date];
     else if(!outbox.days[date]) outbox.days[date]={at:Date.now()};
     if(needsGc&&!outbox.days[date])outbox.days[date]={at:Date.now()};
+    if(routineIdentityChanged&&!outbox.days[date])outbox.days[date]={at:Date.now()};
     TG_TODO_MUTATIONS.materialize(state.days).forEach(function(ds){if(!outbox.days[ds])outbox.days[ds]={at:Date.now()};});
+    Object.keys(state.days||{}).forEach(function(ds){if(TG_STATUS_MUTATIONS.materializeDay(state.days[ds]).changed&&!outbox.days[ds])outbox.days[ds]={at:Date.now()};});
     persistBase();persistOutbox();persistLocal();
     if(!quiet) queueRender();
   }
@@ -7680,7 +8004,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
       const merged=mergeDay(base,captured,remote,localAt>=meta.at);
       if(snap.exists&&same(merged,remote)) return {value:remote,meta:meta,wrote:false};
       const now=Date.now(),rev=meta.rev+1;
-      tx.set(ref,{events:merged.events,todos:merged.todos,routines:merged.routines,todoMutations:merged.todoMutations,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
+      tx.set(ref,{events:merged.events,todos:merged.todos,routines:merged.routines,todoMutations:merged.todoMutations,statusMutations:merged.statusMutations,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
       return {value:merged,meta:{rev:rev,at:now},wrote:true};
     });
     markServerOk();
@@ -7689,6 +8013,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     else if(state.days[date]) state.days[date]=mergeDay(captured,normDay(state.days[date]),result.value,true);
     delete outbox.days[date];
     TG_TODO_MUTATIONS.materialize(state.days);
+    Object.keys(state.days||{}).forEach(function(ds){TG_STATUS_MUTATIONS.materializeDay(state.days[ds]);});
     persistBase();persistLocal();markDirty();
   }
 

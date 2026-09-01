@@ -21,9 +21,12 @@
 - **배포 게이트**: 배치 배포는 사용자 명시 지시가 있을 때만. push = Pages 배포.
 - **보안**: 인증 토큰·UID 원문을 노션/코드/저장소/대화에 기록·재공유 금지. 임베드 파일 교체는 세션 권한 밖.
 
-- 운영 버전: **v3.12.67** (배포 완료, 2026-08-31)
-  - 릴리스 코드 커밋: `3a38039cb523a0738c3936e9f75c841ae28262f4`
-  - index.html sha1: `32a1d4c6ebe5786edbd85fde21a4f839c54f42d9`
-  - sw.js sha1: `ca9f186a4cdbe1feb50cad4e20027d1a0dfb7797`
-  - SW: `timegrid-v3.12.67-20260831`
-- v3.12.67 변경: 할일 `move`/`delete`/`restore`를 명시적 `todoMutations`로 기록해 배열 부재 추론을 제거하고 TimeGrid ID를 이동 시에도 보존한다. Firestore 날짜 문서의 로컬/원격 3-way merge와 materialize가 mutation을 왕복하며, 삭제·복원 실행취소도 역 mutation으로 남긴다. v3.12.66의 휴지통 아이콘 클리핑/광학 정렬 수정은 그대로 보존했다.
+- 배포 운영 버전: **v3.12.67** (GitHub Pages, 2026-08-31). 확인된 운영 `main` 기준은 `aaeabef2271b866e5ea785ea4daad0b7a1c38e9b`이다.
+- 로컬 검증 후보: **v3.13.0** (`codex/life-os-reconstruction`, 미배포)
+  - SW: `timegrid-v3.13.0-20260901`
+  - 완료 상태는 명시적 `statusMutations`로 수렴한다. Todo와 routine instance의 embedded `done`은 materialized projection이다.
+  - 반복 루틴 정의는 `routineDefId`, 일별 실행은 별도 안정적 instance `id`를 사용한다. ID 없는 semantic duplicate는 settings normalize 단계에서 제거한다.
+  - 동일 semantic measurement는 정확히 60초까지 exact timestamp/continuity lineage로 한 span에 합치며 공백도 시간에 포함한다.
+  - Tracker 1초 ticker는 live 요소만 갱신하고 plan marker geometry는 데이터/layout invalidation 때만 재계산한다.
+  - 버튼/Planner 행은 공유 geometry와 desktop subgrid/mobile two-tier contract를 사용한다.
+- v3.12.67의 `todoMutations` move/delete/restore 계약은 v3.13.0에도 유지된다.
