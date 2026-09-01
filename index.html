@@ -23,12 +23,15 @@
   --red:#E56458; --ok:#46A171; --amber:#D5803B;
   --r-sm:8px; --r-md:10px; --r-lg:12px; --r-xl:16px; --r-2xl:24px; --r-round:999px; --ecell:44px;
   --tag-h:20px;
+  --plan-space-1:4px; --plan-space-2:8px; --plan-space-3:12px; --plan-space-4:16px; --plan-space-5:24px;
+  --plan-row-h:48px; --plan-control-h:40px;
   --sh-1:0 1px 4px rgba(0,0,0,.08);
   --sh-2:0 4px 12px rgba(0,0,0,.12);
   --sh-3:0 8px 24px rgba(0,0,0,.16);
   --dur-1:.15s; --dur-2:.25s;
 }
 *{box-sizing:border-box; margin:0; padding:0;}
+[hidden]{display:none!important;}
 body{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
   font-size:16px; line-height:1.5; color:var(--text); background:#fff;
@@ -384,6 +387,11 @@ section.block{padding:8px 16px 16px;}
 section.block h2{font-size:16px; font-weight:700; padding:16px 0 10px;}
 section.block h2 .sub{font-size:13px; font-weight:400; color:var(--text2); margin-left:6px;}
 .card{border:1px solid var(--line); border-radius:var(--r-xl); padding:14px 16px; margin-bottom:16px;}
+#plannerView .planner-block{padding:var(--plan-space-4) var(--plan-space-4) calc(84px + env(safe-area-inset-bottom));}
+#plannerView .planner-title{padding:0;line-height:24px;margin:0 0 var(--plan-space-2);}
+.planner-section-head{display:flex;align-items:center;justify-content:space-between;gap:var(--plan-space-3);min-height:24px;margin:var(--plan-space-4) 0 var(--plan-space-2);}
+.planner-section-head h2{padding:0;line-height:24px;}
+#plannerView .planner-card{padding:var(--plan-space-3) var(--plan-space-4);margin:0;box-shadow:0 1px 0 rgba(44,44,43,.015);}
 
 /* ---------- stats ---------- */
 .stat-big{font-size:32px; font-weight:700; letter-spacing:-.01em; padding:2px 0 8px;}
@@ -448,8 +456,8 @@ section.block h2 .sub{font-size:13px; font-weight:400; color:var(--text2); margi
 #monthHeat .cell.cur{box-shadow:0 0 0 2px #fff,0 0 0 3px var(--text); z-index:1;}
 
 /* ---------- todos / routines ---------- */
-.check-item{display:flex; align-items:center; gap:8px; min-height:40px;}
-.check-item input[type=checkbox]{width:19px; height:19px; accent-color:var(--text); flex:none; margin-right:8px;}
+.check-item{display:flex; align-items:center; gap:var(--plan-space-2); min-height:var(--plan-row-h);line-height:1.4;}
+.check-item input[type=checkbox]{width:19px; height:19px; accent-color:var(--text); flex:none; margin:0;align-self:center;justify-self:center;}
 .check-item .name{flex:1; min-width:0;}
 .check-item.done .name{color:var(--text3); text-decoration:line-through;}
 .check-item .tag{font-size:12px; padding:1px 9px; border-radius:var(--r-round); background:var(--soft); color:var(--text2); flex:none;}
@@ -500,11 +508,8 @@ button.tag.ghost{background:none; border:1px dashed var(--line2); color:var(--te
 .rt-tip .rt-tip-row .ar,.ui-tip .rt-tip-row .ar{opacity:.82; overflow:hidden; text-overflow:ellipsis;}
 .rt-tip .rt-tip-row .vl,.ui-tip .rt-tip-row .vl{margin-left:auto; padding-left:12px; font-weight:600; font-variant-numeric:tabular-nums;}
 .rt-tip::after,.ui-tip::after{content:""; position:absolute; bottom:-4px; left:50%; transform:translateX(-50%); border:4px solid transparent; border-top-color:var(--text);}
-.rt-row{display:flex; align-items:center; gap:10px; min-height:40px;}
-.check-item .rt-time{font-size:13px; color:var(--text3); font-variant-numeric:tabular-nums; flex:none; min-width:40px; width:40px; text-align:left;}
-.check-item .rt-time + .name{margin-left:-4px;}
-.check-item.rt-row .rt-time + .name{margin-left:-6px;}
-#todoList .check-item input[type=checkbox]{margin-right:10px;}
+.rt-row{display:flex; align-items:center; gap:var(--plan-space-3); min-height:var(--plan-row-h);}
+.check-item .rt-time{font-size:13px; color:var(--text3); font-variant-numeric:tabular-nums; flex:none; min-width:44px; width:44px; text-align:left;}
 .check-item .rt-time.range .rt-stack,.check-item .ttime.range .rt-stack{display:inline-block; text-align:left; vertical-align:middle;}
 .check-item .rt-time.range .rt-t1,.check-item .ttime.range .rt-t1{display:block; line-height:1.15;}
 .check-item .rt-time.range .rt-t2,.check-item .ttime.range .rt-t2{display:block; margin-top:2px; font-size:11px; color:var(--text3); opacity:.75; line-height:1; white-space:nowrap;}
@@ -512,17 +517,18 @@ button.tag.ghost{background:none; border:1px dashed var(--line2); color:var(--te
 .check-item.done .rt-time,.check-item.done .ttime{color:var(--text3); opacity:.6;}
 /* v3.12.57: todo time owns an independent 44x24 center frame.
    Do not add .rt-time: that read-only routine class carries conflicting width/text metrics. */
-.check-item .ttime{font:inherit;-webkit-appearance:none;appearance:none;display:inline-grid;place-items:center;align-self:center;box-sizing:border-box;width:44px;min-width:44px;min-height:24px;padding:0 5px;border:1px solid var(--line2);border-radius:6px;background:#fff;font-size:13px;line-height:1;text-align:center;color:var(--text3);font-variant-numeric:tabular-nums;white-space:nowrap;cursor:pointer;position:relative;flex:none;transition:border-color var(--dur-1) ease,color var(--dur-1) ease;touch-action:manipulation;}
+.check-item .ttime{font:inherit;-webkit-appearance:none;appearance:none;display:inline-grid;place-items:center;align-self:center;box-sizing:border-box;width:44px;min-width:44px;min-height:24px;padding:0;border:1px solid var(--line2);border-radius:6px;background:#fff;font-size:13px;line-height:1;text-align:center;text-indent:0;color:var(--text3);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;white-space:nowrap;cursor:pointer;position:relative;flex:none;transition:border-color var(--dur-1) ease,color var(--dur-1) ease;touch-action:manipulation;}
 .check-item .ttime.single{height:24px;}
-.check-item .ttime.range{display:inline-flex;align-items:center;justify-content:center;padding:1px 5px;}
-.check-item .ttime .ttime-v{display:grid;place-items:center;width:100%;height:100%;line-height:1;text-align:center;transform:translateY(-1px);}
+.check-item .ttime.range{display:inline-grid;place-items:center;padding:1px 0;}
+.check-item .ttime .ttime-v{display:grid;place-items:center;width:100%;height:100%;line-height:1;text-align:center;transform:none;}
+.check-item .ttime.range .rt-stack{display:grid;justify-items:center;text-align:center;}
 .check-item .ttime::after{content:"";position:absolute;inset:-7px -4px;}
 .check-item .ttime.unset{color:var(--text3);}
-.check-item .ttime.unset .ttime-v{letter-spacing:.02em;}
+.check-item .ttime.unset .ttime-v{letter-spacing:0;}
 @media (hover: hover) and (pointer: fine){ .check-item .ttime:hover{border-color:var(--text3);color:var(--text);} }
 .check-item .ttime:active{transform:scale(.95);border-color:var(--text3);}
 .rt-row.done .rt-name{color:var(--text3); text-decoration:line-through;}
-.add-row{display:flex; gap:8px; margin-top:10px;}
+.planner-card .add-row{display:flex;gap:var(--plan-space-2);margin:0;padding:var(--plan-space-3) 0;border-top:1px solid var(--line);}
 .add-row input[type=text]{
   flex:1; min-width:0; min-height:40px; padding:4px 14px;
   border:1px solid var(--line2); border-radius:var(--r-round);
@@ -1019,23 +1025,23 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
 .onb-go{width:100%; min-height:46px; margin-top:14px; font-size:15px;}
 @media (prefers-reduced-motion: reduce){ .onb-card{animation:none;} }
 /* ---------- cloud account ---------- */
-.sn-cloud{margin:10px 0 4px;padding:12px;border:none;border-radius:var(--r-lg);background:var(--soft);}
-.sn-cloud .sc-row{display:flex;align-items:center;gap:10px;}
-.sn-cloud .sc-av{width:36px;height:36px;border-radius:50%;background:var(--line2);object-fit:cover;flex:none;}
+.sn-cloud{margin:8px 0 6px;padding:14px;border:1px solid var(--line);border-radius:var(--r-xl);background:#fff;box-shadow:0 1px 3px rgba(44,44,43,.035);}
+.sn-cloud .sc-row{display:flex;align-items:center;gap:12px;}
+.sn-cloud .sc-av{width:40px;height:40px;border-radius:50%;background:var(--soft);border:1px solid var(--line);object-fit:cover;flex:none;}
 .sn-cloud .sc-av.ph{display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:16px;font-weight:700;}
 .sn-cloud .sc-meta{flex:1;min-width:0;}
-.sn-cloud .sc-meta b{display:block;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.sn-cloud .sc-meta small{display:block;font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.sn-cloud .sc-st{font-size:11px;color:var(--text2);padding-top:8px;line-height:1.45;display:block;position:relative;padding-left:21px;min-height:15px;}
-.sn-cloud .sc-st::before{content:"";position:absolute;left:3px;top:calc(8px + .725em);box-sizing:border-box;width:7px;height:7px;margin-top:-3.5px;border-radius:9999px;background:var(--text3);box-shadow:0 0 0 3px transparent;pointer-events:none;}
+.sn-cloud .sc-meta b{display:block;font-size:14px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sn-cloud .sc-meta small{display:block;font-size:12px;line-height:1.4;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-top:1px;}
+.sn-cloud .sc-st{font-size:12px;color:var(--text2);margin-top:12px;padding:11px 0 0 20px;border-top:1px solid var(--line);line-height:1.5;display:block;position:relative;min-height:29px;}
+.sn-cloud .sc-st::before{content:"";position:absolute;left:2px;top:calc(11px + .75em);box-sizing:border-box;width:7px;height:7px;margin-top:-3.5px;border-radius:9999px;background:var(--text3);box-shadow:0 0 0 3px transparent;pointer-events:none;}
 .sn-cloud .sc-st.ok{color:var(--text);font-weight:500;}
 .sn-cloud .sc-st.ok::before{background:var(--ok);box-shadow:0 0 0 3px rgba(70,161,113,.20);}
 .sn-cloud .sc-st.warn{color:var(--text);font-weight:500;}
 .sn-cloud .sc-st.warn::before{background:var(--amber);box-shadow:0 0 0 3px rgba(213,128,59,.20);}
 .sn-cloud .sc-st.err{color:var(--text);font-weight:500;}
 .sn-cloud .sc-st.err::before{background:var(--red);box-shadow:0 0 0 3px rgba(229,100,88,.20);}
-.sn-cloud .sc-actions{display:flex;gap:6px;padding-top:10px;flex-wrap:wrap;}
-.sn-cloud .sc-actions .btn{min-height:34px;padding:4px 12px;font-size:12px;}
+.sn-cloud .sc-actions{display:flex;gap:8px;padding-top:12px;}
+.sn-cloud .sc-actions .btn{flex:1 1 0;min-width:0;min-height:40px;padding:4px 10px;font-size:12px;white-space:nowrap;}
 .cloud-banner{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translateX(-50%);z-index:370;width:min(440px,calc(100vw - 28px));display:none;align-items:flex-start;gap:10px;padding:12px 14px;background:#fff;border:1px solid var(--line2);border-radius:var(--r-xl);box-shadow:var(--sh-3);}
 .cloud-banner.show{display:flex;}
 .cloud-banner .cb-copy{flex:1;min-width:0;font-size:13px;line-height:1.45;}
@@ -1313,12 +1319,13 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
    every row started at a different x (ragged left edge).
    Fix: todo + routine lists become shared column grids; each row is a subgrid,
    so the same column contract holds across every row. */
-.rt-main,.todo-main{display:flex;align-items:center;gap:10px;flex:1;min-width:0;}
+.rt-main,.todo-main{display:flex;align-items:center;gap:var(--plan-space-2);flex:1;min-width:0;}
 .rt-main .name,.todo-main .name{min-width:0;}
-.rt-meta,.todo-meta{display:flex;align-items:center;gap:10px;flex:none;min-width:0;}
+.rt-meta,.todo-meta{display:flex;align-items:center;gap:var(--plan-space-2);flex:none;min-width:0;}
 @supports (grid-template-columns: subgrid){
-  #todoList{display:grid; grid-template-columns:auto auto minmax(0,1fr) auto auto auto; align-items:center; column-gap:8px;}
-  #todoList > .check-item{display:grid; grid-template-columns:subgrid; grid-column:1/-1; align-items:center;}
+  #todoList{display:grid; grid-template-columns:20px 44px minmax(0,1fr) auto auto 36px; align-items:center; column-gap:var(--plan-space-3);}
+  #todoList > .check-item{display:grid; grid-template-columns:subgrid; grid-column:1/-1; align-items:center;min-height:var(--plan-row-h);border-bottom:1px solid var(--line);}
+  #todoList > .check-item:last-child{border-bottom:0;}
   #todoList > .check-item > input[type=checkbox]{grid-column:1;}
   #todoList > .check-item > .todo-main{display:grid;grid-template-columns:subgrid;grid-column:2/4;align-items:center;}
   #todoList > .check-item > .todo-main > .ttime{grid-column:1;}
@@ -1329,8 +1336,9 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
   #todoList > .check-item > .todo-more{grid-column:6;}
   #todoList > .empty-cta{grid-column:1/-1;}
 
-  #routineList.rt-list{display:grid; grid-template-columns:auto auto minmax(0,1fr) auto auto auto auto; align-items:center; column-gap:10px;}
-  #routineList.rt-list > .rt-row{display:grid; grid-template-columns:subgrid; grid-column:1/-1; align-items:center; min-height:40px;}
+  #routineList.rt-list{display:grid; grid-template-columns:20px 44px minmax(0,1fr) auto auto auto 36px; align-items:center; column-gap:var(--plan-space-3);}
+  #routineList.rt-list > .rt-row{display:grid; grid-template-columns:subgrid; grid-column:1/-1; align-items:center; min-height:var(--plan-row-h);border-bottom:1px solid var(--line);}
+  #routineList.rt-list > .rt-row:last-child{border-bottom:0;}
   #routineList.rt-list > .rt-row > input[type=checkbox]{grid-column:1;}
   #routineList.rt-list > .rt-row > .rt-main{display:grid;grid-template-columns:subgrid;grid-column:2/4;align-items:center;}
   #routineList.rt-list > .rt-row > .rt-main > .rt-time{grid-column:1;}
@@ -1348,33 +1356,46 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
 .rt-dow-tag{display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box; min-height:var(--tag-h); line-height:1; padding:0 8px; white-space:nowrap;}
 /* v3.12.63: mobile routines use two information tiers instead of seven squeezed columns */
 @media (max-width:600px){
+  :root{--plan-row-h:72px;--plan-control-h:44px;}
+  #plannerView{padding-top:0;}
+  #plannerView .planner-block{padding:var(--plan-space-3) var(--plan-space-3) calc(84px + env(safe-area-inset-bottom));}
+  #plannerView .planner-card{padding:var(--plan-space-2) var(--plan-space-3);}
+  .planner-section-head{margin-top:var(--plan-space-4);}
   #todoList{display:block;}
-  #todoList > .check-item{display:grid;grid-template-columns:30px minmax(0,1fr) 40px;grid-template-rows:auto auto;column-gap:10px;row-gap:6px;align-items:center;min-height:66px;padding:9px 0;border-bottom:1px solid var(--line);}
+  #todoList > .check-item{display:grid;grid-template-columns:24px minmax(0,1fr) 40px;grid-template-rows:auto auto;column-gap:var(--plan-space-3);row-gap:var(--plan-space-2);align-items:center;min-height:var(--plan-row-h);padding:10px 0;border-bottom:1px solid var(--line);}
   #todoList > .check-item:last-child{border-bottom:0;}
-  #todoList > .check-item > input[type=checkbox]{grid-column:1;grid-row:1/3;align-self:center;margin:0;}
-  #todoList > .check-item > .todo-main{grid-column:2;grid-row:1;display:flex;align-items:center;gap:8px;min-width:0;}
+  #todoList > .check-item > input[type=checkbox]{grid-column:1;grid-row:1/3;align-self:center;justify-self:center;margin:0;}
+  #todoList > .check-item > .todo-main{grid-column:2;grid-row:1;display:grid;grid-template-columns:44px minmax(0,1fr);align-items:center;gap:10px;min-width:0;}
   #todoList > .check-item > .todo-main > .name{margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;font-weight:500;}
-  #todoList > .check-item > .todo-meta{grid-column:2;grid-row:2;display:flex;align-items:center;gap:7px;min-width:0;flex-wrap:wrap;}
+  #todoList > .check-item > .todo-meta{grid-column:2;grid-row:2;display:flex;align-items:center;justify-content:space-between;gap:var(--plan-space-2);width:100%;min-width:0;flex-wrap:nowrap;}
+  #todoList > .check-item > .todo-meta > .tag{max-width:100%;overflow:hidden;}
   #todoList > .check-item > .todo-meta > .tbadge:empty{display:none;}
-  #todoList > .check-item > .todo-more{grid-column:3;grid-row:1/3;align-self:center;justify-self:end;width:36px;height:36px;}
+  #todoList > .check-item > .todo-meta > .tbadge{margin-left:auto;}
+  #todoList > .check-item > .todo-more{grid-column:3;grid-row:1/3;align-self:center;justify-self:end;width:40px;height:40px;}
   #routineList.rt-list{display:block;}
-  #routineList.rt-list > .rt-row{display:grid;grid-template-columns:30px minmax(0,1fr) 40px;grid-template-rows:auto auto;column-gap:10px;row-gap:6px;align-items:center;min-height:66px;padding:9px 0;border-bottom:1px solid var(--line);}
+  #routineList.rt-list > .rt-row{display:grid;grid-template-columns:24px minmax(0,1fr) 40px;grid-template-rows:auto auto;column-gap:var(--plan-space-3);row-gap:var(--plan-space-2);align-items:center;min-height:var(--plan-row-h);padding:10px 0;border-bottom:1px solid var(--line);}
   #routineList.rt-list > .rt-row:last-child{border-bottom:0;}
-  #routineList.rt-list > .rt-row > input[type=checkbox]{grid-column:1;grid-row:1/3;align-self:center;margin:0;}
-  #routineList.rt-list > .rt-row > .rt-main{grid-column:2;grid-row:1;display:flex;align-items:baseline;gap:8px;min-width:0;}
-  #routineList.rt-list > .rt-row > .rt-main > .rt-time{width:auto;min-width:40px;margin:0;flex:none;}
+  #routineList.rt-list > .rt-row > input[type=checkbox]{grid-column:1;grid-row:1/3;align-self:center;justify-self:center;margin:0;}
+  #routineList.rt-list > .rt-row > .rt-main{grid-column:2;grid-row:1;display:grid;grid-template-columns:44px minmax(0,1fr);align-items:center;gap:10px;min-width:0;}
+  #routineList.rt-list > .rt-row > .rt-main > .rt-time{width:44px;min-width:44px;margin:0;flex:none;}
   #routineList.rt-list > .rt-row > .rt-main > .name{margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;font-weight:500;}
-  #routineList.rt-list > .rt-row.no-time > .rt-main > .name{margin:0;}
-  #routineList.rt-list > .rt-row > .rt-meta{grid-column:2;grid-row:2;display:flex;align-items:center;gap:7px;min-width:0;flex-wrap:wrap;}
-  #routineList.rt-list > .rt-row > .rt-meta > .tag{max-width:100%;}
+  #routineList.rt-list > .rt-row.no-time > .rt-main > .name{grid-column:1/-1;margin:0;}
+  #routineList.rt-list > .rt-row > .rt-meta{grid-column:2;grid-row:2;display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;column-gap:var(--plan-space-2);width:100%;min-width:0;}
+  #routineList.rt-list > .rt-row > .rt-meta > .tag{grid-column:1;justify-self:start;max-width:100%;overflow:hidden;}
   #routineList.rt-list > .rt-row > .rt-meta > .tbadge:empty{display:none;}
-  #routineList.rt-list > .rt-row > .rt-meta > .rt-dow-tag{margin:0;}
-  #routineList.rt-list > .rt-row > .tmr{grid-column:3;grid-row:1/3;align-self:center;justify-self:end;width:36px;height:36px;}
-  #routineList.rt-list > .rt-row.no-meta{grid-template-rows:1fr;min-height:52px;padding:6px 0;}
+  #routineList.rt-list > .rt-row > .rt-meta > .tbadge{grid-column:2;justify-self:end;}
+  #routineList.rt-list > .rt-row > .rt-meta > .rt-dow-tag{grid-column:3;justify-self:end;margin:0;}
+  #routineList.rt-list > .rt-row > .tmr{grid-column:3;grid-row:1/3;align-self:center;justify-self:end;width:40px;height:40px;}
+  #routineList.rt-list > .rt-row.no-meta{grid-template-rows:1fr;min-height:56px;padding:6px 0;}
   #routineList.rt-list > .rt-row.no-meta > input[type=checkbox],
   #routineList.rt-list > .rt-row.no-meta > .rt-main,
   #routineList.rt-list > .rt-row.no-meta > .tmr{grid-row:1;}
   #routineList.rt-list > .rt-row.no-meta > .rt-meta{display:none;}
+  .planner-card .add-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--plan-space-2);padding:var(--plan-space-3) 0 10px;}
+  .planner-card .add-row input[type=text]{grid-column:1/-1;width:100%;min-height:var(--plan-control-h);}
+  .planner-card .add-row select{grid-column:1;max-width:none;width:100%;min-height:var(--plan-control-h);}
+  .planner-card .add-row .btn{grid-column:2;min-width:72px;min-height:var(--plan-control-h);}
+  .sn-cloud .sc-actions .btn{min-height:44px;}
 }
 </style>
 </head>
@@ -1432,9 +1453,9 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
 </main>
 
 <main id="plannerView" hidden>
-  <section class="block">
-    <h2>할일</h2>
-    <div class="card">
+  <section class="block planner-block">
+    <h2 class="planner-title">할일</h2>
+    <div class="card planner-card planner-card-todo">
       <div id="todoList"></div>
       <div class="add-row">
         <input type="text" id="todoInput" placeholder="할일 추가" aria-label="할일 추가">
@@ -1442,11 +1463,11 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
         <button class="btn" id="todoAdd">추가</button>
       </div>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 0 10px;">
-      <h2 style="padding:0;">루틴</h2>
+    <div class="planner-section-head">
+      <h2>루틴</h2>
       <label class="rt-edit-switch"><input type="checkbox" id="rtEditToggle"><span class="sw-track"></span>편집</label>
     </div>
-    <div class="card"><div id="routineList"></div></div>
+    <div class="card planner-card planner-card-routine"><div id="routineList"></div></div>
   </section>
 </main>
 
