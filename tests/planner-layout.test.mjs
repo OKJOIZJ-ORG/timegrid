@@ -8,6 +8,8 @@ const html = fs.readFileSync(path.join(root, "index.html"), "utf8")
 
 assert.match(html, /\[hidden\]\{display:none!important;\}/, "semantic hidden state must outrank component display rules")
 assert.match(html, /--plan-row-h:48px; --plan-control-h:40px;/, "desktop Planner uses shared row and control geometry tokens")
+assert.match(html, /#todoList > \.check-item,#todoList > \.check-item > \.todo-main,#todoList > \.check-item > \.todo-meta\{column-gap:var\(--plan-space-3\);\}/, "desktop Todo subgrids inherit one horizontal rhythm")
+assert.match(html, /#routineList\.rt-list > \.rt-row,#routineList\.rt-list > \.rt-row > \.rt-main,#routineList\.rt-list > \.rt-row > \.rt-meta\{column-gap:var\(--plan-space-3\);\}/, "desktop Routine subgrids inherit one horizontal rhythm")
 assert.match(html, /#todoList > \.check-item > input\[type=checkbox\][^}]*justify-self:center/, "mobile Todo checkboxes are centered in their control lane")
 assert.match(html, /#routineList\.rt-list > \.rt-row > input\[type=checkbox\][^}]*justify-self:center/, "mobile Routine checkboxes are centered in their control lane")
 assert.match(html, /#routineList\.rt-list > \.rt-row > \.rt-meta\{[^}]*grid-template-columns:minmax\(0,1fr\) auto auto/, "mobile Routine metadata distributes across the available width")
