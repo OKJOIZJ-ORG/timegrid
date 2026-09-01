@@ -20,6 +20,9 @@ assert.equal(time.clock(0.999), "00:00:00", "the live clock advances only on com
 assert.equal(time.clock(36 * 3600 + 61), "36:01:01", "long sessions retain hours beyond one day")
 assert.equal(time.clock(-1), "00:00:00", "negative durations are clamped")
 assert.equal(time.clock(Number.NaN), "00:00:00", "invalid durations are clamped")
+assert.equal(time.compact(24), "24s", "short active sessions use compact unit text")
+assert.equal(time.compact(8 * 60 + 38), "8m 38s", "active sessions expose minutes and seconds without clock chrome")
+assert.equal(time.compact(3600 + 2 * 60 + 3), "1h 2m 3s", "long active sessions expose hours, minutes, and seconds")
 assert.equal(time.elapsed(1_000, 192_046.999), 191, "active session elapsed time uses the same whole-second contract")
 assert.equal(time.elapsed(10_000, 9_000), 0, "future start timestamps do not produce negative elapsed time")
 const boundaryStart = new Date(2026, 8, 2, 12, 0, 0, 125).getTime()
@@ -30,7 +33,9 @@ assert.equal(
   "daily total and active-session elapsed clocks share the same millisecond boundary",
 )
 
-assert.match(html, /id="runElapsed">00:00:00<\/span> 경과/, "the active-session chip exposes its own elapsed clock")
+assert.match(html, /id="runElapsed">0s<\/span> 경과/, "the active-session chip exposes its own compact elapsed duration")
+assert.doesNotMatch(html, /id="runName"|id="runDot"/, "the running status must not repeat the selected activity identity")
+assert.match(html, /TG_TIME_DISPLAY\.compact\(TG_TIME_DISPLAY\.elapsed/, "the active-session status uses the compact unit formatter")
 assert.match(html, /setInterval\(\(\)=>\{renderTotal\(\); renderActiveElapsed\(\);/, "the active-session clock updates on the existing one-second ticker")
 assert.match(html, /const liveSec=rb\? TG_TIME_DISPLAY\.wholeSeconds\(rb\.re-rb\.rs\) : 0/, "sub-minute entity badges cannot leak fractional seconds")
 assert.match(html, /rs=TG_TIME_DISPLAY\.daySecond\(r\.startTs\)/, "running daily bounds retain start milliseconds")

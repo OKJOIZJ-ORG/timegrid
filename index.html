@@ -226,7 +226,6 @@ main::-webkit-scrollbar, .tl::-webkit-scrollbar, .dlg-body::-webkit-scrollbar, d
 .sw-row #actInput{
   width:auto; min-width:0; max-width:220px;
   padding-left:14px; padding-right:14px;
-  field-sizing:content;
   box-sizing:border-box;
   background:#fff;
   font-weight:400;
@@ -268,13 +267,13 @@ main::-webkit-scrollbar, .tl::-webkit-scrollbar, .dlg-body::-webkit-scrollbar, d
   .sw-row #swBtn{font-size:14px; padding-left:10px; padding-right:10px;}
 }
 .run-chip{
-  display:none; align-items:center; justify-content:center; gap:0; flex-wrap:wrap;
-  min-height:28px; font-size:13px; line-height:1.4; color:var(--text2); padding:6px 16px 0;
+  display:none; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap;
+  min-height:30px; font-size:13px; line-height:1.4; color:var(--text2); padding:8px 16px 0;
 }
 .run-chip.on{display:flex;}
-.run-chip .run-name{min-width:0;max-width:min(240px,55vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.run-chip .run-sep{margin:0 8px;color:var(--line2);font-weight:400;}
-.run-chip .run-start,.run-chip .run-elapsed{white-space:nowrap;font-variant-numeric:tabular-nums;}
+.run-chip .run-sep{color:var(--line2);font-weight:400;}
+.run-chip .run-start{display:inline-flex;align-items:baseline;gap:5px;white-space:nowrap;}
+.run-chip .run-start,.run-chip .run-elapsed{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;}
 .run-chip .run-elapsed{color:var(--text);font-weight:650;}
 .dot{width:8px; height:8px; border-radius:50%; flex:none;}
 .note-tgl{display:inline-flex; align-items:center; justify-content:center; gap:3px; width:72px; flex:none;
@@ -807,8 +806,6 @@ button,.pill,.btn,.icon-btn,.check-item .del,.act-edit .del,.menu-list button{
 .seg.hover-group{filter:brightness(1.05) saturate(1.1); box-shadow:0 2px 10px rgba(0,0,0,.12); z-index:5;}
 @media (hover: hover) and (pointer: fine){ .seg:hover{filter:brightness(1.05) saturate(1.1); box-shadow:0 2px 10px rgba(0,0,0,.12); z-index:5;} }
 .now-bar{box-shadow:0 0 8px rgba(224,32,46,.35);}
-.run-chip .dot{animation:pulseDot 1.6s ease-in-out infinite;}
-@keyframes pulseDot{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.4);opacity:.5}}
 .sbar i,.dpart .ring i{transition:width .5s cubic-bezier(.25,.8,.3,1);}
 .card{transition:box-shadow var(--dur-2) ease,border-color var(--dur-2) ease;}
 @media (hover: hover) and (pointer: fine){ .card:hover{box-shadow:0 3px 14px rgba(0,0,0,.05);} }
@@ -849,7 +846,10 @@ input[type=color]{transition:transform var(--dur-1) ease,box-shadow .2s ease;}
   *{animation:none!important; transition:none!important;}
 }
 /* ---- todo/routine timer ---- */
-.check-item .tmr{flex:none;width:30px;height:30px;border-radius:var(--r-round);border:1px solid var(--line2);background:#fff;font-size:11px;line-height:1;color:var(--text2);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:border-color var(--dur-1) ease,color var(--dur-1) ease,transform .12s ease;}
+.check-item .tmr{flex:none;width:30px;height:30px;border-radius:var(--r-round);border:1px solid var(--line2);background:#fff;line-height:1;color:var(--text2);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;transition:border-color var(--dur-1) ease,color var(--dur-1) ease,transform .12s ease;}
+.check-item .tmr svg{width:15px;height:15px;overflow:visible;}
+.check-item .tmr .tmr-play{transform:translateX(.75px);}
+.check-item .tmr .tmr-stop{width:11px;height:11px;}
 @media (hover: hover) and (pointer: fine){ .check-item .tmr:hover{border-color:var(--text3);color:var(--text);} }
 .check-item .tmr:active{transform:scale(.9);}
 .check-item .tmr.on{background:var(--text);border-color:var(--text);color:#fff;}
@@ -1356,24 +1356,26 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
 }
 /* weekday chip: one fixed, centered column instead of a content-width pill */
 .rt-dow-tag{display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box; min-height:var(--tag-h); line-height:1; padding:0 8px; white-space:nowrap;}
+/* Fixed-height text controls use one baseline and derive equal top/bottom air
+   from flex centering instead of component-specific vertical padding. */
+.pill,.btn,.area-picker,.note-tgl{padding-block:0;line-height:1.2;}
 /* v3.12.63: mobile routines use two information tiers instead of seven squeezed columns */
 @media (max-width:600px){
   :root{--plan-row-h:72px;--plan-control-h:44px;}
   #plannerView{padding-top:0;}
   #plannerView .planner-block{padding:var(--plan-space-3) var(--plan-space-3) calc(84px + env(safe-area-inset-bottom));}
-  #plannerView .planner-card{padding:var(--plan-space-2) var(--plan-space-3);}
+  #plannerView .planner-card{padding:0 var(--plan-space-3);overflow:hidden;}
   .planner-section-head{margin-top:var(--plan-space-4);}
   #todoList{display:block;}
-  #todoList > .check-item{display:grid;grid-template-columns:24px minmax(0,1fr) 40px;grid-template-rows:auto auto;column-gap:var(--plan-space-3);row-gap:var(--plan-space-2);align-items:center;min-height:var(--plan-row-h);padding:10px 0;border-bottom:1px solid var(--line);}
+  #todoList > .check-item{display:grid;grid-template-columns:30px minmax(0,1fr) 40px;grid-template-rows:auto auto;column-gap:10px;row-gap:6px;align-items:center;min-height:66px;padding:9px 0;border-bottom:1px solid var(--line);}
   #todoList > .check-item:last-child{border-bottom:0;}
   #todoList > .check-item > input[type=checkbox]{grid-column:1;grid-row:1/3;align-self:center;justify-self:center;margin:0;}
-  #todoList > .check-item > .todo-main{grid-column:2;grid-row:1;display:grid;grid-template-columns:44px minmax(0,1fr);align-items:center;gap:10px;min-width:0;}
+  #todoList > .check-item > .todo-main{grid-column:2;grid-row:1;display:flex;align-items:center;gap:8px;min-width:0;}
   #todoList > .check-item > .todo-main > .name{margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;font-weight:500;}
-  #todoList > .check-item > .todo-meta{grid-column:2;grid-row:2;display:flex;align-items:center;justify-content:space-between;gap:var(--plan-space-2);width:100%;min-width:0;flex-wrap:nowrap;}
+  #todoList > .check-item > .todo-meta{grid-column:2;grid-row:2;display:flex;align-items:center;gap:7px;min-width:0;flex-wrap:wrap;}
   #todoList > .check-item > .todo-meta > .tag{max-width:100%;overflow:hidden;}
   #todoList > .check-item > .todo-meta > .tbadge:empty{display:none;}
-  #todoList > .check-item > .todo-meta > .tbadge{margin-left:auto;}
-  #todoList > .check-item > .todo-more{grid-column:3;grid-row:1/3;align-self:center;justify-self:end;width:40px;height:40px;}
+  #todoList > .check-item > .todo-more{grid-column:3;grid-row:1/3;align-self:center;justify-self:end;width:36px;height:36px;}
   #routineList.rt-list{display:block;}
   #routineList.rt-list > .rt-row{display:grid;grid-template-columns:24px minmax(0,1fr) 40px;grid-template-rows:auto auto;column-gap:var(--plan-space-3);row-gap:var(--plan-space-2);align-items:center;min-height:var(--plan-row-h);padding:10px 0;border-bottom:1px solid var(--line);}
   #routineList.rt-list > .rt-row:last-child{border-bottom:0;}
@@ -1388,6 +1390,8 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
   #routineList.rt-list > .rt-row > .rt-meta > .tbadge{grid-column:2;justify-self:end;}
   #routineList.rt-list > .rt-row > .rt-meta > .rt-dow-tag{grid-column:3;justify-self:end;margin:0;}
   #routineList.rt-list > .rt-row > .tmr{grid-column:3;grid-row:1/3;align-self:center;justify-self:end;width:40px;height:40px;}
+  #routineList.rt-list > .rt-row > .tmr svg{width:17px;height:17px;}
+  #routineList.rt-list > .rt-row > .tmr .tmr-stop{width:12px;height:12px;}
   #routineList.rt-list > .rt-row.no-meta{grid-template-rows:1fr;min-height:56px;padding:6px 0;}
   #routineList.rt-list > .rt-row.no-meta > input[type=checkbox],
   #routineList.rt-list > .rt-row.no-meta > .rt-main,
@@ -1445,7 +1449,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
     <span class="note-chip" id="noteChip" style="display:none"><span class="nc-k" id="noteChipK"></span><span class="nc-t" id="noteChipT"></span><button type="button" class="nc-x" id="noteChipX" aria-label="선택 해제">✕</button></span>
     <input type="text" id="noteInput" placeholder="무엇을 (할일·루틴·메모)" autocomplete="off" aria-label="세부 입력">
   </div>
-  <div class="run-chip" id="runChip"><span class="dot" id="runDot"></span><span class="run-name" id="runName"></span><span class="run-sep" aria-hidden="true">·</span><span class="run-start"><span id="runSince"></span>부터</span><span class="run-sep" aria-hidden="true">·</span><span class="run-elapsed"><span id="runElapsed">00:00:00</span> 경과</span></div>
+  <div class="run-chip" id="runChip"><span class="run-start"><span id="runSince"></span><span>부터 기록 중</span></span><span class="run-sep" aria-hidden="true">·</span><span class="run-elapsed"><span id="runElapsed">0s</span> 경과</span></div>
   </div>
 
   <div class="tl">
@@ -1603,7 +1607,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.13.2<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.13.3<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -3163,8 +3167,7 @@ function renderSw(){
   const gate=window.tgCloud&&window.tgCloud.startGate?window.tgCloud.startGate():{allowed:false,label:"동기화 확인 중…"};
   if(r){
     btn.textContent=action.locking?(action.label||"중지 중…"):"■ 정지";btn.className="pill stop";btn.disabled=!!action.locking;
-    const act=actById(r.actId),tt=runTagTitle(r);
-    $("#runName").textContent=(act?act.name:"?")+(tt?" · "+tt:"");$("#runDot").style.background=act?act.color:"#999";
+    const act=actById(r.actId);
     const d=new Date(r.startTs);$("#runSince").textContent=hhmm(d.getHours()*60+d.getMinutes());$("#runChip").classList.add("on");renderActiveElapsed();
     if(act){$("#actInput").value=act.name;if(window.sizeActInput)sizeActInput(true);if(areaByName(act.area)){$("#areaSelect").value=act.area;if(window.refreshAreaPickers)refreshAreaPickers();}}
     if(r.todoId||r.routineId){noteTag=r.todoId?{kind:"todo",id:r.todoId}:{kind:"routine",id:r.routineId};$("#noteChipK").textContent=r.todoId?"할일":"루틴";$("#noteChipT").textContent=runTagTitle(r)||"?";$("#noteChip").style.display="inline-flex";$("#noteInput").style.display="none";noteRowOpen(true);}
@@ -3189,6 +3192,15 @@ const TG_TIME_DISPLAY=(()=>{
     const pad=value=>String(value).padStart(2,"0");
     return pad(Math.floor(seconds/3600))+":"+pad(Math.floor(seconds%3600/60))+":"+pad(seconds%60);
   }
+  function compact(value){
+    const seconds=wholeSeconds(value);
+    const parts=[];
+    const hours=Math.floor(seconds/3600),minutes=Math.floor(seconds%3600/60),rest=seconds%60;
+    if(hours)parts.push(hours+"h");
+    if(minutes||hours)parts.push(minutes+"m");
+    parts.push(rest+"s");
+    return parts.join(" ");
+  }
   function elapsed(startTs,nowTs){
     const start=Number(startTs),now=Number(nowTs);
     if(!Number.isFinite(start)||!Number.isFinite(now)||now<=start)return 0;
@@ -3199,7 +3211,7 @@ const TG_TIME_DISPLAY=(()=>{
     if(!Number.isFinite(date.getTime()))return 0;
     return date.getHours()*3600+date.getMinutes()*60+date.getSeconds()+date.getMilliseconds()/1000;
   }
-  return {wholeSeconds,clock,elapsed,daySecond};
+  return {wholeSeconds,clock,compact,elapsed,daySecond};
 })();
 /* TIME_DISPLAY_CORE_END */
 
@@ -3229,9 +3241,10 @@ function renderTotal(){
 function renderActiveElapsed(){
   const r=state.running,chip=$("#runChip"),out=$("#runElapsed");
   if(!r||!chip||!out)return;
-  const elapsed=TG_TIME_DISPLAY.clock(TG_TIME_DISPLAY.elapsed(r.startTs,Date.now()));
+  const elapsed=TG_TIME_DISPLAY.compact(TG_TIME_DISPLAY.elapsed(r.startTs,Date.now()));
   out.textContent=elapsed;
-  chip.setAttribute("aria-label",$("#runName").textContent+" "+$("#runSince").textContent+"부터 기록 중, 현재 측정 "+elapsed+" 경과");
+  const act=actById(r.actId),detail=runTagTitle(r),identity=(act?act.name:"현재 활동")+(detail?" "+detail:"");
+  chip.setAttribute("aria-label",identity+", "+$("#runSince").textContent+"부터 기록 중, 현재 측정 "+elapsed+" 경과");
 }
 
 /* ================= timeline ================= */
@@ -4512,7 +4525,18 @@ function makeTmrBtn(item,kind){
   const b=document.createElement("button");
   b.type="button";
   b.className="tmr"+(on?" on":"");
-  b.textContent=on?"■":"▶";
+  const icon=document.createElementNS("http://www.w3.org/2000/svg","svg");
+  icon.setAttribute("viewBox","0 0 20 20");icon.setAttribute("aria-hidden","true");
+  if(on){
+    icon.classList.add("tmr-stop");
+    const stop=document.createElementNS(icon.namespaceURI,"rect");
+    stop.setAttribute("x","4");stop.setAttribute("y","4");stop.setAttribute("width","12");stop.setAttribute("height","12");stop.setAttribute("rx","1.5");stop.setAttribute("fill","currentColor");icon.appendChild(stop);
+  }else{
+    icon.classList.add("tmr-play");
+    const play=document.createElementNS(icon.namespaceURI,"path");
+    play.setAttribute("d","M6.25 4.75 14.25 10 6.25 15.25Z");play.setAttribute("fill","currentColor");icon.appendChild(play);
+  }
+  b.appendChild(icon);
   b.setAttribute("aria-label",on?"측정 정지":"측정 시작");
   if(!isToday&&!on){ b.disabled=true; b.title="오늘 화면에서만 측정할 수 있습니다"; }
   b.addEventListener("click",function(e){
@@ -7579,7 +7603,8 @@ function sizeActInput(animate){
   /* 표시 중인 문자열만 실측 — 값 있으면 값 폭, 비었으면 placeholder 폭. 하한 강제 없음 → 글자수에 맞춰 늘고 줄어듦 */
   const hasVal=el.value!=="";
   _actMeas.textContent=hasVal? el.value : (el.placeholder||"");
-  const tw=Math.ceil(_actMeas.getBoundingClientRect().width)+(hasVal?1:0);
+  /* Paint weight is measured first; a 4px reserve absorbs iOS subpixel glyph rounding. */
+  const tw=Math.ceil(_actMeas.getBoundingClientRect().width)+(hasVal?4:0);
   const pl=parseFloat(cs.paddingLeft)||0;
   const pr=parseFloat(cs.paddingRight)||0;
   const bl=parseFloat(cs.borderLeftWidth)||0;
@@ -7646,7 +7671,7 @@ function resolveMainAct(){
   if(!v) return null;
   return actByName(v)||state.settings.activities.find(function(a){return a.name.toLowerCase()===v.toLowerCase();})||null;
 }
-function paintActInput(){
+function paintActInput(animate){
   const el=$("#actInput"); if(!el) return;
   const act=resolveMainAct();
   if(act && act.color){
@@ -7668,6 +7693,8 @@ function paintActInput(){
     el.style.color="";
   }
   paintSwReady();
+  /* This is the authoritative sizing pass and runs after weight 600 is applied. */
+  sizeActInput(animate!==false);
 }
 window.paintActInput=paintActInput;
 /* 측정 준비 신호: 확정 활동 → 영역·시작 세미볼드. 무엇을(메모/칩)은 내용 있을 때 */
@@ -7716,8 +7743,8 @@ $("#actInput").addEventListener("change",function(){ if(window.syncAreaLock)sync
 $("#evArea").addEventListener("change",function(){ onEvAreaChange(); });
 $("#evAct").addEventListener("input",function(){ if(window.syncAreaLock)syncAreaLock(); if(window.paintEvAct)paintEvAct(); });
 $("#evAct").addEventListener("change",function(){ if(window.syncAreaLock)syncAreaLock(); if(window.paintEvAct)paintEvAct(); });
-sizeActInput();
-paintActInput();
+paintActInput(false);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){paintActInput(false);});
 attachSlideInd(document.querySelector(".tabbar"));
 (function(){
   const sel=$("#todoArea"); sel.style.display="none";
