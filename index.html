@@ -265,10 +265,14 @@ main::-webkit-scrollbar, .tl::-webkit-scrollbar, .dlg-body::-webkit-scrollbar, d
   .sw-row #swBtn{font-size:14px; padding-left:10px; padding-right:10px;}
 }
 .run-chip{
-  display:none; align-items:center; justify-content:center; gap:8px;
-  font-size:14px; color:var(--text2); padding:6px 0 0;
+  display:none; align-items:center; justify-content:center; gap:0; flex-wrap:wrap;
+  min-height:28px; font-size:13px; line-height:1.4; color:var(--text2); padding:6px 16px 0;
 }
 .run-chip.on{display:flex;}
+.run-chip .run-name{min-width:0;max-width:min(240px,55vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.run-chip .run-sep{margin:0 8px;color:var(--line2);font-weight:400;}
+.run-chip .run-start,.run-chip .run-elapsed{white-space:nowrap;font-variant-numeric:tabular-nums;}
+.run-chip .run-elapsed{color:var(--text);font-weight:650;}
 .dot{width:8px; height:8px; border-radius:50%; flex:none;}
 .note-tgl{display:inline-flex; align-items:center; justify-content:center; gap:3px; width:72px; flex:none;
   min-height:40px; padding:4px 0; border:1px dashed var(--line2); border-radius:var(--r-round);
@@ -1418,7 +1422,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
     <span class="note-chip" id="noteChip" style="display:none"><span class="nc-k" id="noteChipK"></span><span class="nc-t" id="noteChipT"></span><button type="button" class="nc-x" id="noteChipX" aria-label="선택 해제">✕</button></span>
     <input type="text" id="noteInput" placeholder="무엇을 (할일·루틴·메모)" autocomplete="off" aria-label="세부 입력">
   </div>
-  <div class="run-chip" id="runChip"><span class="dot" id="runDot"></span><span id="runName"></span>·<span id="runSince"></span>부터 기록 중</div>
+  <div class="run-chip" id="runChip"><span class="dot" id="runDot"></span><span class="run-name" id="runName"></span><span class="run-sep" aria-hidden="true">·</span><span class="run-start"><span id="runSince"></span>부터</span><span class="run-sep" aria-hidden="true">·</span><span class="run-elapsed"><span id="runElapsed">00:00:00</span> 경과</span></div>
   </div>
 
   <div class="tl">
@@ -3139,7 +3143,7 @@ function renderSw(){
     btn.textContent=action.locking?(action.label||"중지 중…"):"■ 정지";btn.className="pill stop";btn.disabled=!!action.locking;
     const act=actById(r.actId),tt=runTagTitle(r);
     $("#runName").textContent=(act?act.name:"?")+(tt?" · "+tt:"");$("#runDot").style.background=act?act.color:"#999";
-    const d=new Date(r.startTs);$("#runSince").textContent=hhmm(d.getHours()*60+d.getMinutes())+" ";$("#runChip").classList.add("on");
+    const d=new Date(r.startTs);$("#runSince").textContent=hhmm(d.getHours()*60+d.getMinutes());$("#runChip").classList.add("on");renderActiveElapsed();
     if(act){$("#actInput").value=act.name;if(window.sizeActInput)sizeActInput(true);if(areaByName(act.area)){$("#areaSelect").value=act.area;if(window.refreshAreaPickers)refreshAreaPickers();}}
     if(r.todoId||r.routineId){noteTag=r.todoId?{kind:"todo",id:r.todoId}:{kind:"routine",id:r.routineId};$("#noteChipK").textContent=r.todoId?"할일":"루틴";$("#noteChipT").textContent=runTagTitle(r)||"?";$("#noteChip").style.display="inline-flex";$("#noteInput").style.display="none";noteRowOpen(true);}
     else if(r.note){noteTag=null;$("#noteChip").style.display="none";$("#noteInput").style.display="";$("#noteInput").value=r.note;noteRowOpen(true);}
@@ -3151,6 +3155,26 @@ function renderSw(){
   }
   if(window.syncAreaLock)syncAreaLock();if(window.paintActInput)paintActInput();else if(window.paintSwReady)paintSwReady();
 }
+
+/* TIME_DISPLAY_CORE_START */
+const TG_TIME_DISPLAY=(()=>{
+  function wholeSeconds(value){
+    const seconds=Number(value);
+    return Number.isFinite(seconds)&&seconds>0?Math.floor(seconds):0;
+  }
+  function clock(value){
+    const seconds=wholeSeconds(value);
+    const pad=value=>String(value).padStart(2,"0");
+    return pad(Math.floor(seconds/3600))+":"+pad(Math.floor(seconds%3600/60))+":"+pad(seconds%60);
+  }
+  function elapsed(startTs,nowTs){
+    const start=Number(startTs),now=Number(nowTs);
+    if(!Number.isFinite(start)||!Number.isFinite(now)||now<=start)return 0;
+    return wholeSeconds((now-start)/1000);
+  }
+  return {wholeSeconds,clock,elapsed};
+})();
+/* TIME_DISPLAY_CORE_END */
 
 function totalSec(){
   const day=ensureDay(state.viewDate);
@@ -3173,9 +3197,14 @@ function totalSec(){
   return sec;
 }
 function renderTotal(){
-  const sec=totalSec();
-  const p=n=>String(n).padStart(2,"0");
-  $("#totalTime .total-time-ink").textContent=p(Math.floor(sec/3600))+":"+p(Math.floor(sec%3600/60))+":"+p(sec%60);
+  $("#totalTime .total-time-ink").textContent=TG_TIME_DISPLAY.clock(totalSec());
+}
+function renderActiveElapsed(){
+  const r=state.running,chip=$("#runChip"),out=$("#runElapsed");
+  if(!r||!chip||!out)return;
+  const elapsed=TG_TIME_DISPLAY.clock(TG_TIME_DISPLAY.elapsed(r.startTs,Date.now()));
+  out.textContent=elapsed;
+  chip.setAttribute("aria-label",$("#runName").textContent+" "+$("#runSince").textContent+"부터 기록 중, 현재 측정 "+elapsed+" 경과");
 }
 
 /* ================= timeline ================= */
@@ -3513,7 +3542,7 @@ function renderRtMarkers(){
   }
   _rtMarksDirty=false;
 }
-setInterval(()=>{renderTotal(); renderLive(); tickTmrBadges();},1000);
+setInterval(()=>{renderTotal(); renderActiveElapsed(); renderLive(); tickTmrBadges();},1000);
 window.addEventListener("resize",function(){ tlNoAnim=true; try{ renderTimeline(); }finally{ tlNoAnim=false; } });
 
 /* drag-create / tap-edit */
@@ -4708,7 +4737,7 @@ function tickTmrBadges(){
   if(r.todoId){ const td=day.todos.find(x=>x.id===r.todoId); if(td) base=todoMeasuredMin(day,td); }
   else{ const rt=day.routines.find(x=>x.id===r.routineId); if(rt) base=routineMeasuredMin(day,rt); }
   const rb=runningDayBounds(r, state.viewDate);
-  const liveSec=rb? (rb.re-rb.rs) : 0;
+  const liveSec=rb? TG_TIME_DISPLAY.wholeSeconds(rb.re-rb.rs) : 0;
   const total=base+Math.floor(liveSec/60);
   els.forEach(el=>{ el.textContent=total>0? fmtShort(total) : (liveSec>0? liveSec+"s" : ""); });
 }
