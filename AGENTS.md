@@ -21,9 +21,13 @@
 - **배포 게이트**: 배치 배포는 사용자 명시 지시가 있을 때만. push = Pages 배포.
 - **보안**: 인증 토큰·UID 원문을 노션/코드/저장소/대화에 기록·재공유 금지. 임베드 파일 교체는 세션 권한 밖.
 
-- 배포 운영 버전: **v3.12.67** (GitHub Pages, 2026-08-31). 확인된 운영 `main` 기준은 `aaeabef2271b866e5ea785ea4daad0b7a1c38e9b`이다.
-- 로컬 검증 후보: **v3.13.0** (`codex/life-os-reconstruction`, 미배포)
+- 배포 운영 버전: **v3.13.0** (GitHub Pages, 2026-09-02). 검증된 릴리스 코드 커밋은 `2bb27e5b146a72c629a3084b95ebb7f0386b7a62`이다.
+  - index.html Git blob: `a849c51a491d33a879fac7193820a4927ea02f9f`
+  - sw.js Git blob: `f3f3c14067fbea78d1216855b050d22d611cb051`
   - SW: `timegrid-v3.13.0-20260901`
+  - 외부 Firebase/GSAP 스크립트는 고정 SHA-384 SRI와 anonymous CORS를 사용한다.
+  - 가져오기·localStorage·원격 설정의 영역/활동 색은 `#RRGGBB`로 정규화해 저장형 DOM-XSS 경로를 차단한다.
+  - 클라이언트와 Firestore Rules는 공개 이메일 allowlist 대신 `timegridOwner` custom claim과 UID 경로 일치를 요구한다.
   - 완료 상태는 명시적 `statusMutations`로 수렴한다. Todo와 routine instance의 embedded `done`은 materialized projection이다.
   - 반복 루틴 정의는 `routineDefId`, 일별 실행은 별도 안정적 instance `id`를 사용한다. ID 없는 semantic duplicate는 settings normalize 단계에서 제거한다.
   - 동일 semantic measurement는 정확히 60초까지 exact timestamp/continuity lineage로 한 span에 합치며 공백도 시간에 포함한다.
