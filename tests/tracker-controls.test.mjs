@@ -10,6 +10,9 @@ assert.doesNotMatch(html, /#actInput\{[^}]*field-sizing:content/, "activity widt
 assert.match(html, /const tw=Math\.ceil\(_actMeas\.getBoundingClientRect\(\)\.width\)\+\(hasVal\?4:0\)/, "activity sizing reserves iOS subpixel glyph width")
 assert.match(html, /function paintActInput\(animate\)[\s\S]*?paintSwReady\(\);[\s\S]*?sizeActInput\(animate!==false\);/, "activity input is measured after its final font weight is painted")
 assert.match(html, /document\.fonts\.ready\.then\(function\(\)\{paintActInput\(false\);\}\)/, "activity width is remeasured after font readiness")
+assert.match(html, /#actInput:placeholder-shown\{min-width:92px;\}/, "activity placeholder has a CSS safety width before visible layout")
+assert.match(html, /if\(row && row\.clientWidth>0\)/, "hidden Tracker width cannot collapse activity input to the fallback cap")
+assert.match(html, /new ResizeObserver\([\s\S]*?paintActInput\(false\)[\s\S]*?observer\.observe\(row\)/, "activity input remeasures when Tracker becomes visible or changes width")
 assert.match(html, /classList\.add\("tmr-play"\)[\s\S]*?createElementNS\(icon\.namespaceURI,"path"\)/, "timer play controls use deterministic SVG geometry")
 assert.match(html, /classList\.add\("tmr-stop"\)[\s\S]*?createElementNS\(icon\.namespaceURI,"rect"\)/, "timer stop controls use centered SVG geometry")
 

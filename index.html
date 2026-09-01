@@ -231,6 +231,9 @@ main::-webkit-scrollbar, .tl::-webkit-scrollbar, .dlg-body::-webkit-scrollbar, d
   font-weight:400;
   transition:width .18s cubic-bezier(.22,.61,.36,1), background-color .18s ease, background-image .18s ease, border-color .18s ease, color .18s ease;
 }
+/* Empty controls can be measured while Tracker is display:none. Keep the full
+   placeholder readable even before the first visible-layout sizing pass. */
+.sw-row #actInput:placeholder-shown{min-width:92px;}
 .sw-row #actInput.act-filled{
   /* 형광펜 + 확정(측정 준비) 시에만 세미볼드 */
   background-color:#fff !important;
@@ -262,6 +265,7 @@ main::-webkit-scrollbar, .tl::-webkit-scrollbar, .dlg-body::-webkit-scrollbar, d
   .sw-row{gap:6px; padding-left:10px; padding-right:10px;}
   .sw-row .area-picker{font-size:14px; padding-left:10px; padding-right:10px;}
   .sw-row #actInput{font-size:14px; padding-left:10px; padding-right:10px;}
+  .sw-row #actInput:placeholder-shown{min-width:82px;}
   .sw-row .note-tgl{width:60px; gap:2px; font-size:14px;}
   .sw-row .note-tgl .nt-sym{font-size:15px;}
   .sw-row #swBtn{font-size:14px; padding-left:10px; padding-right:10px;}
@@ -1397,10 +1401,14 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
   #routineList.rt-list > .rt-row.no-meta > .rt-main,
   #routineList.rt-list > .rt-row.no-meta > .tmr{grid-row:1;}
   #routineList.rt-list > .rt-row.no-meta > .rt-meta{display:none;}
-  .planner-card .add-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--plan-space-2);padding:var(--plan-space-3) 0 10px;}
-  .planner-card .add-row input[type=text]{grid-column:1/-1;width:100%;min-height:var(--plan-control-h);}
-  .planner-card .add-row select{grid-column:1;max-width:none;width:100%;min-height:var(--plan-control-h);}
-  .planner-card .add-row .btn{grid-column:2;min-width:72px;min-height:var(--plan-control-h);}
+  /* Restore the pre-v3.13.1 compact Todo composer as one row. The list keeps
+     the corrected optical geometry, but input/category/add no longer occupy
+     two oversized tiers on phones. */
+  .planner-card-todo .add-row{display:flex;align-items:center;gap:var(--plan-space-2);padding:10px 0;}
+  .planner-card-todo .add-row input[type=text]{grid-column:auto;flex:1 1 auto;width:auto;min-width:0;min-height:40px;}
+  .planner-card-todo .add-row select{grid-column:auto;flex:0 1 96px;width:auto;min-width:0;max-width:96px;min-height:40px;}
+  .planner-card-todo .add-row .area-picker{flex:0 1 96px;width:auto;min-width:72px;max-width:96px;min-height:40px;}
+  .planner-card-todo .add-row .btn{grid-column:auto;flex:0 0 auto;min-width:56px;min-height:40px;}
   .sn-cloud .sc-actions .btn{min-height:44px;}
 }
 </style>
@@ -1607,7 +1615,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.13.3<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.13.4<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -7611,7 +7619,10 @@ function sizeActInput(animate){
   const br=parseFloat(cs.borderRightWidth)||0;
   let cap=220;
   const row=el.parentElement;
-  if(row){
+  /* A hidden Tracker reports clientWidth=0. The previous code converted that
+     into the 48px fallback cap and persisted the clipped width after the tab
+     became visible. Only constrain against a real, laid-out row. */
+  if(row && row.clientWidth>0){
     const rs=getComputedStyle(row);
     const inner=row.clientWidth-(parseFloat(rs.paddingLeft)||0)-(parseFloat(rs.paddingRight)||0);
     const gap=parseFloat(rs.columnGap)||parseFloat(rs.gap)||8;
@@ -7745,6 +7756,19 @@ $("#evAct").addEventListener("input",function(){ if(window.syncAreaLock)syncArea
 $("#evAct").addEventListener("change",function(){ if(window.syncAreaLock)syncAreaLock(); if(window.paintEvAct)paintEvAct(); });
 paintActInput(false);
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){paintActInput(false);});
+/* Re-measure when a hidden Planner-first boot reveals Tracker. ResizeObserver
+   also covers orientation/split-view width changes without polling. */
+(function observeActInputLayout(){
+  const row=document.querySelector("#trackerView .sw-row");
+  if(!row || typeof ResizeObserver!=="function") return;
+  let lastWidth=0;
+  const observer=new ResizeObserver(function(entries){
+    const width=Math.round((entries[0]&&entries[0].contentRect.width)||0);
+    if(width>0 && width!==lastWidth){lastWidth=width;requestAnimationFrame(function(){paintActInput(false);});}
+  });
+  observer.observe(row);
+  window._actInputResizeObserver=observer;
+})();
 attachSlideInd(document.querySelector(".tabbar"));
 (function(){
   const sel=$("#todoArea"); sel.style.display="none";
