@@ -12,9 +12,9 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="shortcut icon" href="icons/favicon.ico">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
-<script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js" integrity="sha384-4DnN3LMk363cZnO0ZZ+46dvN6+1On5ODUbq/68J4ZeSDAghncVXodw2jecSmTyAe" crossorigin="anonymous"></script>
+<script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-auth-compat.js" integrity="sha384-XkNx6yfzInowq3eeLw+tOjPN3eJZ5kjET5iIbCABcI8RkLWOr6XAtva7++KOxiqp" crossorigin="anonymous"></script>
+<script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore-compat.js" integrity="sha384-OWv+RYFfLxKnRm2S6RYMcxn1Un3vxC0dbSWy7XC9DKsJGGHMWBCbDV27k62l/2XK" crossorigin="anonymous"></script>
 <title>TimeGrid</title>
 <style>
 :root{
@@ -1880,7 +1880,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.7/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.7/gsap.min.js" integrity="sha384-pEQB1h4Zmn9xhS6jotzltHSIQq6N0Oh3BXkCNOH5LKI81R2NRbb9efarAJYw9gTY" crossorigin="anonymous"></script>
 <script>
 "use strict";
 /* ================= constants ================= */
@@ -2117,7 +2117,42 @@ let expandedGrps=null; // Set of area names, init after load
 function $(s){return document.querySelector(s);}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function statLine(pairs){return pairs.filter(function(p){return p&&p[1]!=null&&p[1]!=="";}).map(function(p){return '<span class="stat-seg"><span class="k">'+esc(String(p[0]))+'</span><span class="val">'+esc(String(p[1]))+'</span></span>';}).join('<span class="stat-sep">·</span>');}
-function darkTone(hex){try{var m=String(hex).replace("#","");if(m.length===3)m=m.split("").map(function(c){return c+c}).join("");var n=parseInt(m,16);var r=Math.round(((n>>16)&255)*.52),g=Math.round(((n>>8)&255)*.52),b=Math.round((n&255)*.52);return "rgb("+r+","+g+","+b+")";}catch(e){return "#2C2C2B";}}
+/* SETTINGS_COLOR_CORE_START */
+const TG_SETTINGS_COLORS=(function(){
+  const FALLBACK="#BDB4A8";
+  const PALETTE=["#E03131","#EAB308","#2F9E44","#4263EB","#7048E8","#C2255C","#0B7285","#E8590C"];
+  function normalizeHex(value,fallback){
+    const rawFallback=typeof fallback==="string"?fallback.trim():FALLBACK;
+    let fb=/^#[0-9a-f]{6}$/i.test(rawFallback)?rawFallback.toUpperCase():FALLBACK;
+    if(/^#[0-9a-f]{3}$/i.test(rawFallback)) fb="#"+rawFallback.slice(1).split("").map(function(c){return c+c;}).join("").toUpperCase();
+    const raw=typeof value==="string"?value.trim():"";
+    if(/^#[0-9a-f]{6}$/i.test(raw)) return raw.toUpperCase();
+    if(/^#[0-9a-f]{3}$/i.test(raw)) return "#"+raw.slice(1).split("").map(function(c){return c+c;}).join("").toUpperCase();
+    return fb;
+  }
+  function record(value){return value&&typeof value==="object"&&!Array.isArray(value)?Object.assign({},value):{};}
+  function normalize(settings){
+    const src=record(settings);
+    const areas=(Array.isArray(src.areas)?src.areas:[]).map(function(value,index){
+      const area=record(value);
+      area.color=normalizeHex(area.color,PALETTE[index%PALETTE.length]);
+      return area;
+    });
+    const areaColors=new Map();
+    areas.forEach(function(area){areaColors.set(String(area.name||""),area.color);});
+    const activities=(Array.isArray(src.activities)?src.activities:[]).map(function(value){
+      const activity=record(value);
+      activity.color=normalizeHex(activity.color,areaColors.get(String(activity.area||""))||FALLBACK);
+      return activity;
+    });
+    return Object.assign({},src,{areas:areas,activities:activities});
+  }
+  return Object.freeze({normalizeHex:normalizeHex,normalize:normalize});
+})();
+/* SETTINGS_COLOR_CORE_END */
+function safeHexColor(value,fallback){return TG_SETTINGS_COLORS.normalizeHex(value,fallback);}
+function normalizeSettingsColors(settings){return TG_SETTINGS_COLORS.normalize(settings);}
+function darkTone(hex){try{var m=safeHexColor(hex,"#2C2C2B").slice(1);var n=parseInt(m,16);var r=Math.round(((n>>16)&255)*.52),g=Math.round(((n>>8)&255)*.52),b=Math.round((n&255)*.52);return "rgb("+r+","+g+","+b+")";}catch(e){return "#2C2C2B";}}
 function ensureUiTip(){var t=window._uiTip;if(t&&document.body.contains(t))return t;t=document.createElement("div");t.className="ui-tip";document.body.appendChild(t);window._uiTip=t;return t;}
 function hideUiTip(){if(window._uiTip)window._uiTip.style.display="none";}
 function attachTip(el,html){
@@ -2249,11 +2284,12 @@ function monthRange(ds){
   return arr;
 }
 function hexToRgba(hex,a){
-  const n=parseInt(hex.slice(1),16);
-  return "rgba("+((n>>16)&255)+","+((n>>8)&255)+","+(n&255)+","+a+")";
+  const n=parseInt(safeHexColor(hex).slice(1),16);
+  const alpha=Math.max(0,Math.min(1,Number(a)||0));
+  return "rgba("+((n>>16)&255)+","+((n>>8)&255)+","+(n&255)+","+alpha+")";
 }
 function hexToHsl(hex){
-  const n=parseInt(hex.slice(1),16);
+  const n=parseInt(safeHexColor(hex).slice(1),16);
   let r=((n>>16)&255)/255,g=((n>>8)&255)/255,b=(n&255)/255;
   const mx=Math.max(r,g,b),mn=Math.min(r,g,b);
   let h=0,s=0;const l=(mx+mn)/2,d=mx-mn;
@@ -2543,7 +2579,7 @@ function appendTodoRestoreIfNeeded(day,dateStr,todo){
 function actById(id){return state.settings.activities.find(a=>a.id===id);}
 function actByName(name){return state.settings.activities.find(a=>a.name===name);}
 function areaByName(name){return state.settings.areas.find(a=>a.name===name);}
-function areaColor(name){const a=areaByName(name); return a? a.color:"#BDB4A8";}
+function areaColor(name){const a=areaByName(name); return safeHexColor(a&&a.color,"#BDB4A8");}
 function autoColor(areaNameArg){
   const areaName=(areaNameArg!=null&&areaNameArg!=="")? areaNameArg : ($("#areaSelect").value||"");
   const areaC=areaColor(areaName);
@@ -2573,6 +2609,7 @@ function autoColorActs(areaName,skipSave){
 }
 function save(){
   if(DEMO) return;
+  state.settings=normalizeSettingsColors(state.settings);
   TG_TODO_MUTATIONS.materialize(state.days);
   Object.keys(state.days||{}).forEach(function(ds){TG_STATUS_MUTATIONS.materializeDay(state.days[ds]);});
   state._localUpdatedAt=Date.now();
@@ -2585,7 +2622,7 @@ function load(){
     const raw=localStorage.getItem(LS_KEY);
     if(!raw) return;
     const s=JSON.parse(raw);
-    if(s.settings) state.settings=s.settings;
+    if(s.settings) state.settings=normalizeSettingsColors(s.settings);
     if(!state.settings.areas || !state.settings.areas.length){
       state.settings.areas=DEFAULT_AREAS.map(a=>({...a}));
       state.settings.version=2;
@@ -2836,7 +2873,7 @@ function attachAC(input, areaSel, container){
     }
     for(const a of acts.slice(0,8)){
       const row=document.createElement("div"); row.className="ac-row";
-      row.innerHTML='<span class="dot" style="background:'+a.color+'"></span><span class="nm">'+esc(a.name)+'</span>'+(areaFilter? '':'<span class="ar">'+esc(a.area)+'</span>');
+      row.innerHTML='<span class="dot" style="background:'+safeHexColor(a.color)+'"></span><span class="nm">'+esc(a.name)+'</span>'+(areaFilter? '':'<span class="ar">'+esc(a.area)+'</span>');
       row.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();input.value=a.name;if(areaByName(a.area)){areaSel.value=a.area;if(areaSel.dispatchEvent)areaSel.dispatchEvent(new Event('change',{bubbles:true}));if(window.refreshAreaPickers)refreshAreaPickers();}if(window.syncAreaLock)syncAreaLock();if(window.sizeActInput)sizeActInput(true);if(window.paintActInput)paintActInput();acPickAnim(input,list,row);});
       row.addEventListener("pointerdown",function(ev){ev.stopPropagation()});
       row.addEventListener("pointerenter",function(){scroll.querySelectorAll('.ac-row').forEach(function(x){x.classList.remove('selected')});row.classList.add('selected');acSelIdx=Array.from(scroll.children).indexOf(row);list.dataset.selIdx=acSelIdx});
@@ -3861,9 +3898,9 @@ function renderStToday(){
       const ss=sessions[id]||[];
       const cnt=ss.length, avg=cnt? Math.round(min/cnt):0;
       const row=document.createElement("div"); row.className="srow";
-      row.innerHTML='<span class="dot" style="background:'+(act?act.color:"#999")+'"></span><span class="name">'+(act?esc(act.name):"(삭제된 활동)")+'</span><span class="tag" style="color:'+(act?areaColor(act.area):"var(--text2)")+'">'+(act?esc(act.area):"기타")+'</span><span class="t">'+fmtDur(min)+' · '+cnt+'회 · 평균 '+fmtShort(avg)+'</span><span class="pct">'+pct+'%</span>';
+      row.innerHTML='<span class="dot" style="background:'+(act?safeHexColor(act.color,"#999999"):"#999999")+'"></span><span class="name">'+(act?esc(act.name):"(삭제된 활동)")+'</span><span class="tag" style="color:'+(act?areaColor(act.area):"var(--text2)")+'">'+(act?esc(act.area):"기타")+'</span><span class="t">'+fmtDur(min)+' · '+cnt+'회 · 평균 '+fmtShort(avg)+'</span><span class="pct">'+pct+'%</span>';
       actBox.appendChild(row);
-      const abar=document.createElement("div"); abar.className="sbar"; abar.innerHTML='<i style="width:'+pct+'%;background:'+(act?act.color:"#999")+'"></i>'; actBox.appendChild(abar);
+      const abar=document.createElement("div"); abar.className="sbar"; abar.innerHTML='<i style="width:'+pct+'%;background:'+(act?safeHexColor(act.color,"#999999"):"#999999")+'"></i>'; actBox.appendChild(abar);
       const src=det.perActSrc[id]||{todo:0,routine:0,free:0};
       if(src.todo||src.routine){
         const parts=[];
@@ -4711,10 +4748,10 @@ function renderTodos(){
     const tag=document.createElement("button"); tag.type="button";
     if(act){
       tag.className="tag linked";
-      tag.innerHTML=(ar?'<span class="tag-ar" style="color:'+ar.color+'">'+esc(act.area)+'</span><span class="tag-dot">·</span>':'')+'<span class="tag-act" style="background:'+hexToRgba(act.color,.26)+'">'+esc(act.name)+'</span>';
+      tag.innerHTML=(ar?'<span class="tag-ar" style="color:'+safeHexColor(ar.color)+'">'+esc(act.area)+'</span><span class="tag-dot">·</span>':'')+'<span class="tag-act" style="background:'+hexToRgba(act.color,.26)+'">'+esc(act.name)+'</span>';
     }else if(td.area){
       tag.className="tag linked";
-      tag.innerHTML='<span class="tag-ar"'+(ar?' style="color:'+ar.color+'"':'')+'>'+esc(td.area)+'</span>';
+      tag.innerHTML='<span class="tag-ar"'+(ar?' style="color:'+safeHexColor(ar.color)+'"':'')+'>'+esc(td.area)+'</span>';
     }else{
       tag.className="tag ghost"; tag.textContent="영역·활동";
     }
@@ -4941,8 +4978,8 @@ function renderRoutines(){
     const _rar=_ra? areaByName(_ra.area) : (rt.area? areaByName(rt.area):null);
     if(_ra||_rar){
       const atg=document.createElement("span"); atg.className="tag linked";
-      if(_ra){ atg.innerHTML=(_rar?'<span class="tag-ar" style="color:'+_rar.color+'">'+esc(_ra.area)+'</span><span class="tag-dot">·</span>':'')+'<span class="tag-act" style="background:'+hexToRgba(_ra.color,.26)+'">'+esc(_ra.name)+'</span>'; }
-      else{ atg.innerHTML='<span class="tag-ar" style="color:'+_rar.color+'">'+esc(_rar.name)+'</span>'; }
+      if(_ra){ atg.innerHTML=(_rar?'<span class="tag-ar" style="color:'+safeHexColor(_rar.color)+'">'+esc(_ra.area)+'</span><span class="tag-dot">·</span>':'')+'<span class="tag-act" style="background:'+hexToRgba(_ra.color,.26)+'">'+esc(_ra.name)+'</span>'; }
+      else{ atg.innerHTML='<span class="tag-ar" style="color:'+safeHexColor(_rar.color)+'">'+esc(_rar.name)+'</span>'; }
       meta.appendChild(atg);
     }
     meta.appendChild(tb);
@@ -5168,7 +5205,7 @@ function areaBtn(value,onSelect,opts){
   let selectedIdx=0
   function refresh(){
     const ar=areaByName(cur)
-    btn.innerHTML=(ar?'<span class="dot" style="background:'+ar.color+'"></span>':'')+
+    btn.innerHTML=(ar?'<span class="dot" style="background:'+safeHexColor(ar.color)+'"></span>':'')+
       '<span class="ap-nm">'+esc(cur)+'</span><span class="ap-tri">\u25be</span>'
   }
   refresh()
@@ -5203,7 +5240,7 @@ function areaBtn(value,onSelect,opts){
     state.settings.areas.forEach(function(a,i){
       const row=document.createElement('div')
       row.className='ac-row'+(a.name===cur?' selected':'')
-      row.innerHTML='<span class="dot" style="background:'+a.color+'"></span><span class="nm">'+esc(a.name)+'</span>'
+      row.innerHTML='<span class="dot" style="background:'+safeHexColor(a.color)+'"></span><span class="nm">'+esc(a.name)+'</span>'
       row.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();if(btn._apLock)return;cur=a.name;refresh();apPickAnim(btn,list,row,closeList);if(onSelect)onSelect(a.name)})
       row.addEventListener('pointerdown',function(ev){ev.stopPropagation()})
       row.addEventListener('pointerenter',function(){items.forEach(function(x){x.classList.remove('selected')});row.classList.add('selected');selectedIdx=i;if(list)list.dataset.selIdx=i})
@@ -5268,14 +5305,14 @@ function openTagPicker(btn,value,onPick){
   state.settings.areas.forEach(function(a){
     var hd=document.createElement('div');
     hd.className='ac-row cat-hd'+((!cur.actId&&cur.area===a.name)?' selected':'');
-    hd.innerHTML='<span class="dot" style="background:'+a.color+'"></span><span class="nm">'+esc(a.name)+'</span><span class="cat-only">카테고리만</span>';
+    hd.innerHTML='<span class="dot" style="background:'+safeHexColor(a.color)+'"></span><span class="nm">'+esc(a.name)+'</span><span class="cat-only">카테고리만</span>';
     hd.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();pick(a.name,null,hd);});
     hd.addEventListener('pointerdown',function(ev){ev.stopPropagation();});
     scroll.appendChild(hd);
     state.settings.activities.filter(function(x){return x.area===a.name;}).forEach(function(x){
       var row=document.createElement('div');
       row.className='ac-row cat-sub'+(cur.actId===x.id?' selected':'');
-      row.innerHTML='<span class="dot" style="background:'+x.color+'"></span><span class="nm">'+esc(x.name)+'</span>';
+      row.innerHTML='<span class="dot" style="background:'+safeHexColor(x.color)+'"></span><span class="nm">'+esc(x.name)+'</span>';
       row.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();pick(a.name,x.id,row);});
       row.addEventListener('pointerdown',function(ev){ev.stopPropagation();});
       scroll.appendChild(row);
@@ -5311,9 +5348,9 @@ function catActBtn(value,onSelect,opts){
     const arName=act? act.area:cur.area
     const ar=arName? areaByName(arName):null
     if(act){
-      btn.innerHTML='<span class="ap-nm">'+(ar?'<span class="ca-ar" style="color:'+ar.color+'">'+esc(act.area)+'</span><span class="ca-sep"></span>':'')+'<span class="ca-hl" style="background:'+hexToRgba(act.color,.30)+'">'+esc(act.name)+'</span></span><span class="ap-tri">▾</span>'
+      btn.innerHTML='<span class="ap-nm">'+(ar?'<span class="ca-ar" style="color:'+safeHexColor(ar.color)+'">'+esc(act.area)+'</span><span class="ca-sep"></span>':'')+'<span class="ca-hl" style="background:'+hexToRgba(act.color,.30)+'">'+esc(act.name)+'</span></span><span class="ap-tri">▾</span>'
     }else if(ar){
-      btn.innerHTML='<span class="ap-nm"><span class="ca-ar" style="color:'+ar.color+'">'+esc(ar.name)+'</span></span><span class="ap-tri">▾</span>'
+      btn.innerHTML='<span class="ap-nm"><span class="ca-ar" style="color:'+safeHexColor(ar.color)+'">'+esc(ar.name)+'</span></span><span class="ap-tri">▾</span>'
     }else{
       btn.innerHTML='<span class="ap-nm ph" style="color:var(--text3)">영역·활동</span><span class="ap-tri">▾</span>'
     }
@@ -5355,14 +5392,14 @@ function catActBtn(value,onSelect,opts){
     state.settings.areas.forEach(function(a){
       const hd=document.createElement('div')
       hd.className='ac-row cat-hd'+((!cur.actId&&cur.area===a.name)?' selected':'')
-      hd.innerHTML='<span class="dot" style="background:'+a.color+'"></span><span class="nm">'+esc(a.name)+'</span><span class="cat-only">카테고리만</span>'
+      hd.innerHTML='<span class="dot" style="background:'+safeHexColor(a.color)+'"></span><span class="nm">'+esc(a.name)+'</span><span class="cat-only">카테고리만</span>'
       hd.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();pick(a.name,null,hd)})
       hd.addEventListener('pointerdown',function(ev){ev.stopPropagation()})
       scroll.appendChild(hd)
       state.settings.activities.filter(function(x){return x.area===a.name}).forEach(function(x){
         const row=document.createElement('div')
         row.className='ac-row cat-sub'+(cur.actId===x.id?' selected':'')
-        row.innerHTML='<span class="dot" style="background:'+x.color+'"></span><span class="nm">'+esc(x.name)+'</span>'
+        row.innerHTML='<span class="dot" style="background:'+safeHexColor(x.color)+'"></span><span class="nm">'+esc(x.name)+'</span>'
         row.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();pick(a.name,x.id,row)})
         row.addEventListener('pointerdown',function(ev){ev.stopPropagation()})
         scroll.appendChild(row)
@@ -5644,7 +5681,7 @@ function renderManager(){
     const head=document.createElement("button"); head.className="grp-head"; head.dataset.area=ar.name;
     const open=expandedGrps.has(ar.name);
     if(open) grp.classList.add("open");
-    head.innerHTML='<span class="tri">▸</span><span class="dot" style="background:'+ar.color+'"></span><span class="grp-name" style="color:'+ar.color+'">'+esc(ar.name)+'</span><span class="cnt">'+acts.length+'</span><span class="act-paint" aria-label="활동 그라데이션 배색">🎨</span>';
+    head.innerHTML='<span class="tri">▸</span><span class="dot" style="background:'+safeHexColor(ar.color)+'"></span><span class="grp-name" style="color:'+safeHexColor(ar.color)+'">'+esc(ar.name)+'</span><span class="cnt">'+acts.length+'</span><span class="act-paint" aria-label="활동 그라데이션 배색">🎨</span>';
     const paintBtn=head.querySelector(".act-paint");
     attachTip(paintBtn,'<span class="rt-tip-t">활동 그라데이션 배색</span>');
     paintBtn.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();autoColorActs(ar.name);});
@@ -6243,15 +6280,17 @@ function buildBackup(){
 }
 function applyBackup(json,mode){
   if(!json.settings||!json.days) throw new Error("백업 형식이 아닙니다.");
+  const importedSettings=normalizeSettingsColors(json.settings);
   if(mode==="replace"){
-    state.settings=json.settings;
+    state.settings=importedSettings;
     state.days=json.days;
   }else{
-    for(const a of (json.settings.areas||[])) if(!areaByName(a.name)) state.settings.areas.push(a);
-    for(const act of (json.settings.activities||[])) if(!state.settings.activities.some(x=>x.id===act.id||(x.name===act.name&&x.area===act.area))) state.settings.activities.push(act);
-    for(const r of (json.settings.routineDefs||[])) if(!state.settings.routineDefs.some(x=>x.name===r.name&&(x.time||"")===(r.time||""))) state.settings.routineDefs.push(r);
+    for(const a of (importedSettings.areas||[])) if(!areaByName(a.name)) state.settings.areas.push(a);
+    for(const act of (importedSettings.activities||[])) if(!state.settings.activities.some(x=>x.id===act.id||(x.name===act.name&&x.area===act.area))) state.settings.activities.push(act);
+    for(const r of (importedSettings.routineDefs||[])) if(!state.settings.routineDefs.some(x=>x.name===r.name&&(x.time||"")===(r.time||""))) state.settings.routineDefs.push(r);
     for(const ds of Object.keys(json.days)) if(!state.days[ds]||!state.days[ds].events.length) state.days[ds]=json.days[ds];
   }
+  state.settings=normalizeSettingsColors(state.settings);
   if(!Array.isArray(state.settings.routineDefs)) state.settings.routineDefs=[];
   for(const ds of Object.keys(state.days||{})){
     const day=state.days[ds]||{};
@@ -7661,7 +7700,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     appId:"1:1071066765115:web:7241996d324d0021b4891e",
     measurementId:"G-899TTNC45F"
   };
-  const ALLOWED_EMAIL="yundda2@gmail.com";
+  const OWNER_CLAIM="timegridOwner";
   const SYNC_BASE_KEY="timegrid-sync-base-v2";
   const SYNC_OUTBOX_KEY="timegrid-sync-outbox-v2";
   const RUN_CONFLICT_KEY="timegrid-running-conflicts-v1";
@@ -7757,7 +7796,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     return out;
   }
   function normSettings(s){
-    s=s||{};
+    s=normalizeSettingsColors(s||{});
     return {
       version:Number(s.version)||2,
       areas:Array.isArray(s.areas)?copy(s.areas):[],
@@ -8286,13 +8325,32 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
   }
   async function onSignedIn(u){
     authKnown=true;cloudUnavailable=false;
-    if((u.email||"").toLowerCase()!==ALLOWED_EMAIL.toLowerCase()){
+    user=u;ready=false;
+    paintUser();setStatus("계정 권한 확인 중…");queueRender();
+    let ownerAccess=null;
+    try{
+      let token=await u.getIdTokenResult(false);
+      if(token&&token.claims&&token.claims[OWNER_CLAIM]===true) ownerAccess=true;
+      else if(navigator.onLine!==false){
+        token=await u.getIdTokenResult(true);
+        ownerAccess=!!(token&&token.claims&&token.claims[OWNER_CLAIM]===true);
+      }
+    }catch(err){
+      cloudUnavailable=true;
+      setStatus("계정 권한 확인 실패 · 측정 시작 차단","warn");queueRender();
+      return;
+    }
+    if(ownerAccess!==true){
+      if(navigator.onLine===false){
+        cloudUnavailable=true;
+        setStatus("오프라인 · 계정 권한 재확인 대기","warn");queueRender();
+        return;
+      }
       setStatus("허용되지 않은 계정입니다. 로그아웃합니다.","err");
       try{await auth.signOut();}catch(e){}
       if(typeof toast==="function")toast("이 앱은 지정된 Google 계정만 사용할 수 있습니다");
       return;
     }
-    user=u;ready=false;
     try{localStorage.setItem(CLOUD_ACCOUNT_KEY,u.uid);}catch(e){}
     paintUser();setStatus("실시간 동기화 준비 중…");queueRender();
     try{
@@ -8345,7 +8403,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     auth.onAuthStateChanged(function(u){if(u)onSignedIn(u);else onSignedOut();});
     function resume(){if(!user||!ready)return;heartbeat();markDirty();pushNow();}
     document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible")resume();else{markDirty();pushNow();}});
-    window.addEventListener("focus",resume);window.addEventListener("online",resume);window.addEventListener("offline",function(){if(user)setStatus("오프라인 · 동기화 재개 대기","warn");});window.addEventListener("pagehide",function(){markDirty();pushNow();});
+    window.addEventListener("focus",resume);window.addEventListener("online",function(){if(user&&!ready&&cloudUnavailable&&auth.currentUser){onSignedIn(auth.currentUser);return;}resume();});window.addEventListener("offline",function(){if(user)setStatus("오프라인 · 동기화 재개 대기","warn");});window.addEventListener("pagehide",function(){markDirty();pushNow();});
     setInterval(tickLiveStatus,1000);
     setInterval(heartbeat,LIVE_HEARTBEAT_MS);
     setInterval(function(){if(user&&ready){markDirty();if(hasDirty())pushNow();}},RETRY_PULSE_MS);

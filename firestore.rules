@@ -6,8 +6,7 @@ service cloud.firestore {
     }
     function isAllowedUser() {
       return signedIn()
-        && request.auth.token.email == 'yundda2@gmail.com'
-        && request.auth.token.email_verified == true;
+        && request.auth.token.timegridOwner == true;
     }
     function isOwner(uid) {
       return isAllowedUser() && request.auth.uid == uid;
