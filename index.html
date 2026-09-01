@@ -1603,7 +1603,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.13.1<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.13.2<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -2268,11 +2268,10 @@ function runningDayBounds(r, dateStr){
   const startDay=ymd(startD), endDay=ymd(now);
   if(dateStr<startDay||dateStr>endDay) return null;
   let rs=0, re=86400;
-  if(dateStr===startDay) rs=startD.getHours()*3600+startD.getMinutes()*60+startD.getSeconds();
-  if(dateStr===endDay) re=now.getHours()*3600+now.getMinutes()*60+now.getSeconds();
+  if(dateStr===startDay) rs=TG_TIME_DISPLAY.daySecond(r.startTs);
+  if(dateStr===endDay) re=TG_TIME_DISPLAY.daySecond(now.getTime());
   rs=Math.max(0,Math.min(86400,rs));
   re=Math.max(0,Math.min(86400,re));
-  if(re<=rs) re=Math.min(86400,rs+1);
   if(re<=rs) return null;
   return {rs,re};
 }
@@ -3195,7 +3194,12 @@ const TG_TIME_DISPLAY=(()=>{
     if(!Number.isFinite(start)||!Number.isFinite(now)||now<=start)return 0;
     return wholeSeconds((now-start)/1000);
   }
-  return {wholeSeconds,clock,elapsed};
+  function daySecond(timestamp){
+    const date=new Date(Number(timestamp));
+    if(!Number.isFinite(date.getTime()))return 0;
+    return date.getHours()*3600+date.getMinutes()*60+date.getSeconds()+date.getMilliseconds()/1000;
+  }
+  return {wholeSeconds,clock,elapsed,daySecond};
 })();
 /* TIME_DISPLAY_CORE_END */
 
