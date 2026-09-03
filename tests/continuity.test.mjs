@@ -33,4 +33,109 @@ assert.equal(midnightPieces.length, 2, "a cross-midnight exact span must split i
 assert.equal(Array.from(midnightPieces, piece => piece.date).join(","), "2026-09-01,2026-09-02")
 assert.equal(midnightPieces[0].endTs, midnightPieces[1].startTs, "cross-midnight fragments are gapless")
 
+// Exercise the actual writer, not just its continuity decision helpers.
+const intervalStart = html.indexOf("const EXACT_EVENT_KEYS=")
+const intervalEnd = html.indexOf("function freeRanges(", intervalStart)
+assert.ok(intervalStart >= 0 && intervalEnd > intervalStart, "interval writer must be extractable")
+function fixture() {
+  let sequence = 0
+  const state = { days: {} }
+  const writer = {
+    state, Date, JSON, Map, Set, Math,
+    uid: prefix => `${prefix}_${++sequence}`,
+    toMin: clock => { const [h, m] = clock.split(":").map(Number); return h * 60 + m },
+    hhmm: minute => `${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`,
+    dateOf: date => { const [y, m, d] = date.split("-").map(Number); return new Date(y, m - 1, d) },
+    ensureDay: date => state.days[date] ||= { events: [], todos: [], routines: [] },
+  }
+  vm.createContext(writer)
+  vm.runInContext(html.slice(start, end) + html.slice(intervalStart, intervalEnd), writer)
+  return {
+    state, writer,
+    record: (actId, startTs, endTs, extra = {}) => {
+      assert.equal(writer.materializeExactSpan({ actId, startTs, sessionId: `s_${++sequence}`, ...extra }, endTs), true)
+    },
+    events: date => state.days[date]?.events || [],
+    totalMs: () => Object.values(state.days).flatMap(day => day.events).reduce((sum, event) => sum + (event.endTs - event.startTs), 0),
+  }
+}
+const date = "2026-09-03"
+const base = new Date(2026, 8, 3, 10, 0, 0).getTime()
+
+{
+  const f = fixture()
+  f.record("a", base, base + 20_000)
+  const original = JSON.stringify(f.events(date)[0])
+  f.record("b", base + 25_000, base + 45_000)
+  assert.equal(f.events(date).length, 2, "distinct subminute sessions sharing one minute projection both survive")
+  assert.equal(JSON.stringify(f.events(date)[0]), original, "non-overlapping physical measurements remain byte-identical")
+  assert.equal(f.totalMs(), 40_000, "physical totals include both measured sessions, excluding the gap")
+  f.record("a", base + 50_000, base + 55_000)
+  assert.equal(f.events(date).length, 3, "an intervening activity prevents continuity across it")
+  assert.equal(f.totalMs(), 45_000)
+}
+{
+  const f = fixture()
+  f.record("a", base, base + 20_000, { todoId: "t1" })
+  f.record("a", base + 25_000, base + 45_000, { todoId: "t2" })
+  assert.equal(f.events(date).length, 2, "distinct linked tasks retain independent intervals in the same minute")
+  assert.equal(f.totalMs(), 40_000)
+}
+{
+  const f = fixture()
+  f.record("a", base, base + 20_000)
+  const originalId = f.events(date)[0].id
+  f.record("a", base + 80_000, base + 100_000)
+  assert.equal(f.events(date).length, 1, "same-identity restart at the inclusive 60s boundary remains one span")
+  assert.equal(f.events(date)[0].id, originalId, "continuity retains the existing event identity")
+  assert.equal(f.events(date)[0].gapIncludedMs, 60_000)
+  assert.equal(f.events(date)[0].sessionIds.length, 2)
+  assert.equal(f.totalMs(), 100_000, "merged continuity counts the agreed restart gap")
+  f.record("a", base + 160_001, base + 180_001)
+  assert.equal(f.events(date).length, 2, "restart after 60s begins a distinct span")
+}
+{
+  const f = fixture()
+  f.record("a", base, base + 180_000)
+  f.record("b", base + 70_000, base + 80_000)
+  const rows = f.events(date)
+  assert.equal(rows.length, 3, "true overlap splits only the covered physical interval")
+  assert.deepEqual(Array.from(rows, row => [row.actId, row.startTs - base, row.endTs - base]), [
+    ["a", 0, 70_000], ["b", 70_000, 80_000], ["a", 80_000, 180_000],
+  ])
+  assert.equal(f.totalMs(), 180_000, "true replacement neither drops uncovered seconds nor double-counts overlap")
+  assert.ok(rows.filter(row => row.actId === "a").every(row => !row.continuityId && !row.spanStartTs && !row.sessionIds), "clipped remainders do not claim the uncut lineage")
+}
+{
+  const f = fixture()
+  f.record("a", midnightStart, midnightEnd)
+  const leftBefore = JSON.stringify(f.events("2026-09-01")[0])
+  f.record("b", midnightEnd + 10_000, midnightEnd + 20_000)
+  assert.equal(f.totalMs(), 70_000, "the first minute after midnight preserves the preceding exact fragment")
+  assert.equal(JSON.stringify(f.events("2026-09-01")[0]), leftBefore, "unaffected cross-midnight lineage remains intact")
+  f.record("c", midnightEnd - 20_000, midnightEnd - 10_000)
+  assert.equal(f.totalMs(), 70_000, "a cross-midnight lineage cut preserves all unaffected physical seconds")
+  const left = f.events("2026-09-01")[0]
+  assert.equal(left.startTs, midnightStart)
+  assert.equal(left.endTs, new Date(2026, 8, 2).getTime())
+  assert.equal(left.continuityId, undefined, "a cut invalidates only logical lineage, retaining exact remote-day evidence")
+}
+{
+  const f = fixture()
+  const midnight = new Date(2026, 8, 4).getTime()
+  f.writer.ensureDay(date).events.push({ id: "legacy", actId: "a", start: "23:30", end: "00:00" })
+  f.record("b", midnight - 20_000, midnight - 10_000)
+  assert.equal(f.events(date).length, 3, "legacy midnight intervals share the physical-overlap contract")
+  assert.equal(f.totalMs(), 30 * 60_000)
+}
+{
+  const f = fixture()
+  f.record("a", base + 10_000, base + 290_000)
+  const day = f.state.days[date]
+  f.writer.addInterval(day, "manual", 601, 603)
+  assert.equal(day.events.length, 3)
+  assert.ok(day.events.every(row => !row.startTs && !row.endTs && !row.continuityId), "manual minute edits still detach precision and logical lineage")
+  assert.deepEqual(Array.from(day.events, row => [row.start, row.end]), [["10:00", "10:01"], ["10:01", "10:03"], ["10:03", "10:05"]])
+}
+
 console.log("continuity core tests passed")

@@ -1615,7 +1615,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.13.4<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.13.5<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -2705,13 +2705,18 @@ function detachEventLineage(ev){
   for(const key of EXACT_EVENT_KEYS)delete ev[key];
   return ev;
 }
-function detachContinuityLineage(ev){
+function detachContinuityLineage(ev,preserveExact){
   if(!ev)return;
+  function detach(candidate){
+    const startTs=Number(candidate.startTs)||0,endTs=Number(candidate.endTs)||0;
+    detachEventLineage(candidate);
+    if(preserveExact&&startTs&&endTs>startTs){candidate.startTs=startTs;candidate.endTs=endTs;}
+  }
   const continuityId=String(ev.continuityId||"");
-  if(!continuityId){detachEventLineage(ev);return;}
+  if(!continuityId){detach(ev);return;}
   for(const day of Object.values(state.days||{})){
     for(const candidate of (day&&Array.isArray(day.events)?day.events:[])){
-      if(String(candidate.continuityId||"")===continuityId)detachEventLineage(candidate);
+      if(String(candidate.continuityId||"")===continuityId)detach(candidate);
     }
   }
 }
@@ -2751,9 +2756,33 @@ function exactEventBounds(dateStr,ev){
   if(exactStart&&exactEnd>exactStart)return {startTs:exactStart,endTs:exactEnd};
   if(!ev||!ev.start||!ev.end)return null;
   const base=dateOf(dateStr);base.setHours(0,0,0,0);
-  const s=toMin(ev.start),e=ev.end==="24:00"?1440:toMin(ev.end);
+  const s=toMin(ev.start);let e=ev.end==="24:00"?1440:toMin(ev.end);
+  if(e===0&&s>0)e=1440;
   if(!Number.isFinite(s)||!Number.isFinite(e)||e<=s)return null;
   return {startTs:base.getTime()+s*60000,endTs:base.getTime()+e*60000};
+}
+function exactMinuteProjection(startTs,endTs,dayStart,dayEnd){
+  const s=Math.max(0,Math.min(1439,Math.floor((startTs-dayStart)/60000)));
+  let e=endTs>=dayEnd?1440:Math.round((endTs-dayStart)/60000);
+  if(e<=s)e=Math.min(1440,s+1);
+  return {start:hhmm(s),end:hhmm(e)};
+}
+function subtractExact(events,dateStr,startTs,endTs){
+  const out=[],base=dateOf(dateStr);base.setHours(0,0,0,0);
+  const next=new Date(base);next.setDate(next.getDate()+1);
+  function fragment(ev,start,end){
+    return {...detachEventLineage({...ev}),id:uid("e"),...exactMinuteProjection(start,end,base.getTime(),next.getTime()),startTs:start,endTs:end};
+  }
+  for(const ev of events){
+    const bounds=exactEventBounds(dateStr,ev);
+    if(!bounds||bounds.endTs<=startTs||bounds.startTs>=endTs){out.push(ev);continue;}
+    // Timestamp overlap owns measurement replacement; display buckets may overlap.
+    // Clipping breaks a logical span, but never discards its observed exact bounds.
+    if(hasExactEventMeta(ev))detachContinuityLineage(ev,true);
+    if(bounds.startTs<startTs)out.push(fragment(ev,bounds.startTs,startTs));
+    if(bounds.endTs>endTs)out.push(fragment(ev,endTs,bounds.endTs));
+  }
+  return out;
 }
 function continuityCandidate(run){
   let best=null;
@@ -2805,15 +2834,13 @@ function materializeExactSpan(run,endTs){
   if(!pieces.length)return false;
   pieces.forEach(function(piece,index){
     const day=ensureDay(piece.date);
-    const s=Math.max(0,Math.min(1439,Math.floor((piece.startTs-piece.dayStart)/60000)));
-    let e=piece.endTs>=piece.dayEnd?1440:Math.round((piece.endTs-piece.dayStart)/60000);
-    if(e<=s)e=Math.min(1440,s+1);
-    day.events=subtract(day.events,s,e);
+    const projection=exactMinuteProjection(piece.startTs,piece.endTs,piece.dayStart,piece.dayEnd);
+    day.events=subtractExact(day.events,piece.date,piece.startTs,piece.endTs);
     const ev={
       id:oldByDate.get(piece.date)||uid("e"),
       actId:run.actId,
-      start:hhmm(s),
-      end:hhmm(e),
+      start:projection.start,
+      end:projection.end,
       startTs:piece.startTs,
       endTs:piece.endTs,
       continuityId:spanId,
@@ -2828,7 +2855,7 @@ function materializeExactSpan(run,endTs){
     if(run.routineId)ev.routineId=run.routineId;
     if(run.note&&!ev.todoId&&!ev.routineId)ev.note=run.note;
     day.events.push(ev);
-    day.events.sort(function(a,b){return toMin(a.start)-toMin(b.start)||String(a.id).localeCompare(String(b.id));});
+    day.events.sort(function(a,b){const left=exactEventBounds(piece.date,a),right=exactEventBounds(piece.date,b);return (left?left.startTs:0)-(right?right.startTs:0)||String(a.id).localeCompare(String(b.id));});
   });
   return true;
 }
