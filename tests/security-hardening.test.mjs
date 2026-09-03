@@ -42,9 +42,9 @@ assert.equal(normalized.areas[1].color, "#AABBCC", "legacy #RGB colors expand to
 assert.equal(normalized.activities[0].color, "#E03131", "invalid activity colors inherit their normalized area color")
 assert.equal(normalized.activities[1].color, "#00FF7F")
 
-assert.match(html, /if\(s\.settings\) state\.settings=normalizeSettingsColors\(s\.settings\)/, "local storage settings are normalized on load")
-assert.match(html, /const importedSettings=normalizeSettingsColors\(json\.settings\)/, "backup settings are normalized before replace or merge")
-assert.match(html, /function normSettings\(s\)\{\s*s=normalizeSettingsColors\(s\|\|\{\}\)/, "remote settings are normalized before merge")
+assert.match(html, /if\(s\.settings\) state\.settings=TG_CATALOG.normalize\(normalizeSettingsColors\(s\.settings\)\)/, "local storage colors and lifecycle normalize on load")
+assert.match(html, /const importedSettings=TG_CATALOG.normalize\(\{\.\.\.normalizeSettingsColors\(json\.settings\)/, "backup colors and lifecycle normalize before import")
+assert.match(html, /function normSettings\(s\)\{\s*s=TG_CATALOG.normalize\(normalizeSettingsColors\(/, "remote colors normalize before merge")
 
 const rawColorSinks = html.split(/\r?\n/).filter(line => /innerHTML\s*=/.test(line) && /\.color/.test(line))
 assert.ok(rawColorSinks.length > 0, "the sink audit must cover actual color-bearing HTML templates")

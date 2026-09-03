@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import fs from "node:fs"
 import path from "node:path"
 import vm from "node:vm"
+import TG_CATALOG from '../catalog-core.js'
 import { fileURLToPath } from "node:url"
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
@@ -11,7 +12,7 @@ const end = html.indexOf("/* CONTINUITY_CORE_END */")
 assert.ok(start >= 0 && end > start, "continuity core markers must exist")
 assert.match(html, /startTs:piece\.startTs,[\s\S]*endTs:piece\.endTs,[\s\S]*continuityId:spanId/, "canonical events retain exact time and lineage")
 assert.match(html, /fragmentCount:pieces\.length/, "midnight spans retain one logical lineage across physical day fragments")
-assert.match(html, /if\(!materializeExactSpan\(r,Number\(endTs\)\|\|Date\.now\(\)\)\)return false/, "stop materialization uses exact continuity")
+assert.match(html, /Number\(endTs\)>Number\(r\.startTs\)&&!materializeExactSpan\(r,Number\(endTs\)\)/, "positive stop spans use exact continuity; zero spans don't fabricate time")
 
 const source = html.slice(start, end) + "\n;globalThis.__core=TG_CONTINUITY;"
 const context = { console, Date, JSON, Map, Set, Math }
@@ -41,7 +42,7 @@ function fixture() {
   let sequence = 0
   const state = { days: {} }
   const writer = {
-    state, Date, JSON, Map, Set, Math,
+    state, Date, JSON, Map, Set, Math, TG_CATALOG,
     uid: prefix => `${prefix}_${++sequence}`,
     toMin: clock => { const [h, m] = clock.split(":").map(Number); return h * 60 + m },
     hhmm: minute => `${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`,

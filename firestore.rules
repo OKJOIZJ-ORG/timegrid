@@ -11,15 +11,70 @@ service cloud.firestore {
     function isOwner(uid) {
       return isAllowedUser() && request.auth.uid == uid;
     }
+    function protocolEnabled(uid) {
+      return exists(/databases/$(database)/documents/users/$(uid)/settings/main)
+        && get(/databases/$(database)/documents/users/$(uid)/settings/main).data.get('catalogEnforced', false) == true;
+    }
+    function sequenceWrite() {
+      return request.resource.data.catalogProtocol == 2
+        && request.resource.data.catalogWriteRev == request.resource.data.syncRev
+        && request.resource.data.syncRev == (resource == null ? 1 : resource.data.get('syncRev', 0) + 1);
+    }
+    function currentCatalog(uid) {
+      return request.resource.data.get('catalogRevision', 0)
+        == get(/databases/$(database)/documents/users/$(uid)/settings/main).data.get('catalogRevision', 0);
+    }
+    function settingsLifecycle(uid) {
+      let before = resource == null ? 0 : resource.data.get('catalogRevision', 0);
+      let after = request.resource.data.get('catalogRevision', 0);
+      return after == before || (after == before + 1
+        && getAfter(/databases/$(database)/documents/users/$(uid)/catalogHistory/$(request.resource.data.latestCatalogOperation)).data.revision == after);
+    }
+    function guardedLegacyStop() {
+      return resource != null && resource.data.get('running', null) != null
+        && resource.data.get('legacyStopGuard', null) != null
+        && resource.data.legacyStopGuard.running == resource.data.running
+        && request.resource.data.get('running', null) == null
+        && request.resource.data.get('legacyStopGuard', null) == resource.data.legacyStopGuard
+        && request.resource.data.syncRev == resource.data.get('syncRev', 0) + 1
+        && request.resource.data.updatedAtMs >= resource.data.running.startTs
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'running', 'syncRev', 'updatedAt', 'updatedAtMs', 'serverUpdatedAt', 'deviceId'
+        ]);
+    }
 
     match /users/{uid}/settings/{docId} {
-      allow read, write: if isOwner(uid) && docId == 'main';
+      allow read: if isOwner(uid) && docId == 'main';
+      allow create, update: if isOwner(uid) && docId == 'main'
+        && (!protocolEnabled(uid) || (sequenceWrite() && settingsLifecycle(uid)
+          && request.resource.data.catalogEnforced == true));
     }
     match /users/{uid}/days/{dayId} {
-      allow read, write: if isOwner(uid);
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && (!protocolEnabled(uid) || (sequenceWrite() && currentCatalog(uid)));
     }
     match /users/{uid}/meta/{docId} {
-      allow read, write: if isOwner(uid);
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && (!protocolEnabled(uid) || (sequenceWrite()
+        && (docId != 'running' || request.resource.data.get('running', null) == null || currentCatalog(uid)))
+        || (docId == 'running' && guardedLegacyStop()));
+    }
+    match /users/{uid}/catalogHistory/{operationId} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid)
+        && request.resource.data.id == operationId
+        && request.resource.data.revision == getAfter(/databases/$(database)/documents/users/$(uid)/settings/main).data.catalogRevision
+        && getAfter(/databases/$(database)/documents/users/$(uid)/settings/main).data.latestCatalogOperation == operationId;
+    }
+    match /users/{uid}/finalizationAcks/{sessionId} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid) && request.resource.data.id == sessionId
+        && request.resource.data.intent.id == sessionId
+        && request.resource.data.intent.running.sessionId == sessionId
+        && request.resource.data.intent.running.startTs is number
+        && request.resource.data.intent.endedAt is number
+        && request.resource.data.committedAt is number
+        && request.resource.data.intent.endedAt >= request.resource.data.intent.running.startTs;
     }
   }
 }

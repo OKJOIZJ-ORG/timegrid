@@ -17,10 +17,6 @@
 <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore-compat.js" integrity="sha384-OWv+RYFfLxKnRm2S6RYMcxn1Un3vxC0dbSWy7XC9DKsJGGHMWBCbDV27k62l/2XK" crossorigin="anonymous"></script>
 <title>TimeGrid</title>
 <style>
-.catalog-archive{margin-top:24px;border-top:1px solid var(--line2);padding-top:16px;color:var(--text2);font-size:13px;}
-.catalog-archive summary{cursor:pointer;padding:8px 0;}
-.catalog-archive-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;}
-.catalog-archive-row .btn{min-height:36px;padding:0 12px;flex:none;}
 :root{
   --text:#2C2C2B; --text2:#7A7773; --text3:#A8A49F;
   --line:#F0EFED; --line2:#E6E5E3; --soft:#F9F8F7;
@@ -703,7 +699,6 @@ dialog::backdrop{background:rgba(0,0,0,.25);}
   .fs-head h3{font-size:17px;}
   .fs-panel .dlg-body{padding:20px 26px 26px;}
 }
-.act-add-row{align-items:center;}
 .json-panel h4{padding:14px 0 6px;}
 .json-panel h4:first-child{padding-top:0;}
 .json-actions{display:flex; justify-content:flex-end; gap:8px; padding-top:10px;}
@@ -766,38 +761,8 @@ dialog::backdrop{background:rgba(0,0,0,.25);}
 .btn.danger{color:var(--red); border-color:#F3C9C5;}
 @media (hover: hover) and (pointer: fine){ .btn.danger:hover{background:var(--red); border-color:var(--red); color:#fff;} }
 
-/* manager */
-.act-edit{display:flex; gap:8px; align-items:center; margin-bottom:8px;}
-.act-edit input[type=text]{flex:1; min-height:38px; padding:4px 12px; border:1px solid var(--line2); border-radius:var(--r-md); min-width:0;}
-.act-edit select{min-height:38px; border:1px solid var(--line2); border-radius:var(--r-md); padding:0 6px; background:#fff; max-width:110px;}
-.act-edit .handle{
-  width:28px; height:38px; display:flex; align-items:center; justify-content:center;
-  color:var(--text3); cursor:grab; touch-action:none; flex:none; font-size:15px; letter-spacing:-1px;
-}
-.act-edit .del{width:36px; height:38px; border-radius:var(--r-md); color:var(--text3); flex:none;}
-@media (hover: hover) and (pointer: fine){ .act-edit .del:hover{background:var(--soft); color:var(--red);} }
-.act-edit.ind-top{box-shadow:0 -2px 0 0 var(--text);}
-.act-edit.ind-bot{box-shadow:0 2px 0 0 var(--text);}
-.grp{border:1px solid var(--line); border-radius:var(--r-lg); margin-bottom:8px; overflow:hidden;}
-.grp-head{
-  display:flex; align-items:center; gap:8px; width:100%; text-align:left;
-  padding:10px 12px; font-size:15px; font-weight:600;
-}
-@media (hover: hover) and (pointer: fine){ .grp-head:hover{background:var(--soft);} }
-.grp-head .tri{font-size:11px; color:var(--text3); width:12px;}
-.grp-head .cnt{margin-left:auto; font-size:13px; font-weight:400; color:var(--text3);}
-.grp-head.drop{background:var(--soft); outline:1.5px dashed var(--text2); outline-offset:-3px;}
-.grp-body{padding:8px 12px 4px; border-top:1px solid var(--line);}
-.drag-ghost{
-  position:fixed; z-index:200; pointer-events:none; opacity:.85;
-  background:#fff; border:1px solid var(--line2); border-radius:var(--r-md);
-  box-shadow:0 6px 16px rgba(0,0,0,.12); padding:6px 10px;
-  display:flex; align-items:center; gap:8px; font-size:14px;
-}
-.act-edit.dragging{box-shadow:0 10px 30px rgba(0,0,0,.2);opacity:.9;z-index:600;pointer-events:none!important;will-change:transform;border-radius:var(--r-md);}
+/* shared drag placeholder */
 .drag-placeholder{border:2px dashed var(--line2);border-radius:var(--r-md);margin-bottom:8px;background:var(--soft);}
-.grp-body .drag-placeholder{margin-bottom:4px;}
-.act-edit:not(.dragging){transition:transform .32s cubic-bezier(.25,.8,.3,1),box-shadow .2s ease;will-change:transform;}
 
 /* edit dialog */
 .frow{display:flex; align-items:center; gap:12px; padding:6px 0;}
@@ -808,7 +773,7 @@ dialog::backdrop{background:rgba(0,0,0,.25);}
 }
 
 /* ---------- motion & polish ---------- */
-button,.pill,.btn,.icon-btn,.check-item .del,.act-edit .del,.menu-list button{
+button,.pill,.btn,.icon-btn,.check-item .del,.menu-list button{
   transition:background-color .18s ease,color .18s ease,border-color .18s ease,transform .12s ease,box-shadow .2s ease;
 }
 .pill:active,.btn:active,.icon-btn:active,.datenav .arrow:active,.tabbar button:active{transform:scale(.94);}
@@ -839,8 +804,6 @@ dialog.bdout::backdrop{animation:bdOut .24s ease forwards;}
 @keyframes bdOut{from{opacity:1}to{opacity:0}}
 @media (prefers-reduced-motion: reduce){ dialog.closing{animation:none;} dialog.closing::backdrop, dialog.bdout::backdrop{animation:none;} }
 @keyframes bdIn{from{opacity:0}to{opacity:1}}
-.grp{transition:border-color .2s ease,box-shadow .2s ease;}
-@media (hover: hover) and (pointer: fine){ .grp:hover{border-color:var(--line2);} }
 input[type=text],input[type=time],select,textarea{transition:border-color .18s ease,box-shadow .18s ease;}
 input[type=text]:focus,input[type=time]:focus,select:focus,textarea:focus{
   outline:none; border-color:var(--text2)!important; box-shadow:0 0 0 3px rgba(44,44,43,.06);
@@ -1120,21 +1083,9 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
 }
 @media (hover:none), (pointer:coarse){ .shell-edge,.shell-wtip{display:none !important;} }
 
-/* ---------- manager renewal ---------- */
-.mgr-intro{font-size:13px; color:var(--text2); background:var(--soft); border-radius:var(--r-md); padding:10px 12px; margin-bottom:6px; line-height:1.55;}
-.mgr-intro b{color:var(--text);}
-.mgr-sec{display:flex; align-items:flex-end; justify-content:space-between; gap:8px; padding:16px 0 8px;}
-.mgr-sec-t{flex:1; min-width:0;}
-.mgr-sec-t h4{padding:0; font-size:15px;}
-.mgr-sub{display:block; font-size:12px; color:var(--text3); padding-top:3px;}
-.mgr-paint{min-height:34px; padding:2px 12px; font-size:13px; flex:none;}
+/* ---------- shared add control ---------- */
 .add-line{display:flex; align-items:center; justify-content:center; width:100%; min-height:44px; border-style:dashed; color:var(--text2); background:none; margin:2px 0 4px;}
 @media (hover: hover) and (pointer: fine){ .add-line:hover{background:var(--soft); color:var(--text);} }
-.act-edit{min-height:44px;}
-.a-cnt{font-size:12px; color:var(--text3); background:var(--soft); border-radius:var(--r-round); min-width:28px; text-align:center; padding:4px 0; flex:none; font-variant-numeric:tabular-nums;}
-.act-edit .del.blocked{opacity:.35;}
-.grp-empty{display:flex; flex-direction:column; gap:8px; padding:6px 2px 10px; font-size:13px; color:var(--text3);}
-.grp-empty-cta{align-self:flex-start; min-height:38px; font-size:13px;}
 .jl-head{display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .jl-head h4{margin:0;}
 .jl-clear{flex:none;font-size:12px;font-weight:600;padding:4px 10px;border:1px solid var(--line);border-radius:var(--r-round);background:transparent;color:var(--text2);cursor:pointer;position:relative;transition:background var(--dur-1),color var(--dur-1),border-color var(--dur-1),transform var(--dur-1);}
@@ -1151,8 +1102,8 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
 button,.pill,.btn,.icon-btn,.seg,.cal-cell,.rt-strip,.rt-flag,.td-strip-td,.td-flag,.sidenav-item,.check-item{-webkit-tap-highlight-color:transparent;}
 button{touch-action:manipulation;}
 .seg-ctl button:active,.wk-mode button:active{transform:scale(.95);}
-.cal-cell:active,.menu-list button:active,.ac-row:active,.grp-head:active,.add-line:active,.fs-back:active,.rng:active{background:var(--soft);}
-.check-item .del:active,.act-edit .del:active,.rt-edit-row .del:active{background:var(--soft);color:var(--red);}
+.cal-cell:active,.menu-list button:active,.ac-row:active,.add-line:active,.fs-back:active,.rng:active{background:var(--soft);}
+.check-item .del:active,.rt-edit-row .del:active{background:var(--soft);color:var(--red);}
 .rt-time-btn:active,.rtt-field:active{border-color:var(--text3);}
 .cp-sw:active{transform:scale(.94);}
 .cp-cell:active{transform:scale(1.12);}
@@ -1186,7 +1137,6 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
 .exp-meta{font-size:11px;color:var(--text3);text-align:right;padding-top:4px;font-variant-numeric:tabular-nums;}
 .btn.copied{background:#E8F4EC;border-color:#BFE0CB;color:#2F7D4F;}
 .btn.dark.copied{background:#2F7D4F;border-color:#2F7D4F;color:#fff;}
-.mgr-sec-t h4 .cnt{display:inline-block;font-size:11px;font-weight:600;color:var(--text2);background:var(--soft);border-radius:var(--r-round);padding:2px 8px;margin-left:4px;vertical-align:1px;font-variant-numeric:tabular-nums;}
 #actStats .sbar{margin:2px 0 8px;}
 /* ---------- v3.12.15 mobile gestures + plan export ---------- */
 .tl-content.tl-arming .preview{outline:2px solid rgba(0,0,0,.38); outline-offset:-2px;}
@@ -1197,63 +1147,13 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
   .ap-list,.ac{max-width:calc(100vw - 16px);}
 }
 
-/* ---------- v3.12.36 manager redesign (Emil design-eng + apple-design): grouped-list editor ---------- */
-#actsDlg .mgr-sec{padding:18px 0 10px;}
-.mgr-paint{min-height:32px;padding:2px 14px;font-size:12px;font-weight:600;color:var(--text2);border:1px solid var(--line);border-radius:var(--r-round);background:#fff;transition:background-color .18s ease,border-color .18s ease,color .18s ease,transform .12s ease;}
-@media (hover: hover) and (pointer: fine){ .mgr-paint:hover{background:var(--soft);border-color:var(--text3);color:var(--text);} }
-.mgr-paint:active{transform:scale(.96);}
-#areasList{background:#fff;border:1px solid var(--line);border-radius:var(--r-xl);padding:4px 8px;margin-bottom:10px;}
-#areasList .act-edit{margin:0;padding:4px 2px;min-height:48px;}
-#areasList .act-edit+.act-edit{border-top:1px solid var(--line);}
-#areasList .act-edit .cp-sw{width:26px;height:26px;}
-#areasList .drag-placeholder{margin:4px 0;}
-.act-edit input[type=text]{min-height:36px;padding:4px 10px;border:1px solid transparent;border-radius:var(--r-md);background:transparent;font-size:15px;font-weight:500;transition:background-color .18s ease,box-shadow .18s ease;}
-@media (hover: hover) and (pointer: fine){ .act-edit input[type=text]:hover{background:var(--soft);} }
-#actsDlg .act-edit input[type=text]:focus{background:var(--soft);border-color:transparent !important;box-shadow:none;}
-.act-edit .handle{width:20px;height:36px;display:flex;align-items:center;justify-content:center;color:var(--text3);cursor:grab;touch-action:none;flex:none;font-size:0;border-radius:var(--r-sm);}
-.act-edit .handle::before{content:"";width:8px;height:16px;background-image:radial-gradient(circle,var(--text3) 1.3px,transparent 1.5px);background-size:4px 4px;}
-.act-edit .handle:active{cursor:grabbing;}
-@media (hover: hover) and (pointer: fine){ .act-edit .handle:hover::before{background-image:radial-gradient(circle,var(--text2) 1.3px,transparent 1.5px);} }
-.act-edit .del{width:30px;height:30px;min-height:0;padding:0;border-radius:var(--r-sm);color:var(--text3);flex:none;font-size:13px;display:flex;align-items:center;justify-content:center;position:relative;background:none;transition:color .18s ease,background-color .18s ease,transform .12s ease;}
-.act-edit .del::after{content:"";position:absolute;inset:-6px;}
-.act-edit .del:active{transform:scale(.88);}
-@media (hover: hover) and (pointer: fine){ .act-edit .del:hover{color:var(--red);background:transparent;} }
-.a-cnt{font-size:12px;font-weight:600;color:var(--text2);background:var(--soft);border-radius:var(--r-round);min-width:28px;text-align:center;padding:2px 8px;flex:none;font-variant-numeric:tabular-nums;}
-#actsDlg .area-picker.sm{min-height:32px;padding:3px 10px;border:none;border-radius:var(--r-md);background:var(--soft);font-size:13px;font-weight:500;color:var(--text2);max-width:120px;box-shadow:none;transition:background-color .18s ease,transform .12s ease;}
-#actsDlg .area-picker.sm .ap-nm{font-weight:500;}
-#actsDlg .area-picker.sm .ap-tri{font-size:9px;}
-#actsDlg .area-picker.sm .dot{width:7px;height:7px;}
-@media (hover: hover) and (pointer: fine){ #actsDlg .area-picker.sm:hover{background:var(--line);} }
-#actsDlg .area-picker.sm:active{transform:scale(.96);}
-#actsDlg .area-picker.sm.open{background:var(--line);}
-.grp{margin-bottom:10px;border-radius:var(--r-xl);}
-.grp-head{padding:12px 14px;gap:9px;transition:background-color .18s ease;}
-.grp-head:active{background:var(--line);}
-.grp-head .dot{width:8px;height:8px;border-radius:50%;flex:none;}
-.grp-head .tri{font-size:10px;color:var(--text3);width:12px;flex:none;transition:transform .22s cubic-bezier(.23,1,.32,1);}
-.grp.open .grp-head .tri{transform:rotate(90deg);}
-.grp-head .grp-name{letter-spacing:-.01em;}
-.grp-head .cnt{font-size:11px;font-weight:600;color:var(--text2);background:var(--soft);border-radius:var(--r-round);min-width:22px;text-align:center;padding:2px 8px;font-variant-numeric:tabular-nums;flex:none;}
-.grp-head .act-paint{font-size:13px;line-height:1;padding:7px;margin:-7px -6px -7px 0;border-radius:var(--r-sm);opacity:.5;transition:opacity .18s ease,background-color .18s ease,transform .12s ease;}
-@media (hover: hover) and (pointer: fine){ .grp-head .act-paint:hover{opacity:1;background:var(--soft);} }
-.grp-head .act-paint:active{transform:scale(.88);}
-.grp-body{display:grid;grid-template-rows:0fr;padding:0;border-top:none;transition:grid-template-rows .28s cubic-bezier(.32,.72,0,1);}
-.grp.open .grp-body{grid-template-rows:1fr;}
-.grp-inner{overflow:hidden;min-height:0;padding:0 6px;}
-.grp.open .grp-inner{border-top:1px solid var(--line);}
-.grp-inner .act-edit{margin:0;min-height:46px;padding:3px 2px;}
-.grp-inner .act-edit+.act-edit{border-top:1px solid var(--line);}
-.grp-inner .act-edit .cp-sw{width:22px;height:22px;}
-.grp-inner .grp-empty{padding:12px 6px 14px;}
-.grp-inner .drag-placeholder{margin:3px 0;}
+/* ---------- shared add and drag controls ---------- */
 .drag-placeholder{border:1.5px dashed var(--line2);border-radius:var(--r-lg);background:var(--soft);}
 .add-line{gap:6px;min-height:46px;border:1.5px dashed var(--line2);border-radius:var(--r-lg);color:var(--text2);font-size:14px;font-weight:500;transition:background-color .18s ease,border-color .18s ease,color .18s ease,transform .12s ease;}
 @media (hover: hover) and (pointer: fine){ .add-line:hover{background:var(--soft);border-color:var(--text3);color:var(--text);} }
 .add-line:active{transform:scale(.99);}
 @media (prefers-reduced-motion: reduce){
-  .grp-body{transition:none;}
-  .grp-head .tri{transition:none;}
-  .act-edit .del:active,.grp-head .act-paint:active,.mgr-paint:active,.add-line:active{transform:none;}
+  .add-line:active{transform:none;}
 }
 
 /* ---------- v3.12.41 윤투 연동 허브 전환 모션 ---------- */
@@ -1627,7 +1527,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.13.7<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.14.0<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -1657,19 +1557,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
 <div class="fs-panel" id="actsDlg">
   <div class="fs-head"><button class="fs-back" data-close aria-label="뒤로">‹</button><h3>영역 · 활동 관리</h3></div>
   <div class="dlg-body">
-    <p class="mgr-intro">여기서 정한 <b>영역 → 활동 순서</b>를 모든 선택창이 공유합니다. 이름·영역·색을 바꾸면 과거 통계도 현재 분류로 표시되며, 측정 시간은 바뀌지 않습니다. 삭제한 항목은 기록을 보존한 채 보관되며 아래에서 복원할 수 있습니다.</p>
-    <div class="mgr-sec">
-      <div class="mgr-sec-t"><h4>영역 <span class="cnt" id="mgrAreaCnt"></span></h4><span class="mgr-sub">큰 분류 · 왼쪽 그립을 끌어 순서 변경</span></div>
-      <button class="btn mgr-paint" id="autoColorBtn" aria-label="전체 자동 배색">🎨 전체 자동 배색</button>
-    </div>
-    <div id="areasList"></div>
-    <button class="btn add-line" id="areaAdd">＋ 영역 추가</button>
-    <div class="mgr-sec">
-      <div class="mgr-sec-t"><h4>활동 <span class="cnt" id="mgrActCnt"></span></h4><span class="mgr-sub">실제 측정 단위 · 그립으로 다른 영역으로 이동</span></div>
-    </div>
-    <div id="actsList"></div>
-    <button class="btn add-line" id="actAdd">＋ 활동 추가</button>
-    <details id="catalogArchive" class="catalog-archive"><summary>보관된 영역·활동 <span id="catalogArchiveCount"></span></summary><div id="catalogArchiveList"></div></details>
+    <div id="catalogManager"></div>
   </div>
   <div class="dlg-foot"><span class="spacer"></span><button class="btn dark" data-close>완료</button></div>
 </div>
@@ -1933,6 +1821,9 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.7/gsap.min.js" integrity="sha384-pEQB1h4Zmn9xhS6jotzltHSIQq6N0Oh3BXkCNOH5LKI81R2NRbb9efarAJYw9gTY" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="./catalog-manager.css">
+<script src="./catalog-core.js"></script>
+<script src="./catalog-manager.js"></script>
 <script>
 "use strict";
 /* ================= constants ================= */
@@ -2182,7 +2073,6 @@ let state = {
   running:null,
   viewDate:ymd(new Date())
 };
-let expandedGrps=null; // Set of area names, init after load
 
 /* ================= utils ================= */
 function $(s){return document.querySelector(s);}
@@ -2568,7 +2458,7 @@ const TG_ROUTINE_IDENTITY=(function(){
   function defsForDate(settings,date){
     const dow=dateOf(date).getDay();
     return ((settings&&settings.routineDefs)||[]).filter(function(r){return String(r&&r.id||"")&&String(r&&r.name||"");}).filter(function(r){return !Array.isArray(r.days)||!r.days.length||r.days.includes(dow);}).map(function(r){
-      return {id:instanceId(date,r.id),routineDefId:String(r.id),time:r.time||"",end:r.end||"",name:r.name||"",actId:r.actId||null,area:r.area||null,done:false};
+      return {id:instanceId(date,r.id),routineDefId:String(r.id),time:r.time||"",end:r.end||"",name:r.name||"",actId:r.actId||null,areaId:r.areaId||null,area:r.area||null,done:false};
     });
   }
   function sig(v){return [v&&v.time||"",v&&v.end||"",v&&v.name||""].join("|");}
@@ -2586,7 +2476,7 @@ const TG_ROUTINE_IDENTITY=(function(){
     const routines=expected.map(function(def){
       const match=choose(def);if(!match){created++;return clone(def);}
       used.add(match.index);if(!match.value.routineDefId)adoptedLegacy++;
-      const out={...match.value,id:match.value.id||def.id,routineDefId:def.routineDefId,time:def.time,end:def.end,name:def.name,actId:def.actId,area:def.area,done:!!match.value.done};
+      const out={...match.value,id:match.value.id||def.id,routineDefId:def.routineDefId,time:def.time,end:def.end,name:def.name,actId:def.actId,areaId:def.areaId,area:def.area,done:!!match.value.done};
       delete out.extra;delete out.legacy;return out;
     });
     existing.forEach(function(value,index){
@@ -2646,30 +2536,10 @@ function appendTodoRestoreIfNeeded(day,dateStr,todo){
   const latest=TG_TODO_MUTATIONS.latestByTodo(state.days).get(String(todo.id));
   if(latest&&(latest.kind==="delete"||latest.toDate!==dateStr))appendTodoMutation(day,makeTodoMutation("restore",todo,dateStr,dateStr));
 }
-function actById(id){return state.settings.activities.find(a=>a.id===id);}
+function actById(id){return TG_CATALOG.liveActivity(state.settings,id);}
+function recordedActById(id){return TG_CATALOG.historicalActivity(state.settings,id);}
 /* CATALOG_CORE_START */
-const TG_CATALOG=(function(){
-  function areas(settings){return (settings.areas||[]).filter(a=>!a.archived);}
-  function activities(settings){
-    const rank=new Map(areas(settings).map((a,i)=>[a.name,i]));
-    return (settings.activities||[]).filter(a=>!a.archived&&rank.has(a.area))
-      .map((a,i)=>({a,i})).sort((x,y)=>rank.get(x.a.area)-rank.get(y.a.area)||x.i-y.i).map(x=>x.a);
-  }
-  function archive(item,at){item.archived=true;item.archivedAt=at;}
-  function restore(settings,item){
-    delete item.archived;delete item.archivedAt;
-    const area=(settings.areas||[]).find(a=>a.name===item.area);
-    if(area){delete area.archived;delete area.archivedAt;}
-  }
-  function move(settings,id,area){
-    const act=(settings.activities||[]).find(a=>a.id===id);
-    if(!act||!areas(settings).some(a=>a.name===area))return false;
-    act.area=area;
-    for(const def of settings.routineDefs||[])if(def.actId===id)def.area=area;
-    return true;
-  }
-  return {areas,activities,archive,restore,move};
-})();
+// Shared lifecycle implementation: catalog-core.js (also consumed by Automation).
 /* CATALOG_CORE_END */
 function activeAreas(){return TG_CATALOG.areas(state.settings);}
 function orderedActivities(){return TG_CATALOG.activities(state.settings);}
@@ -2681,7 +2551,8 @@ function moveActivity(act,area){
 }
 function actByName(name){return state.settings.activities.find(a=>a.name===name);}
 function areaByName(name){return state.settings.areas.find(a=>a.name===name);}
-function areaColor(name){const a=areaByName(name); return safeHexColor(a&&a.color,"#BDB4A8");}
+function areaColor(name){const a=areaByName(name)||TG_CATALOG.reportAreas(state.settings).find(a=>a.label===name); return safeHexColor(a&&a.color,"#BDB4A8");}
+function recordedAreaLabel(act){return TG_CATALOG.reportAreas(state.settings).find(a=>a.id===act?.areaId)?.label||act?.area||'기타';}
 function autoColor(areaNameArg){
   const areaName=(areaNameArg!=null&&areaNameArg!=="")? areaNameArg : ($("#areaSelect").value||"");
   const areaC=areaColor(areaName);
@@ -2711,11 +2582,12 @@ function autoColorActs(areaName,skipSave){
 }
 function save(){
   if(DEMO) return;
-  state.settings=normalizeSettingsColors(state.settings);
+  state.settings=TG_CATALOG.normalize(normalizeSettingsColors(state.settings));
   TG_TODO_MUTATIONS.materialize(state.days);
   Object.keys(state.days||{}).forEach(function(ds){TG_STATUS_MUTATIONS.materializeDay(state.days[ds]);});
+  normalizeCatalogDays();
   state._localUpdatedAt=Date.now();
-  try{localStorage.setItem(LS_KEY,JSON.stringify({settings:state.settings,days:state.days,running:state.running,updatedAt:state._localUpdatedAt}));}catch(e){}
+  try{persistCatalogLocal();}catch(e){toast('저장 공간을 확인하세요. 변경 내용이 아직 저장되지 않았습니다.');}
   if(window.tgCloud&&window.tgCloud.markDirty) window.tgCloud.markDirty();
   if(window.tgCloud&&window.tgCloud.schedulePush) window.tgCloud.schedulePush();
 }
@@ -2724,12 +2596,14 @@ function load(){
     const raw=localStorage.getItem(LS_KEY);
     if(!raw) return;
     const s=JSON.parse(raw);
-    if(s.settings) state.settings=normalizeSettingsColors(s.settings);
-    if(!state.settings.areas || !state.settings.areas.length){
+    state.legacyCatalogClient=s.legacyCatalogClient===true||Number(s.settings?.catalogProtocol||0)<2;
+    if(s.settings) state.settings=TG_CATALOG.normalize(normalizeSettingsColors(s.settings));
+    if(!Array.isArray(state.settings.areas)){
       state.settings.areas=DEFAULT_AREAS.map(a=>({...a}));
       state.settings.version=2;
     }
     if(s.days) state.days=s.days;
+    state.finalizations=Array.isArray(s.finalizations)?s.finalizations:[];
     for(const k in state.days){
       const dd=state.days[k];
       if(dd) dd.todoMutations=TG_TODO_MUTATIONS.normalizeList(dd.todoMutations);
@@ -2746,7 +2620,19 @@ function load(){
       else{ tgQuarantineRunning(s.running,"local-stale-on-load"); state.running=null; }
     }
     if(s.updatedAt) state._localUpdatedAt=s.updatedAt;
+    normalizeCatalogDays();
+    recoverLocalFinalizations();
   }catch(e){}
+}
+function normalizeCatalogDays(){
+  for(const day of Object.values(state.days||{})){
+    const normalized=TG_CATALOG.normalizeDay(state.settings,day);
+    for(const field of ['todos','routines'])for(let i=0;i<(day[field]||[]).length;i++)Object.assign(day[field][i],normalized[field][i]);
+    day.todoMutations=normalized.todoMutations;
+  }
+}
+function persistCatalogLocal(){
+  localStorage.setItem(LS_KEY,JSON.stringify({settings:state.settings,days:state.days,running:state.running,finalizations:state.finalizations||[],legacyCatalogClient:state.legacyCatalogClient===true,updatedAt:state._localUpdatedAt||Date.now()}));
 }
 function ensureDay(dateStr){
   if(!state.days[dateStr]){
@@ -2758,6 +2644,8 @@ function ensureDay(dateStr){
   }
   if(!Array.isArray(state.days[dateStr].statusMutations))state.days[dateStr].statusMutations=[];
   TG_STATUS_MUTATIONS.materializeDay(state.days[dateStr]);
+  const clean=TG_CATALOG.normalizeDay(state.settings,state.days[dateStr]);
+  for(const field of ['todos','routines'])for(let i=0;i<(state.days[dateStr][field]||[]).length;i++)Object.assign(state.days[dateStr][field][i],clean[field][i]);
   return state.days[dateStr];
 }
 
@@ -2873,6 +2761,7 @@ function continuityCandidate(run){
 function materializeExactSpan(run,endTs){
   const runStart=Number(run&&run.startTs)||0,runEnd=Number(endTs)||0;
   if(!runStart||!runEnd||runEnd<=runStart)return false;
+  if(TG_CATALOG.spanStored(state.days,run,runEnd))return true;
   const candidate=continuityCandidate(run);
   const merging=!!candidate;
   const spanId=merging?String(candidate.event.continuityId||candidate.event.id):String(run.continuityId||("span_"+(run.sessionId||uid("run"))));
@@ -2994,7 +2883,7 @@ function attachAC(input, areaSel, container){
     if(raw && !exact){
       const row=document.createElement("div"); row.className="ac-row new";
       row.innerHTML='<span class="dot" style="background:var(--text3)"></span><span class="nm">“'+esc(raw)+'” 새 활동 만들기</span><span class="ar">'+esc(areaSel.value||"")+'</span>';
-      row.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();var na=resolveActivity(raw,areaSel.value,true);if(na){na.lastUsed=Date.now();input.value=na.name;if(areaByName(na.area)){areaSel.value=na.area;if(areaSel.dispatchEvent)areaSel.dispatchEvent(new Event("change",{bubbles:true}));if(window.refreshAreaPickers)refreshAreaPickers();}save();if(window.renderManager)renderManager();}if(window.syncAreaLock)syncAreaLock();if(window.sizeActInput)sizeActInput(true);if(window.paintActInput)paintActInput();acPickAnim(input,list,row);});
+      row.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();var na=resolveActivity(raw,areaSel.value,true);if(na){na.lastUsed=Date.now();input.value=na.name;input.dataset.selectedActId=na.id;if(areaByName(na.area)){areaSel.value=na.area;if(areaSel.dispatchEvent)areaSel.dispatchEvent(new Event("change",{bubbles:true}));if(window.refreshAreaPickers)refreshAreaPickers();}save();if(window.renderManager)renderManager();}if(window.syncAreaLock)syncAreaLock();if(window.sizeActInput)sizeActInput(true);if(window.paintActInput)paintActInput();acPickAnim(input,list,row);});
       row.addEventListener("pointerdown",function(ev){ev.stopPropagation()});
       row.addEventListener("pointerenter",function(){scroll.querySelectorAll('.ac-row').forEach(function(x){x.classList.remove('selected')});row.classList.add('selected');acSelIdx=Array.from(scroll.children).indexOf(row);list.dataset.selIdx=acSelIdx});
       scroll.appendChild(row);
@@ -3002,7 +2891,7 @@ function attachAC(input, areaSel, container){
     for(const a of acts){
       const row=document.createElement("div"); row.className="ac-row";
       row.innerHTML='<span class="dot" style="background:'+safeHexColor(a.color)+'"></span><span class="nm">'+esc(a.name)+'</span>'+(areaFilter? '':'<span class="ar">'+esc(a.area)+'</span>');
-      row.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();input.value=a.name;if(areaByName(a.area)){areaSel.value=a.area;if(areaSel.dispatchEvent)areaSel.dispatchEvent(new Event('change',{bubbles:true}));if(window.refreshAreaPickers)refreshAreaPickers();}if(window.syncAreaLock)syncAreaLock();if(window.sizeActInput)sizeActInput(true);if(window.paintActInput)paintActInput();acPickAnim(input,list,row);});
+      row.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();input.value=a.name;input.dataset.selectedActId=a.id;if(areaByName(a.area)){areaSel.value=a.area;if(areaSel.dispatchEvent)areaSel.dispatchEvent(new Event('change',{bubbles:true}));if(window.refreshAreaPickers)refreshAreaPickers();}if(window.syncAreaLock)syncAreaLock();if(window.sizeActInput)sizeActInput(true);if(window.paintActInput)paintActInput();acPickAnim(input,list,row);});
       row.addEventListener("pointerdown",function(ev){ev.stopPropagation()});
       row.addEventListener("pointerenter",function(){scroll.querySelectorAll('.ac-row').forEach(function(x){x.classList.remove('selected')});row.classList.add('selected');acSelIdx=Array.from(scroll.children).indexOf(row);list.dataset.selIdx=acSelIdx});
       scroll.appendChild(row);
@@ -3195,8 +3084,9 @@ function resolveActivity(name, areaName, create){
     return act;
   }
   if(!create) return null;
-  if(areaName && !areaByName(areaName)) state.settings.areas.push({name:areaName,color:RAINBOW[state.settings.areas.length%RAINBOW.length]});
-  const area=(areaName && areaByName(areaName))? areaName : (activeAreas()[0]? activeAreas()[0].name:"기타");
+  if(areaName && !areaByName(areaName)) state.settings.areas.push({id:uid('area'),name:areaName,color:RAINBOW[state.settings.areas.length%RAINBOW.length]});
+  const area=(areaName && areaByName(areaName))? areaName : (activeAreas()[0]? activeAreas()[0].name:null);
+  if(!area){toast('영역을 먼저 추가하세요.');return null;}
   act={id:uid("a"),name,color:autoColor(area),area};
   state.settings.activities.push(act);
   return act;
@@ -3212,7 +3102,6 @@ async function beginRun(candidate,act,extra){
   const result=await window.tgCloud.requestStart(candidate);
   if(!result||!result.ok){ renderSw(); renderTimeline(); return false; }
   state.running=copyRun(result.running||candidate);
-  if(act.archived||areaByName(act.area)?.archived)TG_CATALOG.restore(state.settings,act);
   act.lastUsed=Date.now();
   save();
   const synced=result.local?true:(window.tgCloud.syncAction?await window.tgCloud.syncAction("start"):false);
@@ -3244,17 +3133,67 @@ async function swStartTagged(actId,tags){
 }
 function materializeStoppedRun(r,endTs){
   if(!r) return false;
-  if(!materializeExactSpan(r,Number(endTs)||Date.now()))return false;
+  if(Number(endTs)>Number(r.startTs)&&!materializeExactSpan(r,Number(endTs)))return false;
   state.running=null;noteClear();noteRowOpen(false);save();renderAll();return true;
+}
+function prepareFinalization(r,endTs){
+  if(!r?.sessionId||!Number.isFinite(r.startTs)||!Number.isFinite(endTs)||endTs<r.startTs)throw new Error('stop-time-invalid');
+  return {id:r.sessionId,running:copyRun(r),endedAt:endTs,zeroSpan:endTs===r.startTs,scope:'cloud'};
+}
+function materializedFinalizationDays(receipts,days){
+  const original=state.days;
+  try{
+    state.days=copyRun(days);
+    for(const receipt of receipts){
+      if(receipt.endedAt>receipt.running.startTs&&!materializeExactSpan(receipt.running,receipt.endedAt))throw new Error('stop-materialization-failed');
+    }
+    return state.days;
+  }finally{state.days=original;}
+}
+function consumeFinalization(receipt){
+  state.days=materializedFinalizationDays([receipt],state.days);
+}
+function recoverLocalFinalizations(){
+  const local=(state.finalizations||[]).filter(f=>f.scope==='local');if(!local.length)return;
+  const before={days:state.days,running:state.running,finalizations:state.finalizations};
+  try{
+    state.days=materializedFinalizationDays(local,state.days);
+    if(local.some(f=>f.id===state.running?.sessionId))state.running=null;
+    state.finalizations=state.finalizations.filter(f=>f.scope!=='local');
+    persistCatalogLocal();
+  }catch(e){Object.assign(state,before);throw e;}
+}
+let pendingViewCache=null;
+function measurementDays(){
+  const pending=(state.finalizations||[]).filter(f=>f.scope!=='local');if(!pending.length)return state.days;
+  const signature=TG_CATALOG.key([pending,state.days,state.settings.catalogRevision]);
+  if(pendingViewCache?.signature!==signature){
+    const days=materializedFinalizationDays(pending,state.days);
+    for(const day of Object.values(days))for(const event of day.events||[]){
+      if(pending.some(f=>(event.sessionIds||[]).includes(f.id)))event.pendingFinalization=true;
+    }
+    pendingViewCache={signature,days};
+  }
+  return pendingViewCache.days;
+}
+function measurementDay(date){return measurementDays()[date]||state.days[date];}
+function measuredDayView(day){
+  if(!(state.finalizations||[]).length)return day;
+  const date=Object.keys(state.days).find(date=>state.days[date]===day);
+  return date?measurementDay(date):day;
 }
 async function swStop(){
   const r=copyRun(state.running);if(!r)return false;
   if(!window.tgCloud||!window.tgCloud.requestStop) return false;
   const result=await window.tgCloud.requestStop(r);
   if(!result||!result.ok){renderSw();return false;}
-  const materialized=materializeStoppedRun(result.running||r,result.endedAt||Date.now());
-  if(!materialized)return false;
-  if(result.local)return true;
+  state.running=null;noteClear();noteRowOpen(false);
+  if(result.local){
+    try{recoverLocalFinalizations();save();renderAll();}
+    catch(e){toast('종료 기록 저장을 완료하지 못했습니다. 저장 공간을 확인하세요.');return false;}
+    return true;
+  }
+  save();renderAll();
   const synced=window.tgCloud.syncAction?await window.tgCloud.syncAction("stop"):false;
   if(!synced&&typeof toast==="function")toast("종료 기록은 보관됐고 재연결 즉시 동기화됩니다");
   return true;
@@ -3315,7 +3254,7 @@ const TG_TIME_DISPLAY=(()=>{
 /* TIME_DISPLAY_CORE_END */
 
 function totalSec(){
-  const day=ensureDay(state.viewDate);
+  ensureDay(state.viewDate);const day=measurementDay(state.viewDate);
   let sec=0;
   for(const ev of day.events){
     const exactStart=Number(ev&&ev.startTs)||0,exactEnd=Number(ev&&ev.endTs)||0;
@@ -3419,7 +3358,7 @@ function makeSegDiv(seg,act,extraClass,subLabel){
 }
 function renderTimeline(){
   invalidatePlanMarkers();
-  const day=ensureDay(state.viewDate);
+  ensureDay(state.viewDate);const day=measurementDay(state.viewDate);
   const _W=tlContent.clientWidth||360, _lbl={}, _pick={}, _alnR={};
   const _best=function(sg,marks,nm,area){
     if(!sg||!sg.length) return null;
@@ -3444,7 +3383,7 @@ function renderTimeline(){
     return sg[bi];
   };
   for(const ev of day.events){
-    const _act=actById(ev.actId);
+    const _act=recordedActById(ev.actId);
     let _tag="";
     if(ev.todoId){ const _t=day.todos.find(x=>x.id===ev.todoId); if(_t) _tag=_t.title; }
     if(ev.routineId){ const _r=day.routines.find(x=>x.id===ev.routineId); if(_r) _tag=_r.name; }
@@ -3476,7 +3415,7 @@ function renderTimeline(){
     tlContent.appendChild(vl);
   }
   for(const ev of day.events){
-    const act=actById(ev.actId);
+    const act=recordedActById(ev.actId);
     let tagT="";
     if(ev.todoId){ const _t=day.todos.find(x=>x.id===ev.todoId); if(_t) tagT=_t.title; }
     if(ev.routineId){ const _r=day.routines.find(x=>x.id===ev.routineId); if(_r) tagT=_r.name; }
@@ -3486,7 +3425,7 @@ function renderTimeline(){
       seg.labeled=(seg.hour===_pick[ev.id]);
       seg.alignR=seg.labeled&&!!_alnR[ev.id];
       const d=makeSegDiv(seg,act,undefined,tagT);
-      attachTip(d,'<span class="rt-tip-t">'+esc(act?act.name:"?")+(tagT?" · "+esc(tagT):"")+'</span><span class="rt-tip-s">'+ev.start+"\u2009\u2013\u2009"+ev.end+' · 탭하면 편집</span>');
+      attachTip(d,'<span class="rt-tip-t">'+esc(act?act.name:"?")+(tagT?" · "+esc(tagT):"")+'</span><span class="rt-tip-s">'+ev.start+"\u2009\u2013\u2009"+ev.end+(ev.pendingFinalization?' · 종료 기록 동기화 중':' · 탭하면 편집')+'</span>');
       d.dataset.evId=ev.id;
       d.dataset.hoverKey=JSON.stringify(["event",state.viewDate,ev.id]);
       tlContent.appendChild(d);
@@ -3768,7 +3707,7 @@ function tlCommitRange(d){
   }
   if(e<=s) return;
   /* 기존 기록이 선점한 구간은 침범하지 않고 빈 구간만 채운다 */
-  const _free=freeRanges(day,s,e);
+  const _free=freeRanges(measurementDay(state.viewDate)||day,s,e);
   if(!_free.length){ toast("이미 기록이 있는 구간입니다"); return; }
   for(const _r of _free) addInterval(day,act.id,_r[0],_r[1],ctx.tags);
   save(); renderTimeline(); renderStats(); renderTotal(); renderTodos(); renderRoutines();
@@ -3776,7 +3715,7 @@ function tlCommitRange(d){
 function tlHandleTap(d){
   const day=ensureDay(state.viewDate);
   if(d.startedOn && d.startedOn.dataset && d.startedOn.dataset.evId){
-    const ev=day.events.find(x=>x.id===d.startedOn.dataset.evId);
+    const ev=(measurementDay(state.viewDate)||day).events.find(x=>x.id===d.startedOn.dataset.evId);
     if(ev){ openEvDlg(ev); return; }
   }
   /* empty-cell tap → single 10min block */
@@ -3864,9 +3803,21 @@ tlContent.addEventListener("pointercancel",e=>{
 
 /* ================= event edit dialog ================= */
 let editingEvId=null;
+function pendingEventEdit(date,event,start,end){
+  const pending=(measurementDay(date)?.events||[]).filter(ev=>ev.pendingFinalization);
+  const bounds=event&&exactEventBounds(date,event);
+  return pending.some(ev=>{
+    if(event&&ev.id===event.id)return true;
+    const other=exactEventBounds(date,ev);
+    if(bounds&&other&&bounds.startTs<other.endTs&&bounds.endTs>other.startTs)return true;
+    const span=statSpan(ev);
+    return start!=null&&end!=null&&span&&start<span.e&&end>span.s;
+  });
+}
 function openEvDlg(ev){
+  if(ev.pendingFinalization){toast('종료 기록 동기화 후 수정할 수 있습니다.');return;}
   editingEvId=ev.id;
-  const act=actById(ev.actId);
+  const act=recordedActById(ev.actId);
   const sel=$("#evArea"); sel.innerHTML="";
   for(const a of state.settings.areas){
     const op=document.createElement("option"); op.value=a.name; op.textContent=a.name;
@@ -3875,6 +3826,7 @@ function openEvDlg(ev){
   if(act && areaByName(act.area)) sel.value=act.area;
   refreshAreaPickers();
   $("#evAct").value=act? act.name:"";
+  $("#evAct").dataset.selectedActId='';
   $("#evStart").value=ev.start;
   const _eod=(ev.end==="24:00");
   $("#evEnd").value=_eod? "23:59":ev.end;
@@ -3898,6 +3850,7 @@ $("#evSave").addEventListener("click",()=>{
   const ev=day.events.find(x=>x.id===editingEvId);
   const msg=$("#evMsg");
   if(!ev){ $("#evDlg").close(); return; }
+  if(pendingEventEdit(state.viewDate,ev)){msg.textContent="종료 기록 동기화 후 수정할 수 있습니다.";msg.className="msg err";return;}
   const name=$("#evAct").value.trim();
   if(!name){ msg.textContent="활동 이름을 입력하세요."; msg.className="msg err"; return; }
   const sv=$("#evStart").value, evv=$("#evEnd").value;
@@ -3908,15 +3861,19 @@ $("#evSave").addEventListener("click",()=>{
   /* time input cannot express 24:00 so UI shows 23:59; keep EOD if untouched */
   if(e===1439 && $("#evEnd").dataset.eod==="1" && evv==="23:59") e=1440;
   if(e<=s){ msg.textContent="종료 시각이 시작보다 늦어야 합니다."; msg.className="msg err"; return; }
-  const act=resolveActivity(name, $("#evArea").value, true);
-  act.lastUsed=Date.now();
+  if(pendingEventEdit(state.viewDate,ev,s,e)){msg.textContent="종료 기록 동기화 후 수정할 수 있습니다.";msg.className="msg err";return;}
+  const recorded=recordedActById(ev.actId);
+  const explicitId=$("#evAct").dataset.selectedActId;
+  const act=explicitId&&actById(explicitId)?.name===name?actById(explicitId):recorded&&recorded.name===name?recorded:resolveActivity(name, $("#evArea").value, true);
+  if(!act){msg.textContent="활동을 선택하세요.";return;}
+  const live=actById(act.id);if(live)live.lastUsed=Date.now();
   /* 수정 구간이 다른 기록을 침범하면 확인 후에만 잠식한다 */
   const _ov=day.events.filter(x=>{ if(x.id===editingEvId) return false; const xs=toMin(x.start); let xe=toMin(x.end); if(xe===0&&xs>0) xe=1440; return xs<e && xe>s; });
   if(_ov.length){
     const _sig=editingEvId+"|"+s+"|"+e+"|"+act.id;
     if(window._evOvAck!==_sig){
       window._evOvAck=_sig;
-      const _ls=_ov.slice(0,3).map(x=>{const _a2=actById(x.actId);return (_a2?_a2.name:"?")+" "+x.start+"~"+x.end;}).join(", ");
+      const _ls=_ov.slice(0,3).map(x=>{const _a2=recordedActById(x.actId);return (_a2?_a2.name:"?")+" "+x.start+"~"+x.end;}).join(", ");
       msg.textContent="다른 기록 "+_ov.length+"건("+_ls+(_ov.length>3?" 외":"")+")과 겹칩니다. 겹친 만큼 기존 기록이 잘립니다. 적용하려면 저장을 한 번 더 누르세요.";
       msg.className="msg err";
       return;
@@ -3936,12 +3893,13 @@ $("#evDelete").addEventListener("click",()=>{
   const day=ensureDay(state.viewDate);
   const _ds=state.viewDate;
   const _removed=day.events.find(x=>x.id===editingEvId);
+  if(pendingEventEdit(_ds,_removed)){const msg=$("#evMsg");msg.textContent="종료 기록 동기화 후 삭제할 수 있습니다.";msg.className="msg err";return;}
   if(_removed)detachContinuityLineage(_removed);
   day.events=day.events.filter(x=>x.id!==editingEvId);
   save(); renderAll();
   $("#evDlg").close();
   if(_removed){
-    const _a=actById(_removed.actId);
+    const _a=recordedActById(_removed.actId);
     toast("기록 삭제됨: "+(_a?_a.name+" ":"")+_removed.start+"~"+_removed.end,()=>{
       const _d=ensureDay(_ds); _d.events.push(_removed);
       _d.events.sort((a,b)=>toMin(a.start)-toMin(b.start));
@@ -3951,19 +3909,21 @@ $("#evDelete").addEventListener("click",()=>{
 });
 
 /* ================= stats ================= */
-function dayDetail(dateStr){
-  const d=state.days[dateStr];
-  const perAct={}, perArea={}, sessions={};
+function dayDetail(dateStr,includePending=true){
+  const d=includePending?measurementDay(dateStr):state.days[dateStr];
+  const perAct=Object.create(null),perArea=Object.create(null),perAreaId=Object.create(null),sessions=Object.create(null);
   let total=0;
   const evs=d? [...d.events].sort((a,b)=>toMin(a.start)-toMin(b.start)) : [];
   const dayPart={"오전":0,"오후":0,"저녁":0};
-  const perActSrc={};
+  const perActSrc=Object.create(null);
   let todoMin=0, routineMin=0;
   for(const ev of evs){
     const sp=statSpan(ev); if(!sp) continue;
     const {s,e,min}=sp;
-    const act=actById(ev.actId);
-    const area=act? act.area:"기타";
+    const act=recordedActById(ev.actId);
+    const area=recordedAreaLabel(act);
+    const areaId=act?.areaId||'';
+    perAreaId[areaId]=(perAreaId[areaId]||0)+min;
     perAct[ev.actId]=(perAct[ev.actId]||0)+min;
     perArea[area]=(perArea[area]||0)+min;
     const src=ev.todoId? "todo" : ev.routineId? "routine":"free";
@@ -3975,7 +3935,7 @@ function dayDetail(dateStr){
     dayPart["오전"]+=ov(0,720); dayPart["오후"]+=ov(720,1080); dayPart["저녁"]+=ov(1080,1440);
   }
   const todos=(d&&d.todos)||[], routines=(d&&d.routines)||[];
-  return {perAct,perArea,perActSrc,todoMin,routineMin,total,sessions,dayPart,
+  return {perAct,perArea,perAreaId,perActSrc,todoMin,routineMin,total,sessions,dayPart,
     switches:Math.max(evs.length-1,0),
     todoDone:todos.filter(t=>t.done).length, todoTotal:todos.length,
     routineDone:routines.filter(r=>r.done).length, routineTotal:routines.length};
@@ -4026,10 +3986,10 @@ function renderStToday(){
     else{ vb.textContent="어제보다 "+(diff>0?"▲ ":"▼ ")+fmtShort(Math.abs(diff)); vb.className="delta-badge "+(diff>0?"up":"down"); }
   }
   const band=$("#dayBand"); band.innerHTML="";
-  const day=state.days[state.viewDate];
+  const day=measurementDay(state.viewDate);
   const bandEvents=day? [...(day.events||[])].map(ev=>({ev,sp:statSpan(ev)})).filter(x=>x.sp).sort((a,b)=>a.sp.s-b.sp.s) : [];
   for(const {ev,sp} of bandEvents){
-    const act=actById(ev.actId);
+    const act=recordedActById(ev.actId);
     const seg=document.createElement("i");
     const left=sp.s/1440*100, width=Math.max(sp.min/1440*100,.35);
     seg.style.left=left+"%";
@@ -4045,7 +4005,7 @@ function renderStToday(){
     donut.style.background="conic-gradient(var(--line) 0 100%)";
     areaBox.innerHTML='<div class="empty">아직 기록이 없습니다.</div>';
   }else{
-    const areaNames=[...state.settings.areas.map(a=>a.name), ...Object.keys(perArea).filter(n=>!areaByName(n))];
+    const areaNames=[...new Set([...TG_CATALOG.reportAreas(state.settings).map(a=>a.label),...Object.keys(perArea)])];
     let acc=0; const stops=[];
     for(const name of areaNames){
       const min=perArea[name]; if(!min) continue;
@@ -4064,7 +4024,7 @@ function renderStToday(){
   const actBox=$("#actStats"); actBox.innerHTML="";
   if(!total) actBox.innerHTML='<div class="empty">아직 기록이 없습니다.</div>';
   else{
-    const items=Object.entries(perAct).map(([id,min])=>({id,act:actById(id),min})).sort((a,b)=>b.min-a.min);
+    const items=Object.entries(perAct).map(([id,min])=>({id,act:recordedActById(id),min})).sort((a,b)=>b.min-a.min);
     for(const {id,act,min} of items){
       const pct=Math.round(min/total*100);
       const ss=sessions[id]||[];
@@ -4184,7 +4144,7 @@ function weekScaleMax(){
 function weekAreaData(dates,prevDates){
   const data=dates.map(ds=>({ds,...dayDetail(ds)}));
   const prevData=prevDates.map(ds=>dayDetail(ds));
-  const areaNames=[...new Set([...state.settings.areas.map(a=>a.name), ...data.flatMap(x=>Object.keys(x.perArea)), ...prevData.flatMap(x=>Object.keys(x.perArea))])];
+  const areaNames=[...new Set([...TG_CATALOG.reportAreas(state.settings).map(a=>a.label), ...data.flatMap(x=>Object.keys(x.perArea)), ...prevData.flatMap(x=>Object.keys(x.perArea))])];
   return {data,prevData,areaNames};
 }
 function buildWeekCol(ds){
@@ -4492,10 +4452,10 @@ let moCat="__all__", moAct="__all__";
 function renderStMonth(){
   const moDays=monthRange(state.viewDate);
   const moData=moDays.map(ds=>{ const dd=dayDetail(ds); return {ds,total:dd.total,perArea:dd.perArea,perAct:dd.perAct}; });
-  const catNames=state.settings.areas.map(a=>a.name);
+  const catNames=TG_CATALOG.reportAreas(state.settings).map(a=>a.label);
   if(moCat!=="__all__"&&catNames.indexOf(moCat)<0) moCat="__all__";
   if(moCat==="__all__") moAct="__all__";
-  if(moAct!=="__all__"&&(!actById(moAct)||actById(moAct).area!==moCat)) moAct="__all__";
+  if(moAct!=="__all__"&&(!recordedActById(moAct)||recordedAreaLabel(recordedActById(moAct))!==moCat)) moAct="__all__";
   const vOf=x=> moAct!=="__all__"? ((x.perAct&&x.perAct[moAct])||0) : moCat==="__all__"? x.total : (x.perArea[moCat]||0);
   const domOf=x=>{ let bn=null,bv=0; for(const k in x.perArea){ if(x.perArea[k]>bv){bv=x.perArea[k]; bn=k;} } return bn; };
   const selBox=$("#moCatSel");
@@ -4522,7 +4482,7 @@ function renderStMonth(){
     for(const nm of catNames) mkChip(nm,nm,areaColor(nm));
     const oldA=document.getElementById("moActSel"); if(oldA) oldA.remove();
     if(moCat!=="__all__"){
-      const acts=state.settings.activities.filter(a=>a.area===moCat);
+      const acts=TG_CATALOG.reportActivities(state.settings).filter(a=>recordedAreaLabel(a)===moCat);
       if(acts.length){
         const arow=document.createElement("div"); arow.className="mcat"; arow.id="moActSel";
         const mkAct=(key,label,color)=>{
@@ -4550,10 +4510,10 @@ function renderStMonth(){
     const dt=dateOf(x.ds), dow=dt.getDay(), v=vOf(x);
     const cell=document.createElement("div"); cell.className="cell"+(x.ds===state.viewDate?" cur":"")+(dow===0?" sun":dow===6?" sat":"");
     let base=null;
-    if(v) base= moAct!=="__all__"? ((actById(moAct)||{}).color||areaColor(moCat)) : moCat==="__all__"? areaColor(domOf(x)||"") : areaColor(moCat);
+    if(v) base= moAct!=="__all__"? ((recordedActById(moAct)||{}).color||areaColor(moCat)) : moCat==="__all__"? areaColor(domOf(x)||"") : areaColor(moCat);
     cell.style.background=v? hexToRgba(base,.16+.6*(v/moMax)) : "var(--soft)";
-    const sub= moAct!=="__all__"? " · "+esc((actById(moAct)||{}).name||"") : moCat==="__all__"? (v&&domOf(x)? " · 주로 "+esc(domOf(x)):"") : " · "+esc(moCat);
-    attachTip(cell,'<span class="rt-tip-cap">'+fmtDateK(x.ds)+'</span>'+(v?'<span class="rt-tip-row"><span class="ar">'+(moAct!="__all__"?esc((actById(moAct)||{}).name||""):(moCat=="__all__"?(domOf(x)?"주로 "+esc(domOf(x)):"") : esc(moCat)))+'</span><span class="vl">'+fmtDur(v)+'</span></span>':'<span class="rt-tip-s">기록 없음</span>')+'');
+    const sub= moAct!=="__all__"? " · "+esc((recordedActById(moAct)||{}).name||"") : moCat==="__all__"? (v&&domOf(x)? " · 주로 "+esc(domOf(x)):"") : " · "+esc(moCat);
+    attachTip(cell,'<span class="rt-tip-cap">'+fmtDateK(x.ds)+'</span>'+(v?'<span class="rt-tip-row"><span class="ar">'+(moAct!="__all__"?esc((recordedActById(moAct)||{}).name||""):(moCat=="__all__"?(domOf(x)?"주로 "+esc(domOf(x)):"") : esc(moCat)))+'</span><span class="vl">'+fmtDur(v)+'</span></span>':'<span class="rt-tip-s">기록 없음</span>')+'');
     cell.innerHTML='<span>'+dt.getDate()+'</span>'+(v?'<b>'+fmtShort(v)+'</b>':'');
     moBox.appendChild(cell);
   }
@@ -4565,7 +4525,7 @@ function renderStMonth(){
   for(let i=(viewIdx>=0?viewIdx:moData.length-1);i>=0;i--){ if(vOf(moData[i])>0) moStreak++; else break; }
   const moSum=moData.reduce((s,x)=>s+vOf(x),0);
   const best=moData.reduce((a,b)=>vOf(b)>vOf(a)?b:a,moData[0]||{total:0,perArea:{},ds:state.viewDate});
-  const catLb= moAct!=="__all__"? " · "+((actById(moAct)||{}).name||"") : (moCat==="__all__"? "":" · "+moCat);
+  const catLb= moAct!=="__all__"? " · "+((recordedActById(moAct)||{}).name||"") : (moCat==="__all__"? "":" · "+moCat);
   $("#monthSum").innerHTML=statLine([[(dateOf(state.viewDate).getMonth()+1)+"월 합계"+catLb, fmtDur(moSum)],["일평균", fmtDur(Math.round(moSum/Math.max(moData.length,1)))]]);
   const tBox=$("#trend4"); tBox.innerHTML="";
   const wsums=[];
@@ -4584,7 +4544,7 @@ function renderStMonth(){
     if(ws){
       let base=null;
       if(moCat==="__all__"){ let bn=null,bv=0; for(const k in o.wPer){ if(o.wPer[k]>bv){bv=o.wPer[k]; bn=k;} } base=bn? areaColor(bn):null; }
-      else base= moAct!=="__all__"? ((actById(moAct)||{}).color||areaColor(moCat)) : areaColor(moCat);
+      else base= moAct!=="__all__"? ((recordedActById(moAct)||{}).color||areaColor(moCat)) : areaColor(moCat);
       bc= base? hexToRgba(base,.78):"var(--text2)";
     }
     col.innerHTML='<div class="tbar"><span class="ttrack"><i style="height:'+h+'px;background:'+bc+'"></i></span></div><div class="tl2">'+(idx===3?"최근 7일":(3-idx)+"주 전")+'</div><div class="tv">'+(fmtShort(ws)||"·")+'</div>';
@@ -4617,8 +4577,8 @@ function renderStMonth(){
 
 /* ================= todos / routines ================= */
 /* ---- todo/routine time measurement ---- */
-function todoMeasuredMin(day,td){ let m=0; for(const ev of day.events){ if(ev.todoId===td.id) m+=Math.max(0,toMin(ev.end)-toMin(ev.start)); } return m; }
-function routineMeasuredMin(day,rt){ let m=0; for(const ev of day.events){ if(ev.routineId===rt.id) m+=Math.max(0,toMin(ev.end)-toMin(ev.start)); } return m; }
+function todoMeasuredMin(day,td,includePending=true){ let m=0; for(const ev of (includePending?measuredDayView(day):day).events){ if(ev.todoId===td.id)m+=statSpan(ev)?.min||0; } return m; }
+function routineMeasuredMin(day,rt,includePending=true){ let m=0; for(const ev of (includePending?measuredDayView(day):day).events){ if(ev.routineId===rt.id)m+=statSpan(ev)?.min||0; } return m; }
 function runTagTitle(r){
   if(!r) return "";
   if(!r.todoId&&!r.routineId) return r.note||"";
@@ -4953,7 +4913,7 @@ function renderTodos(){
         openTagPicker(anchor,{area:item.area||null,actId:item.actId||null},function(v){
           item.actId=v.actId||null;
           var _a=v.actId? actById(v.actId):null;
-          item.area=_a? _a.area : (v.area||"");
+          item.area=_a? _a.area : (v.area||"");item.areaId=areaByName(item.area)?.id||null;
           save(); renderTodos(); renderLive();
         });
       });
@@ -5278,7 +5238,7 @@ function renderRoutineEditor(list){
       });
       days.appendChild(b);
     });
-    const ca=catActBtn({area:(def.actId&&actById(def.actId))? actById(def.actId).area : (def.area||null),actId:def.actId||null},function(v){ def.actId=v.actId||null; def.area=v.area||null; commitRoutineDefs(false); },{sm:true});
+    const ca=catActBtn({area:(def.actId&&actById(def.actId))? actById(def.actId).area : (def.area||null),areaId:def.areaId||null,actId:def.actId||null},function(v){ def.actId=v.actId||null; def.area=v.area||null;def.areaId=v.areaId||null;commitRoutineDefs(false); },{sm:true});
     row.append(tm,nm,ca,del,days);
     list.appendChild(row);
   }
@@ -5538,7 +5498,7 @@ function catActBtn(value,onSelect,opts){
   btn.className='area-picker cat-act'+(opts.sm?' sm':'')
   btn.setAttribute('role','button')
   btn.setAttribute('tabindex','0')
-  let cur={area:(value&&value.area)||null,actId:(value&&value.actId)||null}
+  let cur=TG_CATALOG.assignment(state.settings,{area:value?.area||null,areaId:value?.areaId||null,actId:value?.actId||null})
   let list=null
   function refresh(){
     const act=cur.actId? actById(cur.actId):null
@@ -5554,7 +5514,7 @@ function catActBtn(value,onSelect,opts){
   }
   refresh()
   function closeList(){if(list){list.remove();list=null;btn.classList.remove('open');document.removeEventListener('scroll',_apReposition,true);document.removeEventListener('click',_apOutClick,true);document.removeEventListener('keydown',_apKey,true);window.removeEventListener('resize',_apReposition);if(_openAp.btn===btn){_openAp.btn=null;_openAp.list=null}}}
-  function pick(area,actId,row){ if(btn._apLock)return; cur={area:area,actId:actId||null}; refresh(); apPickAnim(btn,list,row,closeList); if(onSelect) onSelect({area:cur.area,actId:cur.actId}) }
+  function pick(area,actId,row){ if(btn._apLock)return; cur={area:area,areaId:areaByName(area)?.id||null,actId:actId||null}; refresh(); apPickAnim(btn,list,row,closeList); if(onSelect) onSelect({...cur}) }
   function openList(){
     if(list){closeList();return}
     _closeAp()
@@ -5625,13 +5585,10 @@ function catActBtn(value,onSelect,opts){
   }
   btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();if(btn._apLock||btn._locked)return;openList()})
   btn.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();if(btn._apLock||btn._locked)return;openList()}})
-  btn._setValue=function(v){cur={area:(v&&v.area)||null,actId:(v&&v.actId)||null};refresh()}
-  btn._getValue=function(){return {area:cur.area,actId:cur.actId}}
+  btn._setValue=function(v){cur=TG_CATALOG.assignment(state.settings,{area:v?.area||null,areaId:v?.areaId||null,actId:v?.actId||null});refresh()}
+  btn._getValue=function(){return {...cur}}
   btn._revalidate=function(){
-    if(cur.actId&&!actById(cur.actId)) cur.actId=null
-    const act=cur.actId? actById(cur.actId):null
-    if(act) cur.area=act.area
-    if(cur.area&&!areaByName(cur.area)) cur.area=null
+    cur=TG_CATALOG.assignment(state.settings,cur)
     refresh()
   }
   return btn
@@ -5819,404 +5776,8 @@ function colorField(initial, onChange, opts){
   return wrap;
 }
 
-/* ================= manager (groups + drag) ================= */
-function renderCatalogArchive(){
-  const box=$("#catalogArchiveList"),items=[...state.settings.areas,...state.settings.activities].filter(x=>x.archived);
-  $("#catalogArchiveCount").textContent=items.length?"("+items.length+")":"";
-  $("#catalogArchive").hidden=!items.length;
-  box.replaceChildren();
-  for(const item of items){
-    const row=document.createElement("div");row.className="catalog-archive-row";
-    const label=document.createElement("span");label.textContent=item.name+(item.area?" · "+item.area:" · 영역");
-    const restore=document.createElement("button");restore.className="btn";restore.textContent="복원";restore.setAttribute("aria-label",item.name+" 복원");
-    restore.addEventListener("click",()=>{TG_CATALOG.restore(state.settings,item);save();renderAll();renderManager();});
-    row.append(label,restore);box.append(row);
-  }
-}
-function renderManager(){
-  const abox=$("#areasList"); abox.innerHTML="";
-  for(const ar of activeAreas()){
-    const row=document.createElement("div"); row.className="act-edit"; row.dataset.aname=ar.name;
-    const ahd=document.createElement("span"); ahd.className="handle"; ahd.setAttribute("aria-label","끌어서 순서 변경"); attachTip(ahd,'<span class="rt-tip-t">끌어서 순서 변경</span>');
-    ahd.addEventListener("pointerdown",e=>startAreaDrag(e,ar,row));
-    const col=colorField(ar.color,(c)=>{
-      ar.color=c; nm.style.color=ar.color;
-      const grp=$('#actsList .grp[data-area="'+CSS.escape(ar.name)+'"]');
-      if(grp){
-        const head=grp.querySelector(".grp-head");
-        if(head){
-          const dot=head.querySelector(".dot"); if(dot) dot.style.background=ar.color;
-          const label=head.querySelector(".grp-name"); if(label) label.style.color=ar.color;
-        }
-      }
-      save(); renderAll();
-    },{container:$("#actsDlg")});
-    const nm=document.createElement("input"); nm.type="text"; nm.value=ar.name; nm.style.color=ar.color;
-    nm.addEventListener("change",()=>{
-      const nv=nm.value.trim();
-      if(!nv || (nv!==ar.name && areaByName(nv))){ nm.value=ar.name; return; }
-      const oldName=ar.name;
-      for(const act of state.settings.activities) if(act.area===oldName) act.area=nv;
-      for(const def of (state.settings.routineDefs||[])) if(def.area===oldName) def.area=nv;
-      for(const ds in state.days){
-        const d=state.days[ds]; if(!d) continue;
-        for(const t of (d.todos||[])) if(t.area===oldName) t.area=nv;
-        for(const m of (d.todoMutations||[])) if(m.todo&&m.todo.area===oldName) m.todo.area=nv;
-        for(const rt of (d.routines||[])) if(rt.area===oldName) rt.area=nv;
-      }
-      if(expandedGrps.has(oldName)){ expandedGrps.delete(oldName); expandedGrps.add(nv); }
-      ar.name=nv;
-      save(); renderAll(); renderManager();
-    });
-    const del=document.createElement("button"); del.className="del icon-btn"; del.textContent="✕"; del.setAttribute("aria-label","삭제");
-    const _actN=orderedActivities().filter(x=>x.area===ar.name).length;
-    const cnt=document.createElement("span"); cnt.className="a-cnt"; cnt.textContent=_actN; attachTip(cnt,'<span class="rt-tip-t">이 영역의 활동 수</span>');
-    if(activeAreas().length<=1){ del.classList.add("blocked"); attachTip(del,'<span class="rt-tip-t">영역은 최소 1개 필요합니다</span>'); }
-    else if(_actN>0){ del.classList.add("blocked"); attachTip(del,'<span class="rt-tip-t">활동이 있는 영역은 삭제할 수 없습니다</span>'); }
-    del.addEventListener("click",()=>{
-      if(activeAreas().length<=1){ toast("영역은 최소 1개 필요합니다."); return; }
-      if(orderedActivities().some(a=>a.area===ar.name)){ toast("이 영역을 쓰는 활동이 있어 삭제할 수 없습니다. 활동을 먼저 다른 영역으로 옮겨 주세요."); return; }
-      TG_CATALOG.archive(ar,Date.now());
-      save(); renderAll(); renderManager();
-      toast("'"+ar.name+"' 영역 보관됨 · 과거 기록 유지",()=>{ TG_CATALOG.restore(state.settings,ar); save(); renderAll(); renderManager(); });
-    });
-    row.append(ahd,col,nm,cnt,del);
-    abox.appendChild(row);
-  }
-  (function(){const _a=$("#mgrAreaCnt"),_c=$("#mgrActCnt"); if(_a) _a.textContent=activeAreas().length; if(_c) _c.textContent=orderedActivities().length;})();
-  const box=$("#actsList"); box.innerHTML="";
-  for(const ar of activeAreas()){
-    const acts=orderedActivities().filter(a=>a.area===ar.name);
-    const grp=document.createElement("div"); grp.className="grp"; grp.dataset.area=ar.name;
-    const head=document.createElement("button"); head.className="grp-head"; head.dataset.area=ar.name;
-    const open=expandedGrps.has(ar.name);
-    if(open) grp.classList.add("open");
-    head.innerHTML='<span class="tri">▸</span><span class="dot" style="background:'+safeHexColor(ar.color)+'"></span><span class="grp-name" style="color:'+safeHexColor(ar.color)+'">'+esc(ar.name)+'</span><span class="cnt">'+acts.length+'</span><span class="act-paint" aria-label="활동 그라데이션 배색">🎨</span>';
-    const paintBtn=head.querySelector(".act-paint");
-    attachTip(paintBtn,'<span class="rt-tip-t">활동 그라데이션 배색</span>');
-    paintBtn.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();autoColorActs(ar.name);});
-    head.addEventListener("click",()=>{
-      const nowOpen=!grp.classList.contains("open");
-      if(nowOpen) expandedGrps.add(ar.name); else expandedGrps.delete(ar.name);
-      grp.classList.toggle("open",nowOpen);
-    });
-    grp.appendChild(head);
-    {
-      const body=document.createElement("div"); body.className="grp-body";
-      const inner=document.createElement("div"); inner.className="grp-inner";
-      body.appendChild(inner);
-      if(!acts.length){
-        const eb=document.createElement("div"); eb.className="grp-empty";
-        const et=document.createElement("span"); et.textContent="아직 활동이 없습니다. 끌어다 놓거나 새로 만드세요.";
-        const cta=document.createElement("button"); cta.className="btn grp-empty-cta"; cta.textContent="＋ 이 영역에 활동 추가";
-        cta.addEventListener("click",()=>toggleActAddForm(ar.name));
-        eb.append(et,cta); inner.appendChild(eb);
-      }
-      for(const a of acts){
-        const row=document.createElement("div"); row.className="act-edit"; row.dataset.id=a.id;
-        const hd=document.createElement("span"); hd.className="handle"; hd.setAttribute("aria-label","끌어서 다른 영역으로 이동"); attachTip(hd,'<span class="rt-tip-t">끌어서 다른 영역으로 이동</span>');
-        const col=colorField(a.color,(c)=>{a.color=c; save(); renderAll();},{container:$("#actsDlg")});
-        const nm=document.createElement("input"); nm.type="text"; nm.value=a.name;
-        nm.addEventListener("change",()=>{
-          const nv=nm.value.trim()||a.name;
-          if(nv!==a.name && state.settings.activities.some(x=>x!==a && x.name.toLowerCase()===nv.toLowerCase())){ nm.value=a.name; toast("같은 이름의 활동이 이미 있습니다"); return; }
-          a.name=nv; nm.value=a.name; save(); renderAll();
-        });
-        const arBtn=areaBtn(a.area,function(name){moveActivity(a,name);save();renderAll();renderManager();},{sm:true,container:$("#actsDlg")});
-        const del=document.createElement("button"); del.className="del"; del.textContent="✕"; del.setAttribute("aria-label","삭제");
-        del.addEventListener("click",()=>{
-          TG_CATALOG.archive(a,Date.now());
-          save(); renderAll(); renderManager();
-          toast("'"+a.name+"' 활동 보관됨 · 과거 기록 유지",()=>{ TG_CATALOG.restore(state.settings,a); save(); renderAll(); renderManager(); });
-        });
-        hd.addEventListener("pointerdown",e=>startActDrag(e,a,row));
-        row.append(hd,col,nm,arBtn,del);
-        inner.appendChild(row);
-      }
-      grp.appendChild(body);
-    }
-    box.appendChild(grp);
-  }
-  renderCatalogArchive();
-}
-/* smooth drag — real block lift + FLIP siblings (activities) */
-let mdrag=null;
-function clearDropHints(){
-  document.querySelectorAll(".act-edit.ind-top,.act-edit.ind-bot").forEach(x=>x.classList.remove("ind-top","ind-bot"));
-  document.querySelectorAll(".grp-head.drop").forEach(x=>x.classList.remove("drop"));
-}
-function flipSibs(parent){
-  const kids=[...parent.querySelectorAll(':scope > *:not(.drag-placeholder):not(.dragging)')];
-  const old=kids.map(el=>el.getBoundingClientRect().top);
-  return()=>kids.forEach((el,i)=>{
-    const now=el.getBoundingClientRect().top, d=old[i]-now;
-    if(Math.abs(d)>0.5){
-      el.style.transition='none'; el.style.transform='translateY('+d+'px)';
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{
-        el.style.transition=''; el.style.transform='';
-      }));
-    }
-  });
-}
-function startActDrag(e,act,row){
-  if(mdrag||adrag)return;
-  e.preventDefault();
-  const rect=row.getBoundingClientRect();
-  const offY=e.clientY-rect.top, offX=e.clientX-rect.left;
-  const ph=document.createElement('div');
-  ph.className='drag-placeholder'; ph.style.height=rect.height+'px';
-  row.parentNode.insertBefore(ph,row);
-  document.body.appendChild(row); /* escape any transformed ancestor's containing block so fixed coords stay viewport-relative */
-  row.classList.add('dragging');
-  row.style.position='fixed'; row.style.width=rect.width+'px';
-  row.style.top=rect.top+'px'; row.style.left=rect.left+'px';
-  row.style.zIndex='600'; row.style.pointerEvents='none'; row.style.transition='none';
-  mdrag={act,row,ph,target:null,offY,offX,originX:e.clientX,originY:e.clientY};
-  const hd=e.currentTarget;
-  hd.setPointerCapture(e.pointerId);
-  hd.addEventListener("pointermove",actDragMove);
-  hd.addEventListener("pointerup",actDragEnd,{once:true});
-  hd.addEventListener("pointercancel",actDragCancel,{once:true});
-}
-/* shared drag auto-scroll (activities + areas manager) */
-var dragScroll={raf:null,v:0,sc:null,cb:null};
-function dragAutoScroll(y,cb){
-  var sc=document.querySelector('#actsDlg .dlg-body');
-  if(!sc){ stopDragScroll(); return; }
-  var rect=sc.getBoundingClientRect();
-  var EDGE=56, MAX=16, v=0;
-  if(y<rect.top+EDGE) v=-MAX*Math.min(1,(rect.top+EDGE-y)/EDGE);
-  else if(y>rect.bottom-EDGE) v=MAX*Math.min(1,(y-(rect.bottom-EDGE))/EDGE);
-  dragScroll.v=v; dragScroll.sc=sc; dragScroll.cb=cb;
-  if(v!==0 && !dragScroll.raf) dragScrollStep();
-  else if(v===0) stopDragScroll();
-}
-function dragScrollStep(){
-  dragScroll.raf=requestAnimationFrame(function(){
-    var sc=dragScroll.sc, v=dragScroll.v;
-    if(!v||!sc){ dragScroll.raf=null; return; }
-    var max=sc.scrollHeight-sc.clientHeight;
-    var nt=Math.max(0,Math.min(max,sc.scrollTop+v));
-    if(nt!==sc.scrollTop){ sc.scrollTop=nt; if(dragScroll.cb) dragScroll.cb(); }
-    dragScrollStep();
-  });
-}
-function stopDragScroll(){ if(dragScroll.raf){ cancelAnimationFrame(dragScroll.raf); dragScroll.raf=null; } dragScroll.v=0; }
-function actDragMove(e){
-  if(!mdrag) return;
-  var r=mdrag.row;
-  mdrag._lastX=e.clientX; mdrag._lastY=e.clientY;
-  r.style.transform='translate3d('+(e.clientX-mdrag.originX)+'px,'+(e.clientY-mdrag.originY)+'px,0)';
-  resolveActDrop(e.clientX,e.clientY,true);
-  dragAutoScroll(e.clientY,function(){ if(mdrag) resolveActDrop(mdrag._lastX,mdrag._lastY,false); });
-}
-function resolveActDrop(x,y,animate){
-  if(!mdrag) return;
-  clearDropHints();
-  mdrag.target=null;
-  var box=document.getElementById('actsList');
-  if(!box) return;
-  var grps=[].slice.call(box.querySelectorAll('.grp'));
-  if(!grps.length) return;
-  /* group under the pointer, else the vertically nearest group */
-  var grp=null;
-  var r=mdrag.row; r.style.visibility='hidden';
-  var el=document.elementFromPoint(x,y); r.style.visibility='';
-  if(el) grp=el.closest('.grp');
-  if(!grp){
-    var best=Infinity;
-    for(var i=0;i<grps.length;i++){
-      var gr=grps[i].getBoundingClientRect();
-      var d=y<gr.top?gr.top-y:(y>gr.bottom?y-gr.bottom:0);
-      if(d<best){ best=d; grp=grps[i]; }
-    }
-  }
-  if(!grp) return;
-  var area=grp.dataset.area;
-  var head=grp.querySelector('.grp-head');
-  var grpOpen=grp.classList.contains('open');
-  var body=grp.querySelector('.grp-inner');
-  var rows=(body&&grpOpen)?[].slice.call(body.querySelectorAll('.act-edit[data-id]')).filter(function(n){return n!==mdrag.row;}):[];
-  /* first row whose vertical midpoint sits below the pointer = insert before it */
-  var beforeRow=null;
-  for(var j=0;j<rows.length;j++){ var rr=rows[j].getBoundingClientRect(); if(y<rr.top+rr.height/2){ beforeRow=rows[j]; break; } }
-  if(body&&grpOpen){
-    var flip=animate?flipSibs(body):null;
-    if(beforeRow) body.insertBefore(mdrag.ph,beforeRow);
-    else body.appendChild(mdrag.ph);
-    if(flip) flip();
-  }
-  if(beforeRow){
-    beforeRow.classList.add('ind-top');
-    mdrag.target={type:'row',id:beforeRow.dataset.id,before:true};
-  }else if(rows.length){
-    var lastRow=rows[rows.length-1];
-    lastRow.classList.add('ind-bot');
-    mdrag.target={type:'row',id:lastRow.dataset.id,before:false};
-  }else{
-    if(head) head.classList.add('drop');
-    mdrag.target={type:'grp',area:area};
-  }
-}
-function actDragEnd(e){
-  if(!mdrag) return;
-  stopDragScroll();
-  if(e&&e.currentTarget){ e.currentTarget.removeEventListener("pointermove",actDragMove); }
-  const {act,row,ph,target}=mdrag;
-  clearDropHints();
-  if(ph.parentNode) ph.parentNode.insertBefore(row,ph);
-  ph.remove();
-  row.classList.remove('dragging');
-  row.style.cssText='';
-  mdrag=null;
-  if(!target){renderManager();return;}
-  const arr=state.settings.activities;
-  const destination=target.type==='grp'?target.area:(arr.find(x=>x.id===target.id)||act).area;
-  moveActivity(act,destination);
-  const from=arr.indexOf(act);
-  if(from>=0) arr.splice(from,1);
-  if(target.type==='row'){
-    const refIdx=arr.findIndex(x=>x.id===target.id);
-    const ref=arr[refIdx];
-    arr.splice(target.before?refIdx:refIdx+1,0,act);
-  }else{
-    let last=-1;
-    arr.forEach((x,i)=>{if(x.area===target.area) last=i;});
-    arr.splice(last+1,0,act);
-    expandedGrps.add(target.area);
-  }
-  save(); renderAll(); renderManager();
-}
-function actDragCancel(e){
-  if(!mdrag) return;
-  stopDragScroll();
-  if(e&&e.currentTarget){ e.currentTarget.removeEventListener("pointermove",actDragMove); }
-  clearDropHints();
-  const {row,ph}=mdrag;
-  if(ph.parentNode) ph.parentNode.insertBefore(row,ph);
-  ph.remove();
-  row.classList.remove('dragging');
-  row.style.cssText='';
-  mdrag=null;
-  renderManager();
-}
-/* smooth drag — real block lift + FLIP siblings (areas) */
-let adrag=null;
-function startAreaDrag(e,area,row){
-  if(mdrag||adrag)return;
-  e.preventDefault();
-  const rect=row.getBoundingClientRect();
-  const offY=e.clientY-rect.top, offX=e.clientX-rect.left;
-  const ph=document.createElement('div');
-  ph.className='drag-placeholder'; ph.style.height=rect.height+'px';
-  row.parentNode.insertBefore(ph,row);
-  document.body.appendChild(row); /* escape any transformed ancestor's containing block so fixed coords stay viewport-relative */
-  row.classList.add('dragging');
-  row.style.position='fixed'; row.style.width=rect.width+'px';
-  row.style.top=rect.top+'px'; row.style.left=rect.left+'px';
-  row.style.zIndex='600'; row.style.pointerEvents='none'; row.style.transition='none';
-  adrag={area,row,ph,target:null,offY,offX,originX:e.clientX,originY:e.clientY};
-  const hd=e.currentTarget;
-  hd.setPointerCapture(e.pointerId);
-  hd.addEventListener("pointermove",areaDragMove);
-  hd.addEventListener("pointerup",function(){
-    if(!adrag) return;
-    stopDragScroll();
-    hd.removeEventListener("pointermove",areaDragMove);
-    const {area,row,ph,target}=adrag;
-    document.querySelectorAll('#areasList .act-edit.ind-top,#areasList .act-edit.ind-bot').forEach(x=>x.classList.remove('ind-top','ind-bot'));
-    if(ph.parentNode) ph.parentNode.insertBefore(row,ph);
-    ph.remove();
-    row.classList.remove('dragging');
-    row.style.cssText='';
-    adrag=null;
-    if(!target){renderManager();return;}
-    const arr=state.settings.areas;
-    const from=arr.indexOf(area);
-    if(from>=0) arr.splice(from,1);
-    const toIdx=arr.findIndex(a=>a.name===target.aname);
-    arr.splice(target.before?toIdx:toIdx+1,0,area);
-    save(); renderAll(); renderManager();
-  },{once:true});
-  hd.addEventListener("pointercancel",areaDragCancel,{once:true});
-}
-function areaDragMove(e){
-  if(!adrag) return;
-  adrag._lastX=e.clientX; adrag._lastY=e.clientY;
-  adrag.row.style.transform='translate3d('+(e.clientX-adrag.originX)+'px,'+(e.clientY-adrag.originY)+'px,0)';
-  resolveAreaDrop(e.clientX,e.clientY,true);
-  dragAutoScroll(e.clientY,function(){ if(adrag) resolveAreaDrop(adrag._lastX,adrag._lastY,false); });
-}
-function resolveAreaDrop(x,y,animate){
-  if(!adrag) return;
-  document.querySelectorAll('#areasList .act-edit.ind-top,#areasList .act-edit.ind-bot').forEach(function(el){el.classList.remove('ind-top','ind-bot');});
-  adrag.target=null;
-  var box=document.getElementById('areasList');
-  if(!box) return;
-  var rows=[].slice.call(box.querySelectorAll('.act-edit')).filter(function(n){return n!==adrag.row;});
-  if(!rows.length) return;
-  var beforeRow=null;
-  for(var i=0;i<rows.length;i++){ var rr=rows[i].getBoundingClientRect(); if(y<rr.top+rr.height/2){ beforeRow=rows[i]; break; } }
-  var parent=rows[0].parentNode;
-  var flip=animate?flipSibs(parent):null;
-  if(beforeRow) parent.insertBefore(adrag.ph,beforeRow);
-  else parent.appendChild(adrag.ph);
-  if(flip) flip();
-  if(beforeRow){ beforeRow.classList.add('ind-top'); adrag.target={aname:beforeRow.dataset.aname,before:true}; }
-  else { var last=rows[rows.length-1]; last.classList.add('ind-bot'); adrag.target={aname:last.dataset.aname,before:false}; }
-}
-function areaDragCancel(e){
-  if(!adrag) return;
-  stopDragScroll();
-  if(e&&e.currentTarget){ e.currentTarget.removeEventListener("pointermove",areaDragMove); }
-  const {row,ph}=adrag;
-  document.querySelectorAll('#areasList .act-edit.ind-top,#areasList .act-edit.ind-bot').forEach(x=>x.classList.remove('ind-top','ind-bot'));
-  if(ph.parentNode) ph.parentNode.insertBefore(row,ph);
-  ph.remove();
-  row.classList.remove('dragging');
-  row.style.cssText='';
-  adrag=null;
-  renderManager();
-}
-$("#areaAdd").addEventListener("click",()=>{
-  let base="새 영역", n=base, k=2;
-  while(areaByName(n)) n=base+" "+(k++);
-  state.settings.areas.push({name:n,color:RAINBOW[state.settings.areas.length%RAINBOW.length]});
-  save(); renderAll(); renderManager();
-});
-function toggleActAddForm(presetArea){
-  const preset=(typeof presetArea==="string"&&presetArea)||null;
-  let row=document.getElementById("actAddRow");
-  if(row){ row.remove(); if(!preset) return; }
-  row=document.createElement("div");
-  row.id="actAddRow";
-  row.className="act-edit act-add-row";
-  const areaDefault=preset||(activeAreas()[0]&&activeAreas()[0].name)||"";
-  let selArea=areaDefault;
-  const picker=areaBtn(selArea,function(name){selArea=name;},{sm:true,container:$("#actsDlg")});
-  const nameInp=document.createElement("input"); nameInp.type="text"; nameInp.placeholder="활동 이름"; nameInp.autocomplete="off";
-  const confirmBtn=document.createElement("button"); confirmBtn.className="btn dark"; confirmBtn.textContent="추가";
-  const cancelBtn=document.createElement("button"); cancelBtn.className="btn"; cancelBtn.textContent="취소";
-  nameInp.addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); confirmBtn.click(); } });
-  confirmBtn.addEventListener("click",function(){
-    const nm=nameInp.value.trim();
-    if(!nm){ nameInp.focus(); return; }
-    const existing=state.settings.activities.find(a=>a.name.toLowerCase()===nm.toLowerCase());
-    const act=resolveActivity(nm,selArea,true);
-    if(existing){TG_CATALOG.restore(state.settings,act);toast("기존 활동을 사용합니다 · "+act.name);}
-    expandedGrps.add(act.area);
-    row.remove();
-    save(); renderAll(); renderManager();
-  });
-  cancelBtn.addEventListener("click",function(){ row.remove(); });
-  row.append(picker,nameInp,confirmBtn,cancelBtn);
-  $("#actAdd").insertAdjacentElement("afterend",row);
-  row.scrollIntoView({block:"nearest"});
-  nameInp.focus();
-}
-$("#actAdd").addEventListener("click",toggleActAddForm);
-attachTip($("#autoColorBtn"),'<span class="rt-tip-t">모든 영역·활동을 무지개 순서로 자동 배색</span>');
-$("#autoColorBtn").addEventListener("click",()=>autoColorAll());
+/* ================= catalog manager ================= */
+function renderManager(){if(window.renderCatalogManager)window.renderCatalogManager();}
 
 /* ================= import / export ================= */
 let _toastTimer=null,_toastUndo=null;
@@ -6295,6 +5856,30 @@ function normTodoWindow(td){
   const _e=(td&&td.end&&/^\d{1,2}:\d{2}$/.test(td.end)&&_t&&toMin(td.end)<=1440&&toMin(td.end)>toMin(_t))? td.end:"";
   return {time:_t,end:_e};
 }
+function importActivity(record){
+  if(record.actId){
+    const known=recordedActById(record.actId);
+    if(!known)throw new Error('기록의 활동 ID를 확인할 수 없습니다. 전체 백업으로 가져오세요.');
+    return known;
+  }
+  if(!record.act)return null;
+  const matches=TG_CATALOG.reportActivities(state.settings).filter(a=>a.name===record.act&&(!record.area||a.area===record.area));
+  if(matches.length>1)throw new Error('동명이인 활동을 구분할 ID가 없습니다. 최신 기록 내보내기 또는 전체 백업을 사용하세요.');
+  if(matches.length)return matches[0];
+  return resolveActivity(record.act,record.area||'',true);
+}
+function importClassification(record){
+  const act=importActivity(record);
+  let parent=record.areaId?TG_CATALOG.historicalArea(state.settings,record.areaId):null;
+  if(record.areaId&&!parent&&!act)throw new Error('기록의 영역 ID를 확인할 수 없습니다. 원본 카탈로그가 포함된 백업을 사용하세요.');
+  if(!parent&&record.area){
+    const matches=TG_CATALOG.reportAreas(state.settings).filter(a=>a.name===record.area);
+    if(matches.length>1&&!act)throw new Error('영역 ID를 확인할 수 없습니다. 최신 내보내기를 사용하세요.');
+    parent=matches[0];
+    if(!parent){parent={id:uid('area'),name:record.area,color:RAINBOW[state.settings.areas.length%RAINBOW.length]};state.settings.areas.push(parent);}
+  }
+  return TG_CATALOG.assignment(TG_CATALOG.normalize(state.settings),{actId:act?.id||null,areaId:act?.areaId||parent?.id||record.areaId||null,area:act?.area||parent?.name||null});
+}
 function applyPlan(json){
   if(json.kind!=="plan") throw new Error('kind가 "plan"이 아닙니다.');
   if(!json.date) throw new Error("date가 없습니다.");
@@ -6306,9 +5891,7 @@ function applyPlan(json){
     const _hasTw=Object.prototype.hasOwnProperty.call(td,"time")||Object.prototype.hasOwnProperty.call(td,"end");
     const _ex=td.id? day.todos.find(x=>x.id===td.id):null;
     if(_ex){ if(_hasTw){ _ex.time=_tw.time; _ex.end=_tw.end; } st++; continue; }
-    let _actId=null,_area=td.area||"";
-    if(td.act){ const _a=resolveActivity(td.act,_area||(activeAreas()[0]&&activeAreas()[0].name)||"",true); if(_a){ _actId=_a.id; if(!_area) _area=_a.area; } }
-    if(_area && !areaByName(_area)) state.settings.areas.push({name:_area,color:RAINBOW[state.settings.areas.length%RAINBOW.length]}); const _newTodo={id:td.id||uid("m"),title:td.title,area:_area,actId:_actId,done:false,time:_tw.time,end:_tw.end};day.todos.push(_newTodo);appendTodoRestoreIfNeeded(day,json.date,_newTodo);
+    const _newTodo={id:td.id||uid("m"),title:td.title,...importClassification(td),done:false,time:_tw.time,end:_tw.end};day.todos.push(_newTodo);appendTodoRestoreIfNeeded(day,json.date,_newTodo);
     nt++;
   }
   for(const er of (json.extraRoutines||[])){
@@ -6316,9 +5899,7 @@ function applyPlan(json){
     const _t=(er.time&&/^\d{1,2}:\d{2}$/.test(er.time)&&toMin(er.time)<1440)? er.time:"";
     const _e=(er.end&&/^\d{1,2}:\d{2}$/.test(er.end)&&_t&&toMin(er.end)<=1440&&toMin(er.end)>toMin(_t))? er.end:"";
     if(day.routines.some(x=>x.name===er.name&&(x.time||"")===_t)){ sr++; continue; }
-    let _actId=null,_area=er.area||null;
-    if(er.act){ const _a=resolveActivity(er.act,_area||(activeAreas()[0]&&activeAreas()[0].name)||"",true); if(_a){ _actId=_a.id; if(!_area) _area=_a.area; } }
-    if(_area && !areaByName(_area)) state.settings.areas.push({name:_area,color:RAINBOW[state.settings.areas.length%RAINBOW.length]}); day.routines.push({id:uid("r"),time:_t,end:_e,name:er.name,actId:_actId,area:_area,done:false,extra:true});
+    day.routines.push({id:uid("r"),time:_t,end:_e,name:er.name,...importClassification(er),done:false,extra:true});
     nr++;
   }
   for(const name of (json.routines||[])){
@@ -6421,9 +6002,7 @@ function applyLog(json,mode){
     const _hasTw=Object.prototype.hasOwnProperty.call(td,"time")||Object.prototype.hasOwnProperty.call(td,"end");
     let ex=day.todos.find(x=>(td.id&&x.id===td.id)||x.title===td.title);
     if(!ex){
-      let _actId=null,_area=td.area||"";
-      if(td.act){ const _a=resolveActivity(td.act,_area,true); if(_a){ _actId=_a.id; if(!_area) _area=_a.area; } }
-      if(_area && !areaByName(_area)) state.settings.areas.push({name:_area,color:RAINBOW[state.settings.areas.length%RAINBOW.length]}); ex={id:td.id||uid("m"),title:td.title,area:_area,actId:_actId,done:!!td.done,time:_tw.time,end:_tw.end};
+      ex={id:td.id||uid("m"),title:td.title,...importClassification(td),done:!!td.done,time:_tw.time,end:_tw.end};
       day.todos.push(ex);
       appendTodoRestoreIfNeeded(day,json.date,ex);
       if(typeof td.done==="boolean") setEntityDone(day,"todo",ex.id,td.done);
@@ -6438,9 +6017,7 @@ function applyLog(json,mode){
     const _e=(rt.end&&/^\d{1,2}:\d{2}$/.test(rt.end)&&_t&&toMin(rt.end)<=1440&&toMin(rt.end)>toMin(_t))? rt.end:"";
     let ex=day.routines.find(x=>rt.id&&x.id===rt.id)||day.routines.find(x=>rt.routineDefId&&x.routineDefId===rt.routineDefId)||day.routines.find(x=>x.name===rt.name&&(x.time||"")===_t)||day.routines.find(x=>x.name===rt.name);
     if(!ex){
-      let _actId=null,_area=rt.area||null;
-      if(rt.act){ const _a=resolveActivity(rt.act,_area||"",true); if(_a){ _actId=_a.id; if(!_area) _area=_a.area; } }
-      if(_area && !areaByName(_area)) state.settings.areas.push({name:_area,color:RAINBOW[state.settings.areas.length%RAINBOW.length]}); ex={id:rt.id||uid("r"),routineDefId:rt.routineDefId||null,time:_t,end:_e,name:rt.name,actId:_actId,area:_area,done:!!rt.done,extra:!rt.routineDefId};
+      ex={id:rt.id||uid("r"),routineDefId:rt.routineDefId||null,time:_t,end:_e,name:rt.name,...importClassification(rt),done:!!rt.done,extra:!rt.routineDefId};
       day.routines.push(ex);
       if(typeof rt.done==="boolean") setEntityDone(day,"routine",ex.id,rt.done);
     }else{
@@ -6452,9 +6029,8 @@ function applyLog(json,mode){
   let n=0;
   for(const ev of (json.events||[])){
     if(!ev.start||!ev.end) continue;
-    const areaName=ev.area||activeAreas()[0].name;
-    if(!areaByName(areaName)) state.settings.areas.push({name:areaName,color:RAINBOW[state.settings.areas.length%RAINBOW.length]});
-    const act=resolveActivity(ev.act||"기타", areaName, true);
+    const act=importActivity(ev);
+    if(!act)throw new Error('기록의 활동 정보가 없습니다.');
     const s0=toMin(ev.start); let e0=toMin(ev.end); if(e0===0&&s0>0) e0=1440;
     if(e0<=s0) continue;
     const tags={};
@@ -6472,32 +6048,50 @@ function applyLog(json,mode){
 function applyRoutineDefs(arr){
   state.settings.routineDefs = arr.map(r=>{
     const def={id:r.id||uid("rd"), time:(r.time&&/^\d{1,2}:\d{2}$/.test(r.time)&&toMin(r.time)<1440)? r.time:"", end:(r.end&&/^\d{1,2}:\d{2}$/.test(r.end)&&r.time&&toMin(r.end)<=1440&&toMin(r.end)>toMin(r.time))? r.end:"", name:r.name||"", days:Array.isArray(r.days)&&r.days.length? r.days.filter(d=>d>=0&&d<=6):[0,1,2,3,4,5,6]};
-    let _actId=null,_area=r.area||null;
-    if(r.act){ const _a=resolveActivity(r.act, r.area||"", true); if(_a){ _actId=_a.id; if(!_area) _area=_a.area; } }
-    else if(r.actId&&actById(r.actId)){ _actId=r.actId; if(!_area) _area=actById(r.actId).area; }
-    if(_area && !areaByName(_area)) state.settings.areas.push({name:_area,color:RAINBOW[state.settings.areas.length%RAINBOW.length]}); 
-    def.actId=_actId; def.area=_area;
+    Object.assign(def,importClassification(r));
     return def;
   }).filter(r=>r.name);
   syncDayRoutines(state.viewDate);
   return state.settings.routineDefs.length;
 }
 function buildBackup(){
-  return {v:1, kind:"backup", exportedAt:new Date().toISOString(), settings:state.settings, days:state.days};
+  return {v:1, kind:"backup", exportedAt:new Date().toISOString(), settings:state.settings, days:state.days,finalizations:copyRun(state.finalizations||[])};
 }
 function applyBackup(json,mode){
   if(!json.settings||!json.days) throw new Error("백업 형식이 아닙니다.");
-  const importedSettings=normalizeSettingsColors(json.settings);
+  const history=TG_CATALOG.mergeHistory(state.settings.catalogHistory,json.settings.catalogHistory);
+  const revision=Math.max(state.settings.catalogRevision||0,json.settings.catalogRevision||0);
+  const enforced=state.settings.catalogEnforced===true||json.settings.catalogEnforced===true;
+  if(history.length!==revision||history.some((r,i)=>r.revision!==i+1))throw new Error('서로 다른 삭제 이력이 섞인 백업입니다. 원본 계정의 백업인지 확인하세요.');
+  const gate=window.tgCloud?.startGate();
+  if(gate?.mode!=='local'&&history.some(r=>!state.settings.catalogHistory.some(x=>x.id===r.id)))throw new Error('현재 계정에 없는 삭제 이력이 포함되어 있습니다. 먼저 원본 계정과 동기화하세요.');
+  const importedSettings=TG_CATALOG.normalize({...normalizeSettingsColors(json.settings),catalogHistory:history,catalogRevision:revision});
+  if(mode==='replace'){
+    const removed=state.settings.areas.some(a=>!importedSettings.areas.some(b=>b.id===a.id))||state.settings.activities.some(a=>!importedSettings.activities.some(b=>b.id===a.id));
+    if(removed)throw new Error('현재 영역·활동이 백업에 빠져 있습니다. 병합으로 가져오거나 영역·활동 관리에서 삭제한 뒤 교체하세요.');
+  }
+  if(mode!=='replace'){
+    const duplicateArea=importedSettings.areas.some(a=>state.settings.areas.some(b=>b.id!==a.id&&b.name===a.name));
+    const duplicateAct=importedSettings.activities.some(a=>state.settings.activities.some(b=>b.id!==a.id&&b.name===a.name&&b.areaId===a.areaId));
+    if(duplicateArea||duplicateAct)throw new Error('같은 이름의 서로 다른 항목이 있습니다. 이름을 구분한 후 백업을 병합하세요.');
+  }
   if(mode==="replace"){
     state.settings=importedSettings;
     state.days=json.days;
   }else{
-    for(const a of (importedSettings.areas||[])) if(!areaByName(a.name)) state.settings.areas.push(a);
-    for(const act of (importedSettings.activities||[])) if(!state.settings.activities.some(x=>x.id===act.id||(x.name===act.name&&x.area===act.area))) state.settings.activities.push(act);
+    for(const a of (importedSettings.areas||[])) if(!state.settings.areas.some(x=>x.id===a.id)) state.settings.areas.push(a);
+    for(const act of (importedSettings.activities||[])) if(!state.settings.activities.some(x=>x.id===act.id)) state.settings.activities.push(act);
     for(const r of (importedSettings.routineDefs||[])) if(!state.settings.routineDefs.some(x=>x.name===r.name&&(x.time||"")===(r.time||""))) state.settings.routineDefs.push(r);
     for(const ds of Object.keys(json.days)) if(!state.days[ds]||!state.days[ds].events.length) state.days[ds]=json.days[ds];
   }
-  state.settings=normalizeSettingsColors(state.settings);
+  state.settings=TG_CATALOG.normalize({...normalizeSettingsColors(state.settings),catalogHistory:history,catalogRevision:revision,catalogEnforced:enforced});
+  const pending=new Map((state.finalizations||[]).map(f=>[f.id,f]));
+  for(const f of json.finalizations||[]){
+    const clean=prepareFinalization(f.running,Number(f.endedAt));
+    if(!recordedActById(clean.running.actId))throw new Error('미동기화 기록의 원본 활동을 확인할 수 없습니다.');
+    if(!pending.has(clean.id))pending.set(clean.id,{...clean,scope:f.scope==='local'?'local':'cloud'});
+  }
+  state.finalizations=[...pending.values()];recoverLocalFinalizations();
   if(!Array.isArray(state.settings.routineDefs)) state.settings.routineDefs=[];
   for(const ds of Object.keys(state.days||{})){
     const day=state.days[ds]||{};
@@ -6506,10 +6100,12 @@ function applyBackup(json,mode){
     TG_STATUS_MUTATIONS.materializeDay(day);
   }
   TG_TODO_MUTATIONS.materialize(state.days);
+  normalizeCatalogDays();
   syncDayRoutines(state.viewDate);
 }
 $("#importApply").addEventListener("click",()=>{
   const msg=$("#importMsg");
+  const before=copyRun({settings:state.settings,days:state.days,viewDate:state.viewDate,finalizations:state.finalizations||[]});
   try{
     const json=JSON.parse($("#importText").value);
     const kind=detectJsonKind(json);
@@ -6524,14 +6120,20 @@ $("#importApply").addEventListener("click",()=>{
     else if(kind==="routines"){ res="루틴 "+applyRoutineDefs(json)+"개로 교체 완료"; }
     else if(kind==="routineDefs"){ res="루틴 "+applyRoutineDefs(json.defs)+"개로 교체 완료"; }
     else if(kind==="backup"){
-      const _snap=(mode==="replace")? JSON.parse(JSON.stringify({settings:state.settings,days:state.days})):null;
+      const _snap=(mode==="replace")? copyRun({settings:state.settings,days:state.days,finalizations:state.finalizations||[]}):null;
       applyBackup(json,mode); res="백업 "+(mode==="replace"?"교체":"병합")+" 완료 (기록 "+Object.keys(json.days||{}).length+"일치)";
-      if(_snap) toast("백업으로 교체됨",()=>{ state.settings=_snap.settings; state.days=_snap.days; syncDayRoutines(state.viewDate); save(); renderAll(); });
+      if(_snap&&TG_CATALOG.key(_snap.finalizations)===TG_CATALOG.key(state.finalizations||[])){
+        const _after=TG_CATALOG.key({settings:state.settings,days:state.days,finalizations:state.finalizations||[]});
+        toast("백업으로 교체됨",()=>{
+          if(_after!==TG_CATALOG.key({settings:state.settings,days:state.days,finalizations:state.finalizations||[]})){toast("이후 변경 사항이 있어 실행취소할 수 없습니다.");return;}
+          state.settings=_snap.settings;state.days=_snap.days;normalizeCatalogDays();syncDayRoutines(state.viewDate);save();renderAll();
+        });
+      }
     }
     save(); renderAll();
     jsonLog("in",res);
     msg.textContent=res; msg.className="msg ok";
-  }catch(err){ msg.textContent="오류: "+err.message; msg.className="msg err"; }
+  }catch(err){Object.assign(state,before);save();renderAll();msg.textContent="오류: "+err.message; msg.className="msg err"; }
 });
 function positionModeThumb(animate){
   const seg=document.querySelector(".mode-seg"); if(!seg) return;
@@ -6567,11 +6169,11 @@ document.querySelectorAll('input[name="impMode"]').forEach(r=>r.addEventListener
 function buildLog(ds){
   ds=ds||state.viewDate;
   const day=ensureDay(ds);
-  const det=dayDetail(ds);
+  const det=dayDetail(ds,false);
   const events=day.events.map(ev=>{
-    const act=actById(ev.actId);
+    const act=recordedActById(ev.actId);
     const area=act? act.area:"기타";
-    const out={act:act? act.name:"?", area, start:ev.start, end:ev.end};
+    const out={actId:ev.actId,areaId:act?.areaId||null,act:act? act.name:"?", area, start:ev.start, end:ev.end};
     out.id=ev.id;
     ["startTs","endTs","continuityId","spanStartTs","spanEndTs","fragmentIndex","fragmentCount","gapIncludedMs","sessionIds"].forEach(function(k){if(ev[k]!=null)out[k]=JSON.parse(JSON.stringify(ev[k]));});
     if(ev.todoId){ const _t=day.todos.find(x=>x.id===ev.todoId); if(_t) out.todo=_t.title; }
@@ -6579,15 +6181,19 @@ function buildLog(ds){
     if(!out.todo&&!out.routine&&ev.note) out.note=ev.note;
     return out;
   });
-  const areas={}, acts={};
+  const areas=Object.create(null),acts=Object.create(null);
   for(const [k,v] of Object.entries(det.perArea)) if(v) areas[k]=v;
-  for(const [aid,v] of Object.entries(det.perAct)){ if(!v) continue; const a=actById(aid); const nm=a? a.name:"(삭제된 활동)"; acts[nm]=(acts[nm]||0)+v; }
+  const catalogActs=TG_CATALOG.reportActivities(state.settings);
+  const activityDetails=Object.entries(det.perAct).map(([id,min])=>{const a=catalogActs.find(a=>a.id===id);return {id,name:a?.name||'?',areaId:a?.areaId||null,min};});
+  const areaDetails=Object.entries(det.perAreaId).map(([id,min])=>({id,name:TG_CATALOG.historicalArea(state.settings,id)?.name||'기타',min}));
+  for(const [aid,v] of Object.entries(det.perAct)){if(v)acts[catalogActs.find(a=>a.id===aid)?.label||aid]=v;}
+  const classification=item=>{const ref=TG_CATALOG.historicalAssignment(state.settings,item),a=recordedActById(ref.actId);return {...ref,act:a?.name||null};};
   return {
     v:2, kind:"log", date:ds,
     events,
-    todos:day.todos.map(t=>{ const a=t.actId? actById(t.actId):null; return {id:t.id,title:t.title,area:t.area||(a? a.area:""),act:a? a.name:null,done:!!t.done,time:t.time||"",end:t.end||"",min:todoMeasuredMin(day,t)}; }),
-    routines:day.routines.map(r=>{ const a=r.actId? actById(r.actId):null; return {id:r.id,routineDefId:r.routineDefId||null,time:r.time||"",end:r.end||"",name:r.name,act:a? a.name:null,area:r.area||(a?a.area:""),done:!!r.done,min:routineMeasuredMin(day,r)}; }),
-    stats:{ total:det.total, gap:Math.max(1440-det.total,0), areas, acts, todoMin:det.todoMin, routineMin:det.routineMin }
+    todos:day.todos.map(t=>({id:t.id,title:t.title,...classification(t),done:!!t.done,time:t.time||"",end:t.end||"",min:todoMeasuredMin(day,t,false)})),
+    routines:day.routines.map(r=>({id:r.id,routineDefId:r.routineDefId||null,time:r.time||"",end:r.end||"",name:r.name,...classification(r),done:!!r.done,min:routineMeasuredMin(day,r,false)})),
+    stats:{ total:det.total, gap:Math.max(1440-det.total,0), areas, acts,areaDetails,activityDetails,todoMin:det.todoMin, routineMin:det.routineMin }
   };
 }
 $("#copyBtn").addEventListener("click",async()=>{
@@ -6625,12 +6231,13 @@ function buildLogRange(){
 }
 function buildRoutineDefs(){
   return {v:2, kind:"routineDefs",
-    defs:state.settings.routineDefs.map(d=>{ const a=d.actId? actById(d.actId):null; return {id:d.id,time:d.time||"",end:d.end||"",name:d.name,days:(d.days&&d.days.length)? d.days:[0,1,2,3,4,5,6],act:a? a.name:null,area:a? a.area:(d.area||null)}; })};
+    defs:state.settings.routineDefs.map(d=>{ const v=TG_CATALOG.assignment(state.settings,d),a=actById(v.actId); return {id:d.id,time:d.time||"",end:d.end||"",name:d.name,days:(d.days&&d.days.length)? d.days:[0,1,2,3,4,5,6],actId:v.actId,areaId:v.areaId,act:a? a.name:null,area:v.area}; })};
 }
 function buildPlan(ds){
   const day=state.days[ds]||{events:[],todos:[],routines:[]};
-  const todos=(day.todos||[]).map(t=>{ const a=t.actId? actById(t.actId):null; return {id:t.id,title:t.title,area:t.area||(a? a.area:null),act:a? a.name:null,time:t.time||"",end:t.end||""}; });
-  const extras=(day.routines||[]).filter(r=>r.extra).map(r=>{ const a=r.actId? actById(r.actId):null; const o={time:r.time||"",name:r.name}; if(r.end) o.end=r.end; o.act=a? a.name:null; const _ar=r.area||(a? a.area:null); if(_ar) o.area=_ar; return o; });
+  const classification=item=>{const v=TG_CATALOG.assignment(state.settings,item),a=actById(v.actId);return {actId:v.actId,areaId:v.areaId,act:a?.name||null,area:v.area};};
+  const todos=(day.todos||[]).map(t=>({id:t.id,title:t.title,...classification(t),time:t.time||"",end:t.end||""}));
+  const extras=(day.routines||[]).filter(r=>r.extra).map(r=>({id:r.id,time:r.time||"",end:r.end||"",name:r.name,...classification(r)}));
   return {v:2,kind:"plan",date:ds,todos:todos,extraRoutines:extras};
 }
 function buildPlanRange(){
@@ -6994,8 +6601,9 @@ function openFsPanel(panel){
   };
   panel.addEventListener("transitionend",_onPanelEnd);
 }
-function closeFsPanel(panel){ if(panel._closeMotion){panel._closeMotion();panel._closeMotion=null;}panel.classList.remove("open","closing-right");panel.style.transform="";fsOverlayEl().classList.remove("show"); }
+function closeFsPanel(panel){ if(panel.id==='actsDlg'&&window.closeCatalogManagerLayers)window.closeCatalogManagerLayers();if(panel._closeMotion){panel._closeMotion();panel._closeMotion=null;}panel.classList.remove("open","closing-right");panel.style.transform="";fsOverlayEl().classList.remove("show"); }
 function closeFsPanelRight(panel){
+  if(panel.id==='actsDlg'&&window.closeCatalogManagerLayers)window.closeCatalogManagerLayers();
   fsOverlayEl().classList.remove("show");
   panel.classList.add("closing-right");
   if(panel._closeMotion)panel._closeMotion();
@@ -7053,8 +6661,7 @@ function attachSwipeClose(panel){
   attachSwipeClose(panel);
 });
 function recoverStuckDrags(){
-  if(mdrag) actDragCancel();
-  if(adrag) areaDragCancel();
+  if(window.cancelCatalogManagerDrag)window.cancelCatalogManagerDrag();
   if(drag){ drag=null; tlContent.querySelectorAll(".preview").forEach(p=>p.remove()); }
   [$("#actsDlg"),$("#jsonDlg")].forEach(function(p){ if(p._swipeForceReset) p._swipeForceReset(); });
 }
@@ -7411,7 +7018,7 @@ $("#jsonBtn").addEventListener("click",()=>{ closeSideNav(); openJsonDlg(); });
 /* ================= calendar sheet ================= */
 let calY=0, calM=0;
 function dayTotalOf(ds){
-  const d=state.days[ds]; if(!d) return 0;
+  const d=measurementDay(ds); if(!d) return 0;
   let t=0; for(const ev of (d.events||[])){ const sp=statSpan(ev); if(sp) t+=sp.min; }
   return t;
 }
@@ -7615,7 +7222,7 @@ function tlExportImage(){
   }
   for(var i=0;i<day.events.length;i++){
     var ev=day.events[i];
-    var act=actById(ev.actId);
+    var act=recordedActById(ev.actId);
     var tag="";
     if(ev.todoId){ var tt=day.todos.find(function(x){return x.id===ev.todoId;}); if(tt) tag=tt.title; }
     if(ev.routineId){ var rt2=day.routines.find(function(x){return x.id===ev.routineId;}); if(rt2) tag=rt2.name; }
@@ -7649,7 +7256,7 @@ function renderAll(){
 }
 function seedDemo(){
   const today=ymd(new Date());
-  state.settings.areas.push({name:"취미",color:"#C9A3DE"});
+  state.settings.areas.push({id:uid('area'),name:"취미",color:"#C9A3DE"});
   state.settings.activities.push({id:"a90",name:"코딩",color:"#9AA5DE",area:"취미",lastUsed:Date.now()-3600000});
   const put=(day,name,s,e)=>{const a=actByName(name); if(a) addInterval(day,a.id,toMin(s),toMin(e));};
   for(let i=6;i>=0;i--){
@@ -7682,9 +7289,9 @@ function seedDemo(){
   const sw=actByName("사회문화");
   if(sw){ sw.lastUsed=Date.now(); state.running={actId:sw.id,startTs:Date.now()-22*60*1000-15000}; }
 }
+state.settings=TG_CATALOG.normalize(state.settings);
 load();
 migrateRoutines();
-expandedGrps=new Set(activeAreas()[0]? [activeAreas()[0].name]:[]);
 buildTimeline();
 if(DEMO){
   seedDemo();
@@ -8073,12 +7680,14 @@ const TG_SYNC_OBSERVATION={
       statusMutations:TG_STATUS_MUTATIONS.normalizeList(d.statusMutations,[])
     };
     TG_STATUS_MUTATIONS.materializeDay(out);
-    return out;
+    return TG_CATALOG.normalizeDay(state.settings,out);
   }
   function normSettings(s){
-    s=normalizeSettingsColors(s||{});
+    s=TG_CATALOG.normalize(normalizeSettingsColors({...s,catalogHistory:TG_CATALOG.mergeHistory(state.settings.catalogHistory,s?.catalogHistory)}));
     return {
       version:Number(s.version)||2,
+      catalogProtocol:2,catalogRevision:Number(s.catalogRevision)||0,catalogHistory:s.catalogHistory,
+      catalogEnforced:s.catalogEnforced===true,latestCatalogOperation:s.latestCatalogOperation||null,
       areas:Array.isArray(s.areas)?copy(s.areas):[],
       activities:Array.isArray(s.activities)?copy(s.activities):[],
       routineDefs:TG_ROUTINE_DEFS.normalize(Array.isArray(s.routineDefs)?s.routineDefs:[])
@@ -8136,12 +7745,16 @@ const TG_SYNC_OBSERVATION={
   }
   function mergeSettings(base,local,remote,preferLocal){
     base=normSettings(base); local=normSettings(local); remote=normSettings(remote);
-    return {
+    return TG_CATALOG.normalize({
       version:Math.max(2,base.version||0,local.version||0,remote.version||0),
+      catalogProtocol:2,catalogRevision:Math.max(base.catalogRevision,local.catalogRevision,remote.catalogRevision),
+      catalogHistory:TG_CATALOG.mergeHistory(base.catalogHistory,local.catalogHistory,remote.catalogHistory),
+      catalogEnforced:remote.catalogEnforced||local.catalogEnforced||false,
+      latestCatalogOperation:remote.catalogRevision>=local.catalogRevision?remote.latestCatalogOperation:local.latestCatalogOperation,
       areas:mergeList(base.areas,local.areas,remote.areas,preferLocal,"area"),
       activities:mergeList(base.activities,local.activities,remote.activities,preferLocal,"activity"),
       routineDefs:mergeList(base.routineDefs,local.routineDefs,remote.routineDefs,preferLocal,"routine")
-    };
+    });
   }
   function stampMs(v){
     if(!v) return 0;
@@ -8168,7 +7781,7 @@ const TG_SYNC_OBSERVATION={
   function persistBase(){ try{localStorage.setItem(SYNC_BASE_KEY,JSON.stringify(syncBase));}catch(e){} }
   function persistOutbox(){ try{localStorage.setItem(SYNC_OUTBOX_KEY,JSON.stringify(outbox));}catch(e){} }
   function persistLocal(){
-    try{localStorage.setItem(LS_KEY,JSON.stringify({settings:state.settings,days:state.days,running:state.running,updatedAt:state._localUpdatedAt||Date.now()}));}catch(e){}
+    try{persistCatalogLocal();}catch(e){}
   }
   function queueRender(){
     if(renderQueued) return;
@@ -8201,7 +7814,7 @@ const TG_SYNC_OBSERVATION={
     Object.keys(state.days||{}).forEach(function(k){
       const l=normDay(state.days[k]),b=syncBase.days[k]?normDay(syncBase.days[k]):emptyDay();
       if(!same(l,b)){ if(!outbox.days[k]) outbox.days[k]={at:localAt}; }
-      else delete outbox.days[k];
+      else if(!outbox.days[k]?.forceCatalog)delete outbox.days[k];
     });
     const lr=normRun(state.running),br=normRun(syncBase.running);
     if(!same(lr,br)){
@@ -8219,14 +7832,16 @@ const TG_SYNC_OBSERVATION={
     persistOutbox();
     return outbox;
   }
-  function hasDirty(){ return !!(outbox.settingsAt||outbox.run||Object.keys(outbox.days||{}).length); }
+  function hasDirty(){ return !!(outbox.settingsAt||outbox.run||Object.keys(outbox.days||{}).length||(state.finalizations||[]).some(f=>f.scope!=='local')); }
 
   function userPaths(uid){
     const root=db.collection("users").doc(uid);
     return {
       settings:root.collection("settings").doc("main"),
       days:root.collection("days"),
-      running:root.collection("meta").doc("running")
+      running:root.collection("meta").doc("running"),
+      history:root.collection("catalogHistory"),
+      finalizationAcks:root.collection("finalizationAcks")
     };
   }
 
@@ -8237,6 +7852,7 @@ const TG_SYNC_OBSERVATION={
     const prefer=(outbox.settingsAt||state._localUpdatedAt||0)>=(meta.at||0);
     const merged=dirty?mergeSettings(base,local,remote,prefer):remote;
     state.settings=copy(merged);
+    normalizeCatalogDays();
     syncBase.settings=copy(remote);
     syncBase.settingsMeta=meta;
     if(same(merged,remote)) outbox.settingsAt=0;
@@ -8246,7 +7862,7 @@ const TG_SYNC_OBSERVATION={
   }
   function applyRemoteDay(date,raw,meta,quiet){
     const remote=normDay(raw),base=syncBase.days[date]?normDay(syncBase.days[date]):emptyDay();
-    const needsGc=!same(Array.isArray(raw&&raw.todoMutations)?raw.todoMutations:[],remote.todoMutations)||!same(Array.isArray(raw&&raw.statusMutations)?raw.statusMutations:[],remote.statusMutations);
+    const needsGc=!same(raw?.todos||[],remote.todos)||!same(raw?.routines||[],remote.routines)||!same(Array.isArray(raw&&raw.todoMutations)?raw.todoMutations:[],remote.todoMutations)||!same(Array.isArray(raw&&raw.statusMutations)?raw.statusMutations:[],remote.statusMutations);
     const hasLocal=!!(state.days&&state.days[date]);
     const local=hasLocal?normDay(state.days[date]):emptyDay();
     const dirty=!!outbox.days[date]||(hasLocal&&!same(local,base));
@@ -8263,7 +7879,7 @@ const TG_SYNC_OBSERVATION={
     syncBase.dayMeta[date]=meta;
     if(same(merged,remote)) delete outbox.days[date];
     else if(!outbox.days[date]) outbox.days[date]={at:Date.now()};
-    if(needsGc&&!outbox.days[date])outbox.days[date]={at:Date.now()};
+    if(needsGc)outbox.days[date]={at:Date.now(),forceCatalog:true};
     if(routineIdentityChanged&&!outbox.days[date])outbox.days[date]={at:Date.now()};
     TG_TODO_MUTATIONS.materialize(state.days).forEach(function(ds){if(!outbox.days[ds])outbox.days[ds]={at:Date.now()};});
     Object.keys(state.days||{}).forEach(function(ds){if(TG_STATUS_MUTATIONS.materializeDay(state.days[ds]).changed&&!outbox.days[ds])outbox.days[ds]={at:Date.now()};});
@@ -8271,6 +7887,7 @@ const TG_SYNC_OBSERVATION={
     if(!quiet) queueRender();
   }
   function applyRemoteRunning(raw,meta,quiet){
+    if(Number(meta.rev)<Number(syncBase.runningVersion||0))return;
     markDirty();
     const remoteRaw=normRun(raw);
     syncBase.running=remoteRaw;
@@ -8279,7 +7896,7 @@ const TG_SYNC_OBSERVATION={
     if(!outbox.run){
       const eff=effectiveRun(remoteRaw);
       if(remoteRaw&&!eff) quarantineRun(remoteRaw,"remote-stale");
-      state.running=eff;
+      state.running=eff&&(state.finalizations||[]).some(f=>f.id===eff.sessionId)?null:eff;
       persistLocal();
     }
     persistBase();persistOutbox();
@@ -8287,6 +7904,79 @@ const TG_SYNC_OBSERVATION={
     if(!quiet) queueRender();
   }
 
+  function validateCatalogRevision(raw){
+    if((Number(raw.catalogRevision)||0)!==(Number(state.settings.catalogRevision)||0))throw new Error('catalog-refresh-required');
+  }
+  async function readCatalogHistory(p,revision){
+    const receipts=[];let cursor=null;
+    do{
+      let query=p.history.orderBy(firebase.firestore.FieldPath.documentId()).limit(200);
+      if(cursor)query=query.startAfter(cursor);
+      const page=await query.get({source:'server'});
+      page.forEach(doc=>{const r=doc.data();if(r.revision<=revision)receipts.push(r);});
+      cursor=page.size===200?page.docs[page.docs.length-1]:null;
+    }while(cursor);
+    receipts.sort((a,b)=>a.revision-b.revision);
+    if(receipts.length!==revision||receipts.some((r,i)=>r.revision!==i+1))throw new Error('catalog-history-incomplete');
+    return receipts;
+  }
+  function absorbFinalizations(raw){
+    const map=new Map((state.finalizations||[]).map(f=>[f.id,f]));
+    for(const f of raw.finalizations||[])map.set(f.id,copy(f));
+    if(raw.legacyStopGuard&&!raw.running){
+      const run=normRun(raw.legacyStopGuard.running);
+      if(run&&!map.has(run.sessionId)){
+        const end=Number(raw.updatedAtMs)||0;
+        if(end<run.startTs)throw new Error('legacy-stop-time-invalid');
+        map.set(run.sessionId,prepareFinalization(run,end));
+      }
+    }
+    state.finalizations=[...map.values()];
+    if(state.finalizations.some(f=>f.id===state.running?.sessionId))state.running=null;
+  }
+  function stripLegacyFinalization(intent,baseDays,localDays){
+    const expected=materializedFinalizationDays([intent],baseDays),result=copy(localDays);
+    const shape=ev=>{const value={...ev};delete value.id;return TG_CATALOG.key(value);};
+    for(const [date,day] of Object.entries(expected)){
+      const before=baseDays[date]?.events||[],after=day.events||[];
+      const changedBefore=before.filter(ev=>!after.some(next=>next.id===ev.id&&same(next,ev)));
+      const changedAfter=after.filter(ev=>!before.some(old=>old.id===ev.id&&same(old,ev)));
+      if(!changedAfter.length&&!changedBefore.length)continue;
+      const local=result[date]?.events||[];
+      if(!local.some(ev=>(ev.sessionIds||[]).includes(intent.id)))continue;
+      const consumed=new Set();
+      for(const event of changedAfter){
+        const matches=local.map((ev,i)=>({ev,i})).filter(({ev,i})=>!consumed.has(i)&&shape(ev)===shape(event));
+        if(matches.length!==1)throw new Error('legacy-stop-local-conflict');
+        consumed.add(matches[0].i);
+      }
+      const kept=local.filter((ev,i)=>!consumed.has(i));
+      if(changedBefore.some(ev=>kept.some(other=>other.id===ev.id)))throw new Error('legacy-stop-local-conflict');
+      result[date]={...result[date],events:[...kept,...copy(changedBefore)]};
+    }
+    return result;
+  }
+  async function reconcileLegacyStops(uid,raw){
+    if(!state.legacyCatalogClient)return;
+    const p=userPaths(uid),intents=new Map((raw.finalizations||[]).map(f=>[f.id,f]));
+    if(raw.legacyStopGuard&&!raw.running){
+      const run=normRun(raw.legacyStopGuard.running);if(run)intents.set(run.sessionId,prepareFinalization(run,Number(raw.updatedAtMs)));
+    }
+    const beforeSessions=new Set(Object.values(syncBase.days||{}).flatMap(d=>(d.events||[]).flatMap(e=>e.sessionIds||[])));
+    const candidates=new Set(Object.values(state.days||{}).flatMap(d=>(d.events||[]).flatMap(e=>e.sessionIds||[])).filter(id=>!beforeSessions.has(id)));
+    for(const id of candidates){
+      const ack=await p.finalizationAcks.doc(id).get({source:'server'});
+      if(ack.exists&&ack.data()?.intent)intents.set(id,ack.data().intent);
+    }
+    let reconciled=state.days;
+    for(const intent of intents.values())reconciled=stripLegacyFinalization(intent,syncBase.days||{},reconciled);
+    if(!same(reconciled,state.days)){
+      // One migration preimage; ordinary sync never writes speculative legacy spans.
+      localStorage.setItem(LS_KEY+'-legacy-stop-preimage',JSON.stringify({capturedAt:Date.now(),days:state.days,base:syncBase.days}));
+      state.days=reconciled;
+    }
+    state.legacyCatalogClient=false;
+  }
   async function readAndApply(uid,quiet,serverOnly){
     const p=userPaths(uid);
     const all=serverOnly
@@ -8294,9 +7984,17 @@ const TG_SYNC_OBSERVATION={
       : await Promise.all([p.settings.get(),p.days.get(),p.running.get()]);
     if(serverOnly) markServerOk();
     const ss=all[0],ds=all[1],rs=all[2];
-    if(ss.exists) applyRemoteSettings(ss.data()||{},metaOf(ss.data()||{}),true);
-    ds.forEach(function(doc){const d=doc.data()||{};applyRemoteDay(doc.id,d,metaOf(d),true);});
+    if(ss.exists){
+      const raw=ss.data()||{},revision=Number(raw.catalogRevision)||0;
+      const history=await readCatalogHistory(p,revision);
+      const check=await p.settings.get({source:'server'});
+      if((Number(check.data()?.catalogRevision)||0)!==revision)throw new Error('catalog-refresh-required');
+      applyRemoteSettings({...raw,catalogHistory:history},metaOf(raw),true);
+    }
     const rd=rs.exists?(rs.data()||{}):{};
+    await reconcileLegacyStops(uid,rd);
+    ds.forEach(function(doc){const d=doc.data()||{};applyRemoteDay(doc.id,d,metaOf(d),true);});
+    absorbFinalizations(rd);
     applyRemoteRunning(rd.running||null,metaOf(rd),true);
     if(serverOnly)markRunningServerOk();
     persistBase();persistOutbox();persistLocal();
@@ -8310,11 +8008,12 @@ const TG_SYNC_OBSERVATION={
     const localAt=outbox.settingsAt||Date.now(),sent=stable(captured);
     const result=await db.runTransaction(async function(tx){
       const snap=await tx.get(ref),raw=snap.exists?(snap.data()||{}):{};
+      validateCatalogRevision(raw);
       const remote=snap.exists?normSettings(raw):normSettings({}),meta=metaOf(raw);
       const merged=mergeSettings(base,captured,remote,localAt>=meta.at);
       if(snap.exists&&same(merged,remote)) return {value:remote,meta:meta,wrote:false};
       const now=Date.now(),rev=meta.rev+1;
-      tx.set(ref,{version:merged.version,areas:merged.areas,activities:merged.activities,routineDefs:merged.routineDefs,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
+      tx.set(ref,{...TG_CATALOG.cloudSettings(merged),catalogProtocol:2,catalogWriteRev:rev,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
       return {value:merged,meta:{rev:rev,at:now},wrote:true};
     });
     markServerOk();
@@ -8331,12 +8030,15 @@ const TG_SYNC_OBSERVATION={
     const captured=normDay(state.days[date]),base=syncBase.days[date]?normDay(syncBase.days[date]):emptyDay();
     const localAt=(outbox.days[date]&&outbox.days[date].at)||Date.now(),sent=stable(captured);
     const result=await db.runTransaction(async function(tx){
+      const settingsSnap=await tx.get(p.settings);validateCatalogRevision(settingsSnap.data()||{});
       const snap=await tx.get(ref),raw=snap.exists?(snap.data()||{}):{};
       const remote=snap.exists?normDay(raw):emptyDay(),meta=metaOf(raw);
       const merged=mergeDay(base,captured,remote,localAt>=meta.at);
-      if(snap.exists&&same(merged,remote)) return {value:remote,meta:meta,wrote:false};
+      const rawLinks={todos:raw.todos||[],routines:raw.routines||[],todoMutations:raw.todoMutations||[]};
+      const cleanLinks={todos:remote.todos,routines:remote.routines,todoMutations:remote.todoMutations};
+      if(snap.exists&&same(merged,remote)&&same(rawLinks,cleanLinks)) return {value:remote,meta:meta,wrote:false};
       const now=Date.now(),rev=meta.rev+1;
-      tx.set(ref,{events:merged.events,todos:merged.todos,routines:merged.routines,todoMutations:merged.todoMutations,statusMutations:merged.statusMutations,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
+      tx.set(ref,{events:merged.events,todos:merged.todos,routines:merged.routines,todoMutations:merged.todoMutations,statusMutations:merged.statusMutations,catalogProtocol:2,catalogWriteRev:rev,catalogRevision:state.settings.catalogRevision||0,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
       return {value:merged,meta:{rev:rev,at:now},wrote:true};
     });
     markServerOk();
@@ -8349,6 +8051,45 @@ const TG_SYNC_OBSERVATION={
     persistBase();persistLocal();markDirty();
   }
 
+  async function deleteCatalog(preview){
+    const gate=startGate();
+    if(!gate.allowed)throw new Error('cloud-unavailable');
+    preview.operationId=preview.operationId||uid('catalog');
+    if(gate.mode==='local'){
+      const result=TG_CATALOG.deletion(state.settings,preview,{operationId:preview.operationId,at:Date.now(),running:state.running,finalizations:state.finalizations||[],pendingRun:outbox.run});
+      const prior={settings:state.settings,days:copy(state.days)};
+      try{state.settings=result.settings;normalizeCatalogDays();persistCatalogLocal();}
+      catch(e){state.settings=prior.settings;state.days=prior.days;throw new Error('storage');}
+      save();renderAll();return result;
+    }
+    setRunLock(true,'삭제 전 확인 중…');
+    try{
+      await syncBarrier(true);
+      const p=userPaths(user.uid);
+      const result=await db.runTransaction(async tx=>{
+        const ss=await tx.get(p.settings),rs=await tx.get(p.running),existing=await tx.get(p.history.doc(preview.operationId));
+        const raw=ss.data()||{},runRaw=rs.data()||{};validateCatalogRevision(raw);
+        if(raw.catalogEnforced!==true)throw new Error('CATALOG_UPGRADE_REQUIRED');
+        if(existing.exists)return {settings:normSettings(raw),receipt:existing.data(),replayed:true};
+        const catalog=normSettings(raw);
+        const localBlock=TG_CATALOG.gate(catalog,preview,{running:state.running,finalizations:state.finalizations||[],pendingRun:outbox.run});
+        if(localBlock)throw new Error(localBlock==='running'?'CATALOG_RUNNING':'CATALOG_FINALIZING');
+        const next=TG_CATALOG.deletion(catalog,preview,{operationId:preview.operationId,at:Date.now(),running:runRaw.running,finalizations:[...(runRaw.finalizations||[]),...(runRaw.legacyStopGuard?[runRaw.legacyStopGuard]:[])]});
+        const rev=(Number(raw.syncRev)||0)+1,now=Date.now();
+        tx.set(p.history.doc(next.receipt.id),next.receipt);
+        tx.set(p.settings,{...TG_CATALOG.cloudSettings(next.settings),catalogProtocol:2,catalogWriteRev:rev,syncRev:rev,updatedAtMs:now,updatedAt:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
+        return next;
+      });
+      state.settings=result.settings;syncBase.settings=copy(result.settings);outbox.settingsAt=0;
+      try{
+        normalizeCatalogDays();
+        for(const date of Object.keys(state.days))outbox.days[date]={at:Date.now(),forceCatalog:true};
+        persistCatalogLocal();persistBase();persistOutbox();renderAll();
+        if(!await pushNow())throw new Error('CATALOG_CLEANUP_PENDING');
+      }catch(e){throw new Error('CATALOG_CLEANUP_PENDING');}
+      return result;
+    }finally{setRunLock(false);}
+  }
   function startGate(){
     if(runLocking) return {allowed:false,mode:"locked",label:runLockLabel||"동기화 중…",message:"측정 상태를 확인하고 있습니다"};
     if(!authKnown) return {allowed:false,mode:"pending",label:"동기화 확인 중…",message:"계정 동기화 확인이 끝날 때까지 잠시 기다려 주세요"};
@@ -8374,17 +8115,24 @@ const TG_SYNC_OBSERVATION={
       queueRender();
       return {ok:false,reason:gate.mode};
     }
-    if(gate.mode==="local") return {ok:true,started:true,local:true,running:desired};
+    if(gate.mode==="local"){
+      if(!actById(desired.actId)||(state.finalizations||[]).length)return {ok:false,reason:'catalog-or-finalizing'};
+      return {ok:true,started:true,local:true,running:desired};
+    }
     setRunLock(true,"시작 전 동기화 중…");
     try{
       await syncBarrier(true);
-      const ref=userPaths(user.uid).running;
+      const paths=userPaths(user.uid),ref=paths.running;
       const result=await db.runTransaction(async function(tx){
+        const catalogSnap=await tx.get(paths.settings),catalogRaw=catalogSnap.data()||{};
+        validateCatalogRevision(catalogRaw);
+        if(!TG_CATALOG.liveActivity(normSettings(catalogRaw),desired.actId))throw new Error('CATALOG_TARGET_MISSING');
         const snap=await tx.get(ref),raw=snap.exists?(snap.data()||{}):{};
         const remote=normRun(raw.running||null),meta=metaOf(raw);
+        if((raw.finalizations||[]).length||raw.legacyStopGuard)throw new Error('CATALOG_FINALIZING');
         if(remote&&!runStale(remote)) return {started:false,running:remote,meta:meta};
         const now=Date.now(),rev=meta.rev+1;
-        tx.set(ref,{running:desired,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
+        tx.set(ref,{running:desired,catalogProtocol:2,catalogWriteRev:rev,catalogRevision:catalogRaw.catalogRevision||0,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
         return {started:true,running:desired,meta:{rev:rev,at:now}};
       });
       markServerOk();
@@ -8408,13 +8156,25 @@ const TG_SYNC_OBSERVATION={
   async function requestStop(candidate){
     const target=normRun(candidate);if(!target)return {ok:false,reason:"invalid"};
     if(!authKnown) return {ok:false,reason:"pending"};
-    if(!user) return {ok:true,stopped:true,local:true,running:target,endedAt:Date.now()};
+    function durableLocalStop(){
+      const end=Date.now(),receipt=prepareFinalization(target,end);
+      receipt.scope=(!user&&!cloudUnavailable)?'local':'cloud';
+      const pending=state.finalizations||[];
+      const previousRunning=state.running;
+      state.finalizations=[...pending.filter(f=>f.id!==receipt.id),receipt];
+      state.running=null;
+      try{persistCatalogLocal();}catch(e){state.finalizations=pending;state.running=previousRunning;throw e;}
+      return {ok:true,stopped:true,local:!user&&!cloudUnavailable,offline:!!user||cloudUnavailable,running:target,endedAt:end,receipt};
+    }
+    if(!user){try{return durableLocalStop();}catch(e){toast('종료 기록 저장 공간을 확인하세요.');return {ok:false,reason:'storage'};}}
     if(!ready||navigator.onLine===false){
       setStatus("오프라인 종료 · 재연결 시 클라우드에 반영","warn");
-      return {ok:true,stopped:true,offline:true,running:target,endedAt:Date.now()};
+      try{return durableLocalStop();}catch(e){toast('종료 기록 저장 공간을 확인하세요.');return {ok:false,reason:'storage'};}
     }
     setRunLock(true,"중지 중…");
     try{
+      await syncBarrier(true);
+      const receipt=prepareFinalization(target,Date.now());
       const ref=userPaths(user.uid).running;
       const result=await db.runTransaction(async function(tx){
         const snap=await tx.get(ref),raw=snap.exists?(snap.data()||{}):{};
@@ -8422,13 +8182,13 @@ const TG_SYNC_OBSERVATION={
         if(!remote) return {stopped:false,reason:"already-stopped",running:null,meta:meta};
         if(remote.sessionId!==target.sessionId) return {stopped:false,reason:"different-session",running:remote,meta:meta};
         const now=Date.now(),rev=meta.rev+1;
-        tx.set(ref,{running:null,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
-        return {stopped:true,running:remote,endedAt:now,meta:{rev:rev,at:now}};
+        tx.set(ref,{running:null,finalizations:[...(raw.finalizations||[]).filter(f=>f.id!==receipt.id),receipt],catalogProtocol:2,catalogWriteRev:rev,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
+        return {stopped:true,running:remote,endedAt:receipt.endedAt,receipt,meta:{rev:rev,at:now}};
       });
       markServerOk();
       syncBase.running=result.stopped?null:normRun(result.running);syncBase.runningVersion=Number(result.meta.rev)||0;syncBase.runningAt=Number(result.meta.at)||0;
       outbox.run=null;
-      if(result.stopped) state.running=null; else state.running=effectiveRun(result.running);
+      if(result.stopped){state.running=null;absorbFinalizations({finalizations:[result.receipt]});}else state.running=effectiveRun(result.running);
       markRunningServerOk();
       persistBase();persistOutbox();persistLocal();queueRender();
       if(!result.stopped){
@@ -8436,7 +8196,7 @@ const TG_SYNC_OBSERVATION={
         return {ok:false,reason:result.reason,running:copy(result.running)};
       }
       setStatus("측정 종료 확정 · 기록 동기화 중…","ok");
-      return {ok:true,stopped:true,running:copy(result.running),endedAt:result.endedAt};
+      return {ok:true,stopped:true,running:copy(result.running),endedAt:result.endedAt,receipt:result.receipt};
     }catch(err){
       setStatus("측정 중지 실패 · 다시 시도하세요","err");
       if(typeof toast==="function")toast("클라우드 중지 확인에 실패했습니다");
@@ -8446,19 +8206,21 @@ const TG_SYNC_OBSERVATION={
 
   async function flushRunning(uid){
     const op=outbox.run;if(!op)return;
-    const ref=userPaths(uid).running,captured=copy(op);
+    const paths=userPaths(uid),ref=paths.running,captured=copy(op);
     const result=await db.runTransaction(async function(tx){
+      const settingsSnap=await tx.get(paths.settings),settingsRaw=settingsSnap.data()||{};validateCatalogRevision(settingsRaw);
       const snap=await tx.get(ref),raw=snap.exists?(snap.data()||{}):{};
       const remote=normRun(raw.running||null),meta=metaOf(raw),remoteStale=runStale(remote);
       if(captured.type==="set"){
         const desired=normRun(captured.running);
+        if(!desired||!TG_CATALOG.liveActivity(normSettings(settingsRaw),desired.actId)||(raw.finalizations||[]).length||raw.legacyStopGuard)return {applied:false,reason:'catalog-or-finalizing',running:remote,meta};
         if(!desired||runStale(desired)) return {applied:false,reason:"stale",running:remote,meta:meta};
         const sameSession=!!(remote&&remote.sessionId===desired.sessionId);
         const newerAfterClear=!remote&&Number(captured.at)>Number(meta.at||0);
         const allowed=meta.rev===Number(captured.baseVersion||0)||sameSession||remoteStale||newerAfterClear;
         if(!allowed) return {applied:false,reason:"newer-remote",running:remote,meta:meta};
         const now=Date.now(),rev=meta.rev+1;
-        tx.set(ref,{running:desired,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
+        tx.set(ref,{running:desired,catalogProtocol:2,catalogWriteRev:rev,catalogRevision:settingsRaw.catalogRevision||0,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
         return {applied:true,running:desired,meta:{rev:rev,at:now}};
       }
       if(!remote) return {applied:true,running:null,meta:meta};
@@ -8466,10 +8228,12 @@ const TG_SYNC_OBSERVATION={
       const allowed=sameSession||(!captured.sessionId&&meta.rev===Number(captured.baseVersion||0))||remoteStale;
       if(!allowed) return {applied:false,reason:"different-session",running:remote,meta:meta};
       const now=Date.now(),rev=meta.rev+1;
-      tx.set(ref,{running:null,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
-      return {applied:true,running:null,meta:{rev:rev,at:now}};
+      const receipt=(state.finalizations||[]).find(f=>f.id===remote.sessionId)||prepareFinalization(remote,Math.max(remote.startTs,Number(captured.at)||now));
+      tx.set(ref,{running:null,finalizations:[...(raw.finalizations||[]).filter(f=>f.id!==receipt.id),receipt],catalogProtocol:2,catalogWriteRev:rev,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
+      return {applied:true,running:null,receipt,meta:{rev:rev,at:now}};
     });
     markServerOk();
+    if(result.receipt)absorbFinalizations({finalizations:[result.receipt]});
     syncBase.running=normRun(result.running);syncBase.runningVersion=Number(result.meta.rev)||0;syncBase.runningAt=Number(result.meta.at)||0;
     if(!result.applied){
       if(captured.type==="set") quarantineRun(captured.running,"sync-conflict-"+result.reason);
@@ -8485,6 +8249,86 @@ const TG_SYNC_OBSERVATION={
     persistBase();persistLocal();markDirty();markRunningServerOk();queueRender();
   }
 
+  function finalizationDates(receipt,days){
+    const lower=Number(receipt.running.startTs)-TG_CONTINUITY.WINDOW_MS,upper=Math.max(Number(receipt.endedAt),Number(receipt.running.startTs)+1);
+    const dates=new Set(TG_CONTINUITY.splitSpan(lower,upper).map(p=>p.date));
+    for(const [date,day] of Object.entries(days||{}))for(const ev of day.events||[]){
+      const bounds=exactEventBounds(date,ev);if(!bounds||bounds.endTs<lower||bounds.startTs>=upper)continue;
+      const start=Number(ev.spanStartTs)||bounds.startTs,end=Number(ev.spanEndTs)||bounds.endTs;
+      for(const part of TG_CONTINUITY.splitSpan(start,end))dates.add(part.date);
+    }
+    if(dates.size>400)throw new Error('stop-finalization-too-large');
+    return [...dates].sort();
+  }
+  async function refreshFinalizations(uid){
+    const p=userPaths(uid),snap=await p.running.get({source:'server'}),raw=snap.data()||{};
+    absorbFinalizations(raw);
+    const pending=(state.finalizations||[]).slice(),completed=new Set();
+    for(const receipt of pending){
+      const ack=await p.finalizationAcks.doc(receipt.id).get({source:'server'});
+      if(ack.exists)completed.add(receipt.id);
+    }
+    state.finalizations=(state.finalizations||[]).filter(f=>!completed.has(f.id));
+    persistCatalogLocal();
+    return raw;
+  }
+  async function acknowledgeFinalizations(uid){
+    const p=userPaths(uid);
+    for(const requested of (state.finalizations||[]).slice()){
+      if(requested.scope==='local')continue;
+      const captured=copy(state.days);
+      const result=await db.runTransaction(async tx=>{
+        const ackRef=p.finalizationAcks.doc(requested.id),ack=await tx.get(ackRef);
+        if(ack.exists)return {acknowledged:true,days:{},metas:{}};
+        const catalogSnap=await tx.get(p.settings),catalogRaw=catalogSnap.data()||{};
+        validateCatalogRevision(catalogRaw);
+        const snap=await tx.get(p.running),raw=snap.data()||{};
+        const guarded=normRun(raw.legacyStopGuard?.running);
+        let receipt=(raw.finalizations||[]).find(f=>f.id===requested.id);
+        const guardStop=guarded?.sessionId===requested.id&&!raw.running;
+        if(!receipt&&guardStop)receipt=prepareFinalization(guarded,Number(raw.updatedAtMs));
+        if(!receipt)throw new Error('stop-finalization-not-published');
+        const days={},metas={},rawDays={};
+        let dates=finalizationDates(receipt,{});
+        while(dates.some(date=>!Object.hasOwn(days,date))){
+          for(const date of dates){
+            if(Object.hasOwn(days,date))continue;
+            const daySnap=await tx.get(p.days.doc(date)),dayRaw=daySnap.data()||{};
+            rawDays[date]=dayRaw;metas[date]=metaOf(dayRaw);
+            days[date]=normDay(dayRaw);
+          }
+          dates=finalizationDates(receipt,days);
+        }
+        const materialized=materializedFinalizationDays([receipt],days);
+        if(!receipt.zeroSpan&&!TG_CATALOG.spanStored(materialized,receipt.running,receipt.endedAt))throw new Error('stop-finalization-incomplete');
+        const now=Date.now();
+        for(const [date,day] of Object.entries(materialized)){
+          if(!Object.hasOwn(days,date))throw new Error('stop-finalization-date-unread');
+          if(same(day,days[date]))continue;
+          const rev=metas[date].rev+1;
+          tx.set(p.days.doc(date),{...day,catalogProtocol:2,catalogWriteRev:rev,catalogRevision:catalogRaw.catalogRevision||0,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
+          metas[date]={rev,at:now};
+        }
+        tx.set(ackRef,{id:receipt.id,intent:prepareFinalization(receipt.running,receipt.endedAt),committedAt:now,source:guardStop?'legacy-stop':'stop'});
+        const rev=(Number(raw.syncRev)||0)+1;
+        const remaining=(raw.finalizations||[]).filter(f=>f.id!==receipt.id);
+        // Keep a legacy Stop's original endpoint until that exact guard is acknowledged.
+        const at=raw.legacyStopGuard&&!guardStop?raw.updatedAtMs:now;
+        tx.set(p.running,{finalizations:remaining,...(guardStop?{legacyStopGuard:null}:{}),catalogProtocol:2,catalogWriteRev:rev,syncRev:rev,updatedAtMs:at,updatedAt:at,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
+        return {acknowledged:true,days:materialized,metas,rev};
+      });
+      for(const [date,day] of Object.entries(result.days)){
+        const before=captured[date]?normDay(captured[date]):emptyDay();
+        const current=state.days[date]?normDay(state.days[date]):emptyDay();
+        // Preserve edits that happened while the transaction was waiting.
+        state.days[date]=mergeDay(before,current,day,true);
+        syncBase.days[date]=copy(day);syncBase.dayMeta[date]=result.metas[date];
+      }
+      state.finalizations=(state.finalizations||[]).filter(f=>f.id!==requested.id);
+      if(result.rev)syncBase.runningVersion=result.rev;
+      persistCatalogLocal();persistBase();markDirty();queueRender();
+    }
+  }
   function pushNow(){
     if(!user||!db||!ready||DEMO) return Promise.resolve(false);
     markDirty();
@@ -8495,13 +8339,16 @@ const TG_SYNC_OBSERVATION={
       try{
         let pass=0;
         do{
-          flushAgain=false;pass++;markDirty();
+          flushAgain=false;pass++;
+          await refreshFinalizations(user.uid);
+          markDirty();
           const runType=outbox.run&&outbox.run.type;
           if(runType==="set") await flushRunning(user.uid);
           if(outbox.settingsAt) await flushSettings(user.uid);
           const dates=Object.keys(outbox.days||{}).sort();
           for(const date of dates) await flushDay(user.uid,date);
           if(outbox.run&&outbox.run.type==="clear") await flushRunning(user.uid);
+          await acknowledgeFinalizations(user.uid);
         }while((flushAgain||hasDirty())&&pass<4);
         if(hasDirty()) schedulePush();
       }catch(err){
@@ -8555,6 +8402,7 @@ const TG_SYNC_OBSERVATION={
     try{
       const snap=await userPaths(user.uid).running.get({source:"server"});
       const d=snap.exists?(snap.data()||{}):{};
+      absorbFinalizations(d);
       applyRemoteRunning(d.running||null,metaOf(d),true);
       markRunningServerOk();queueRender();schedulePush();
       return true;
@@ -8572,9 +8420,17 @@ const TG_SYNC_OBSERVATION={
   function startListeners(uid){
     stopListeners();
     const p=userPaths(uid);
-    unsubSettings=p.settings.onSnapshot(function(snap){
+    unsubSettings=p.settings.onSnapshot(async function(snap){
       if(!snap.exists)return;
-      const d=snap.data()||{};applyRemoteSettings(d,metaOf(d),false);if(!snap.metadata||!snap.metadata.fromCache)markServerOk();schedulePush();
+      const d=snap.data()||{};
+      try{
+        const rev=Number(d.catalogRevision)||0;
+        if(rev!==(Number(state.settings.catalogRevision)||0)){
+          if(snap.metadata?.fromCache||snap.metadata?.hasPendingWrites)return;
+          await readAndApply(uid,false,true);
+        }else applyRemoteSettings(d,metaOf(d),false);
+        if(!snap.metadata||!snap.metadata.fromCache)markServerOk();schedulePush();
+      }catch(e){setStatus('영역·활동 동기화 재확인 대기','warn');}
     },function(err){setStatus("설정 실시간 수신 오류 · "+(err&&err.message||err),"err");});
     unsubDays=p.days.onSnapshot(function(snap){
       snap.docChanges().forEach(function(ch){
@@ -8592,6 +8448,7 @@ const TG_SYNC_OBSERVATION={
     },function(err){setStatus("기록 실시간 수신 오류 · "+(err&&err.message||err),"err");});
     unsubRunning=p.running.onSnapshot(function(snap){
       const d=snap.exists?(snap.data()||{}):{};
+      absorbFinalizations(d);
       applyRemoteRunning(d.running||null,metaOf(d),false);if(!snap.metadata||(!snap.metadata.fromCache&&!snap.metadata.hasPendingWrites))markRunningServerOk();schedulePush();
     },function(err){setStatus("측정 상태 실시간 수신 오류 · "+(err&&err.message||err),"err");});
   }
@@ -8715,6 +8572,7 @@ const TG_SYNC_OBSERVATION={
   }
 
   window.tgCloud={
+    deleteCatalog:deleteCatalog,
     markDirty:markDirty,
     schedulePush:schedulePush,
     pushNow:pushNow,

@@ -18,11 +18,15 @@ const server=http.createServer((req,res)=>{
         fixtureDay.routines.push({id:"fixture-r1",name:"연속 루틴",time:"09:30",end:"11:20",area:"공부",extra:true});
         fixtureDay.routines.push({id:"fixture-r2",name:"연속 루틴",time:"12:00",end:"13:10",area:"공부",extra:true});
         for(let i=0;i<5;i++)state.settings.activities.push({id:"fixture-a"+i,name:i===4?"아주 긴 활동 이름을 입력하는 경우 확인":"추가 활동 "+i,area:"공부",color:"#E69494"});`)
+    if(url.searchParams.has('pending-stop'))html=html.replace('state.running=null;\n        const fixtureDay=',`state.running=null;
+        const pendingStart=new Date();pendingStart.setHours(2,0,0,0);
+        state.finalizations=[{id:'fixture-stop',scope:'cloud',running:{sessionId:'fixture-stop',actId:'a1',startTs:pendingStart.getTime()},endedAt:pendingStart.getTime()+181234,zeroSpan:false}];
+        const fixtureDay=`)
     if(url.searchParams.has('no-gsap'))html=html.replace(/<script src="https:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/gsap\/[^>]+><\/script>/g,'')
     res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(html);return
   }
-  if(!/^\/(?:icons|brand)\/[\w.-]+$/.test(route)&&route!=='/manifest.webmanifest'){res.writeHead(404);res.end();return}
+  if(!/^\/(?:icons|brand)\/[\w.-]+$/.test(route)&&!['/manifest.webmanifest','/catalog-core.js','/catalog-manager.js','/catalog-manager.css'].includes(route)){res.writeHead(404);res.end();return}
   const file=path.join(root,route);if(!fs.existsSync(file)){res.writeHead(404);res.end();return}
-  res.writeHead(200,{'Content-Type':route.endsWith('.png')?'image/png':'application/json'});fs.createReadStream(file).pipe(res)
+  res.writeHead(200,{'Content-Type':route.endsWith('.png')?'image/png':route.endsWith('.js')?'text/javascript':route.endsWith('.css')?'text/css':'application/json'});fs.createReadStream(file).pipe(res)
 })
 server.listen(8765,'127.0.0.1',()=>console.log('Synthetic UI: http://127.0.0.1:8765; optional ?no-gsap=1'))
