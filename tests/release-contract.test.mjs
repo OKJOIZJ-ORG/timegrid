@@ -12,6 +12,6 @@ const cacheVersion = sw.match(/const VERSION = "timegrid-v(\d+\.\d+\.\d+)-\d{8}"
 assert.ok(footerVersion, "the app footer must expose a semantic release version")
 assert.ok(cacheVersion, "the service worker must expose a dated semantic cache version")
 assert.equal(cacheVersion, footerVersion, "footer and service-worker versions must agree")
-assert.equal(footerVersion, "3.13.5", "this release must not reuse the prior v3.13.4 cache identity")
+assert.equal(footerVersion, "3.13.6", "changed assets require a new service worker cache identity")
 
 console.log("release contract tests passed")

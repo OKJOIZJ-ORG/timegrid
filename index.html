@@ -279,6 +279,9 @@ main::-webkit-scrollbar, .tl::-webkit-scrollbar, .dlg-body::-webkit-scrollbar, d
 .run-chip .run-start{display:inline-flex;align-items:baseline;gap:5px;white-space:nowrap;}
 .run-chip .run-start,.run-chip .run-elapsed{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;}
 .run-chip .run-elapsed{color:var(--text);font-weight:650;}
+.tracking-sync{display:block;width:fit-content;max-width:100%;min-height:36px;margin:8px auto 0;padding:6px 12px;border:1px solid transparent;border-radius:12px;background:transparent;color:var(--text2);font-size:12px;line-height:1.5;text-align:center;text-wrap:balance;cursor:pointer;}
+.tracking-sync[data-kind="warn"]{color:var(--text);background:rgba(213,128,59,.09);border-color:rgba(213,128,59,.22);}
+.tracking-sync:focus-visible{outline:2px solid var(--text2);outline-offset:2px;}
 .dot{width:8px; height:8px; border-radius:50%; flex:none;}
 .note-tgl{display:inline-flex; align-items:center; justify-content:center; gap:3px; width:72px; flex:none;
   min-height:40px; padding:4px 0; border:1px dashed var(--line2); border-radius:var(--r-round);
@@ -1458,6 +1461,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
     <input type="text" id="noteInput" placeholder="무엇을 (할일·루틴·메모)" autocomplete="off" aria-label="세부 입력">
   </div>
   <div class="run-chip" id="runChip"><span class="run-start"><span id="runSince"></span><span>부터 기록 중</span></span><span class="run-sep" aria-hidden="true">·</span><span class="run-elapsed"><span id="runElapsed">0s</span> 경과</span></div>
+  <button class="tracking-sync" id="trackingSync" type="button" aria-label="계정 동기화 상태 확인"><span role="status" aria-live="polite" id="trackingSyncText">동기화 상태 확인 중</span></button>
   </div>
 
   <div class="tl">
@@ -1615,7 +1619,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.13.5<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.13.6<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -7092,6 +7096,7 @@ function openSideNav(){ $("#sideNav").classList.add("open"); $("#sideOverlay").c
 function closeSideNav(){ $("#sideNav").classList.remove("open"); $("#sideOverlay").classList.remove("show"); setTimeout(()=>$("#sideOverlay").classList.remove("open"),260); }
 function updateSnToday(){ const el=$("#snTodayVal"); if(el) el.textContent=fmtDur(dayDetail(ymd(new Date())).total); }
 $("#menuBtn").addEventListener("click",()=>{ updateSnToday(); if(window.tgCloud&&window.tgCloud.refreshStatus)window.tgCloud.refreshStatus(); openSideNav(); });
+$("#trackingSync").addEventListener("click",()=>$("#menuBtn").click());
 $("#sideClose").addEventListener("click",closeSideNav);
 $("#sideOverlay").addEventListener("click",closeSideNav);
 document.addEventListener("keydown",e=>{
@@ -7823,6 +7828,21 @@ if(document.body.dataset.tab) setTab(document.body.dataset.tab);
 if(document.body.dataset.open==="acts"){ renderManager(); openFsPanel($("#actsDlg")); }
 if(document.body.dataset.open==="edit"){ const d=ensureDay(state.viewDate); if(d.events[1]) openEvDlg(d.events[1]); }
 if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.dispatchEvent(new Event("focus")); }
+/* SYNC_OBSERVATION_CORE_START */
+const TG_SYNC_OBSERVATION={
+  expectsCloud:function(marker,baseUid){return marker==="local"?false:!!(marker||baseUid);},
+  view:function(s){
+    if(!s.authKnown)return {kind:"pending",text:"계정 동기화 확인 중"};
+    if(!s.signedIn)return s.expectedCloud
+      ?{kind:"warn",text:"계정 연결 끊김 · 기기 기록 보관 중 · 로그인 필요"}
+      :{kind:"warn",text:"이 기기에만 저장 · 윤텔에 전달되지 않음"};
+    if(!s.ready||!s.online)return {kind:"warn",text:"서버 연결 대기 · 기기 기록 보관 중"};
+    if(s.pending||!s.matches)return {kind:"warn",text:"측정 상태 전송 대기 · 서버 반영 미확인"};
+    if(!s.confirmedAt||s.now-s.confirmedAt>90000)return {kind:"warn",text:"서버 측정 상태 재확인 중"};
+    return {kind:"ok",text:"측정 상태 서버 동기화 확인"};
+  }
+};
+/* SYNC_OBSERVATION_CORE_END */
 /* ================= Firebase Auth + Firestore realtime action barriers (v3.12.61) ================= */
 (function(){
   const FB_CONFIG={
@@ -7858,6 +7878,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
   let pushTimer=null,flushing=false,flushAgain=false,flushPromise=null,renderQueued=false;
   let runLocking=false,runLockLabel="";
   let liveStatus=false,lastServerOkAt=0,heartbeatBusy=false;
+  let lastRunningServerAt=0;
   let unsubSettings=null,unsubDays=null,unsubRunning=null;
 
   function blankBase(){
@@ -7873,6 +7894,18 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
   if(!syncBase.days) syncBase.days={};
   if(!syncBase.dayMeta) syncBase.dayMeta={};
   if(!outbox.days) outbox.days={};
+
+  function expectsCloud(){
+    try{return TG_SYNC_OBSERVATION.expectsCloud(localStorage.getItem(CLOUD_ACCOUNT_KEY),syncBase.uid);}
+    catch(e){return true;}
+  }
+  function paintTrackingSync(){
+    const el=document.getElementById("trackingSync"),text=document.getElementById("trackingSyncText");
+    if(!el||!text)return;
+    const view=TG_SYNC_OBSERVATION.view({authKnown:authKnown,signedIn:!!user,expectedCloud:cloudUnavailable||expectsCloud(),ready:ready,online:navigator.onLine!==false,pending:!!outbox.run,matches:same(normRun(state.running),normRun(syncBase.running)),confirmedAt:lastRunningServerAt,now:Date.now()});
+    if(text.textContent!==view.text)text.textContent=view.text;
+    if(el.dataset.kind!==view.kind)el.dataset.kind=view.kind;
+  }
 
   function paintStatus(msg,kind){
     const el=ui.status(); if(!el) return;
@@ -7892,6 +7925,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     paintStatus("실시간 동기화 활성 · "+nowLabel(),"ok");
   }
   function tickLiveStatus(){
+    paintTrackingSync();
     if(!liveStatus||!user||!ready||navigator.onLine===false) return;
     if(lastServerOkAt&&Date.now()-lastServerOkAt>LIVE_STALE_MS){
       setStatus("실시간 동기화 연결 재확인 중…","warn");
@@ -7904,6 +7938,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     lastServerOkAt=Date.now();
     setLiveStatus();
   }
+  function markRunningServerOk(){lastRunningServerAt=Date.now();markServerOk();paintTrackingSync();}
   function copy(v){ return v==null?v:JSON.parse(JSON.stringify(v)); }
   function canonical(v){
     if(Array.isArray(v)) return v.map(canonical);
@@ -8140,6 +8175,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     ds.forEach(function(doc){const d=doc.data()||{};applyRemoteDay(doc.id,d,metaOf(d),true);});
     const rd=rs.exists?(rs.data()||{}):{};
     applyRemoteRunning(rd.running||null,metaOf(rd),true);
+    if(serverOnly)markRunningServerOk();
     persistBase();persistOutbox();persistLocal();
     if(!quiet) queueRender();
   }
@@ -8231,6 +8267,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
       markServerOk();
       syncBase.running=normRun(result.running);syncBase.runningVersion=Number(result.meta.rev)||0;syncBase.runningAt=Number(result.meta.at)||0;
       state.running=effectiveRun(result.running);outbox.run=null;
+      markRunningServerOk();
       persistBase();persistOutbox();persistLocal();queueRender();
       if(!result.started){
         setStatus("다른 기기에서 측정 중 · 같은 세션을 표시합니다","ok");
@@ -8269,6 +8306,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
       syncBase.running=result.stopped?null:normRun(result.running);syncBase.runningVersion=Number(result.meta.rev)||0;syncBase.runningAt=Number(result.meta.at)||0;
       outbox.run=null;
       if(result.stopped) state.running=null; else state.running=effectiveRun(result.running);
+      markRunningServerOk();
       persistBase();persistOutbox();persistLocal();queueRender();
       if(!result.stopped){
         if(result.running){setStatus("다른 기기의 최신 측정을 표시합니다","ok");if(typeof toast==="function")toast("측정 상태가 다른 기기에서 변경되었습니다");}
@@ -8321,7 +8359,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
       state.running=null;
     }
     outbox.run=null;
-    persistBase();persistLocal();markDirty();queueRender();
+    persistBase();persistLocal();markDirty();markRunningServerOk();queueRender();
   }
 
   function pushNow(){
@@ -8395,7 +8433,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
       const snap=await userPaths(user.uid).running.get({source:"server"});
       const d=snap.exists?(snap.data()||{}):{};
       applyRemoteRunning(d.running||null,metaOf(d),true);
-      markServerOk();queueRender();schedulePush();
+      markRunningServerOk();queueRender();schedulePush();
       return true;
     }catch(err){
       setStatus("실시간 동기화 연결 재확인 중…","warn");
@@ -8431,7 +8469,7 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     },function(err){setStatus("기록 실시간 수신 오류 · "+(err&&err.message||err),"err");});
     unsubRunning=p.running.onSnapshot(function(snap){
       const d=snap.exists?(snap.data()||{}):{};
-      applyRemoteRunning(d.running||null,metaOf(d),false);if(!snap.metadata||!snap.metadata.fromCache)markServerOk();schedulePush();
+      applyRemoteRunning(d.running||null,metaOf(d),false);if(!snap.metadata||(!snap.metadata.fromCache&&!snap.metadata.hasPendingWrites))markRunningServerOk();schedulePush();
     },function(err){setStatus("측정 상태 실시간 수신 오류 · "+(err&&err.message||err),"err");});
   }
 
@@ -8497,10 +8535,9 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
     }catch(err){ready=false;queueRender();setStatus("초기 동기화 실패 · 측정 시작 차단 · "+(err&&err.message||err),"err");}
   }
   function onSignedOut(){
-    authKnown=true;cloudUnavailable=false;ready=false;user=null;stopListeners();
-    try{localStorage.removeItem(CLOUD_ACCOUNT_KEY);}catch(e){}
+    authKnown=true;cloudUnavailable=expectsCloud();ready=false;user=null;lastRunningServerAt=0;stopListeners();
     if(pushTimer){clearTimeout(pushTimer);pushTimer=null;}
-    paintUser();queueRender();
+    paintUser();paintTrackingSync();queueRender();
   }
   async function login(){
     if(!auth){setStatus("Firebase를 불러오지 못했습니다","err");return;}
@@ -8514,14 +8551,25 @@ if(document.body.dataset.open==="ac"){ const i=$("#actInput"); i.focus(); i.disp
       }
     }catch(err){if(err&&err.code==="auth/popup-closed-by-user"){setStatus("로그인이 취소되었습니다","warn");return;}setStatus("로그인 실패: "+(err&&err.message||err),"err");}
   }
-  async function logout(){try{await auth.signOut();if(typeof toast==="function")toast("로그아웃했습니다");}catch(err){setStatus("로그아웃 실패: "+(err&&err.message||err),"err");}}
+  async function logout(){
+    let previous=null;
+    try{
+      previous=localStorage.getItem(CLOUD_ACCOUNT_KEY);
+      localStorage.setItem(CLOUD_ACCOUNT_KEY,"local");
+      await auth.signOut();
+      if(typeof toast==="function")toast("로그아웃했습니다 · 이후 기록은 이 기기에만 저장됩니다");
+    }catch(err){
+      try{if(previous===null)localStorage.removeItem(CLOUD_ACCOUNT_KEY);else localStorage.setItem(CLOUD_ACCOUNT_KEY,previous);}catch(e){}
+      setStatus("로그아웃 실패: "+(err&&err.message||err),"err");
+    }
+  }
 
   function init(){
     paintUser();
     if(typeof firebase==="undefined"){
       authKnown=true;
-      try{cloudUnavailable=!!localStorage.getItem(CLOUD_ACCOUNT_KEY);}catch(e){cloudUnavailable=true;}
-      setStatus(cloudUnavailable?"클라우드 상태 확인 불가 · 측정 시작 차단":"오프라인 로컬 모드","warn");queueRender();return;
+      cloudUnavailable=expectsCloud();
+      setStatus(cloudUnavailable?"클라우드 상태 확인 불가 · 측정 시작 차단":"오프라인 로컬 모드","warn");paintTrackingSync();queueRender();return;
     }
     try{
       app=firebase.initializeApp(FB_CONFIG);auth=firebase.auth();db=firebase.firestore();
