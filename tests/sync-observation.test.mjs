@@ -21,6 +21,17 @@ assert.match(policy.view({...connected,signedIn:false}).text,/연결 끊김/)
 assert.match(policy.view({...connected,signedIn:false,expectedCloud:false}).text,/이 기기에만 저장/)
 assert.equal(policy.view({...connected,authKnown:false}).kind,'pending')
 
+const node={dataset:{},hidden:false},label={textContent:''}
+let visual={kind:'ok',text:'confirmed'}
+const paintCtx=vm.createContext({document:{getElementById:id=>id==='trackingSync'?node:label},TG_SYNC_OBSERVATION:{view:()=>visual},
+ authKnown:true,user:{},cloudUnavailable:false,expectsCloud:()=>true,ready:true,navigator:{onLine:true},outbox:{run:null},
+ state:{running:null},syncBase:{running:null},same:()=>true,normRun:x=>x,lastRunningServerAt:1000})
+const paintStart=html.indexOf('  function paintTrackingSync(){'),paintEnd=html.indexOf('  function paintStatus(',paintStart)
+vm.runInContext(html.slice(paintStart,paintEnd)+';this.paint=paintTrackingSync',paintCtx)
+paintCtx.paint();assert.equal(node.hidden,true,'healthy confirmation is silent')
+visual={kind:'pending',text:'initializing'};paintCtx.paint();assert.equal(node.hidden,true)
+visual={kind:'warn',text:'reconnect'};paintCtx.paint();assert.equal(node.hidden,false);assert.equal(label.textContent,'reconnect')
+
 // Execute the production auth-null handler; neither a timer nor its outbox is reset.
 const authHandler=html.slice(html.indexOf('  function onSignedOut(){'),html.indexOf('  async function login(){'))
 const calls=[]

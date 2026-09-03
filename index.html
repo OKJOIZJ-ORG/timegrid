@@ -17,6 +17,10 @@
 <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore-compat.js" integrity="sha384-OWv+RYFfLxKnRm2S6RYMcxn1Un3vxC0dbSWy7XC9DKsJGGHMWBCbDV27k62l/2XK" crossorigin="anonymous"></script>
 <title>TimeGrid</title>
 <style>
+.catalog-archive{margin-top:24px;border-top:1px solid var(--line2);padding-top:16px;color:var(--text2);font-size:13px;}
+.catalog-archive summary{cursor:pointer;padding:8px 0;}
+.catalog-archive-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;}
+.catalog-archive-row .btn{min-height:36px;padding:0 12px;flex:none;}
 :root{
   --text:#2C2C2B; --text2:#7A7773; --text3:#A8A49F;
   --line:#F0EFED; --line2:#E6E5E3; --soft:#F9F8F7;
@@ -28,7 +32,7 @@
   --sh-1:0 1px 4px rgba(0,0,0,.08);
   --sh-2:0 4px 12px rgba(0,0,0,.12);
   --sh-3:0 8px 24px rgba(0,0,0,.16);
-  --dur-1:.15s; --dur-2:.25s;
+  --dur-1:.15s; --dur-2:.25s; --ease-out:cubic-bezier(.23,1,.32,1);
 }
 *{box-sizing:border-box; margin:0; padding:0;}
 [hidden]{display:none!important;}
@@ -225,11 +229,11 @@ main::-webkit-scrollbar, .tl::-webkit-scrollbar, .dlg-body::-webkit-scrollbar, d
 .sw-row input::placeholder{color:var(--text3);}
 .sw-row #actInput{
   width:auto; min-width:0; max-width:220px;
-  padding-left:14px; padding-right:14px;
+  padding-left:14px; padding-right:14px; text-align:center; text-indent:0; text-overflow:ellipsis;
   box-sizing:border-box;
   background:#fff;
   font-weight:400;
-  transition:width .18s cubic-bezier(.22,.61,.36,1), background-color .18s ease, background-image .18s ease, border-color .18s ease, color .18s ease;
+  transition:background-color .18s ease, border-color .18s ease, color .18s ease;
 }
 /* Empty controls can be measured while Tracker is display:none. Keep the full
    placeholder readable even before the first visible-layout sizing pass. */
@@ -287,7 +291,10 @@ main::-webkit-scrollbar, .tl::-webkit-scrollbar, .dlg-body::-webkit-scrollbar, d
   min-height:40px; padding:4px 0; border:1px dashed var(--line2); border-radius:var(--r-round);
   background:#fff; color:var(--text3); font-size:15px; font-weight:400; cursor:pointer;
   transition:border-color .18s ease,color .18s ease,background-color .18s ease,transform .12s ease;}
-.note-tgl .nt-sym{font-size:16px; font-weight:600; line-height:1; --optical-y:-.5px; transform:translateY(var(--optical-y));}
+.note-tgl .nt-sym{display:block;position:relative;width:12px;height:12px;flex:none;}
+.note-tgl .nt-sym::before,.note-tgl .nt-sym::after{content:"";position:absolute;inset:5px 0;height:2px;border-radius:1px;background:currentColor;}
+.note-tgl .nt-sym::after{transform:rotate(90deg);}
+.note-tgl.on .nt-sym::after{display:none;}
 .note-tgl .nt-txt{line-height:1;}
 @media (hover: hover) and (pointer: fine){ .note-tgl:hover{border-color:var(--text3); color:var(--text2);} }
 .note-tgl:active{transform:scale(.97);}
@@ -484,7 +491,7 @@ button.tag.ghost{background:none; border:1px dashed var(--line2); color:var(--te
 .rt-strip{position:absolute; display:flex; align-items:center; height:16px; z-index:5; cursor:pointer; overflow:hidden; transition:filter var(--dur-1) ease, opacity var(--dur-1) ease;}
 .rt-strip.lead::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--rt-c,#A8A5A0); border-radius:3px 0 0 3px;}
 .rt-strip .lb{font-size:11px; font-weight:600; line-height:1; padding:0 6px 0 9px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;}
-@media (hover: hover) and (pointer: fine){ .rt-strip:hover{filter:brightness(.95) saturate(1.2);} }
+@media (hover: hover) and (pointer: fine){ .rt-strip:hover,.rt-strip.hover-group{filter:brightness(.95) saturate(1.2);} }
 .rt-flag{position:absolute; display:flex; align-items:center; gap:4px; height:16px; z-index:5; cursor:pointer;}
 .rt-flag.flip{flex-direction:row-reverse;}
 .rt-flag .dot{width:8px; height:8px; border-radius:50%; background:var(--rt-c,#A8A5A0); flex:none; box-shadow:0 0 0 2px rgba(255,255,255,.9);}
@@ -502,7 +509,7 @@ button.tag.ghost{background:none; border:1px dashed var(--line2); color:var(--te
 .td-strip-td{position:absolute;display:flex;align-items:center;height:16px;z-index:6;cursor:pointer;overflow:hidden;transition:filter var(--dur-1) ease,opacity var(--dur-1) ease;}
 .td-strip-td.lead::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--td-c,#A8A5A0);border-radius:3px 0 0 3px;}
 .td-strip-td .lb{font-size:11px;font-weight:600;line-height:1;padding:0 6px 0 9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
-@media (hover: hover) and (pointer: fine){ .td-strip-td:hover{filter:brightness(.95) saturate(1.2);} }
+@media (hover: hover) and (pointer: fine){ .td-strip-td:hover,.td-strip-td.hover-group{filter:brightness(.95) saturate(1.2);} }
 .td-flag.done,.td-strip-td.done{opacity:.45;}
 .td-flag.done .chip,.td-strip-td.done .lb{text-decoration:line-through;}
 .rt-tip,.ui-tip{position:fixed; z-index:500; display:none; background:var(--text); color:#fff; padding:6px 10px; border-radius:var(--r-sm); font-size:13px; pointer-events:none; box-shadow:0 4px 12px rgba(0,0,0,.18); max-width:240px;}
@@ -847,11 +854,12 @@ input[type=color]{transition:transform var(--dur-1) ease,box-shadow .2s ease;}
 @keyframes dateInR{from{opacity:0; transform:translateX(16px);} to{opacity:1; transform:none;}}
 #dateLabel.css-in-l{animation:dateInL .3s ease both;}
 #dateLabel.css-in-r{animation:dateInR .3s ease both;}
-#monthHeat .cell,#weekHeat .cell{transition:transform var(--dur-1) ease;}
-@media (hover: hover) and (pointer: fine){ #monthHeat .cell:hover,#weekHeat .cell:hover{transform:scale(1.07); z-index:3;} }
+#monthHeat .cell,#weekHeat .cell{transition:box-shadow var(--dur-1) ease;}
+@media (hover: hover) and (pointer: fine){ #monthHeat .cell:hover,#weekHeat .cell:hover{box-shadow:inset 0 0 0 2px var(--text3);z-index:3;} }
 @media (prefers-reduced-motion: reduce){
   *{animation:none!important; transition:none!important;}
 }
+html[data-input="keyboard"] *,html[data-input="keyboard"] *::before,html[data-input="keyboard"] *::after{animation:none!important;transition:none!important;}
 /* ---- todo/routine timer ---- */
 .check-item .tmr{flex:none;width:30px;height:30px;border-radius:var(--r-round);border:1px solid var(--line2);background:#fff;line-height:1;color:var(--text2);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;transition:border-color var(--dur-1) ease,color var(--dur-1) ease,transform .12s ease;}
 .check-item .tmr svg{width:15px;height:15px;overflow:visible;}
@@ -927,7 +935,7 @@ input[type=color]{transition:transform var(--dur-1) ease,box-shadow .2s ease;}
 .todo-move-presets .rng.active{background:var(--text);border-color:var(--text);color:#fff;font-weight:600;}
 .todo-move-presets .rng.exp-datebtn{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;}
 .todo-move-presets .rng.exp-datebtn svg{flex:none;width:13px;height:13px;}
-.todo-move-dest-card{padding:10px 13px;border-radius:13px;background:rgba(0,0,0,.025);border:1px solid var(--line);box-shadow:0 0 0 1px rgba(255,255,255,.6) inset;display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:9px;transition:all .16s cubic-bezier(.23,1,.32,1);}
+.todo-move-dest-card{padding:10px 13px;border-radius:13px;background:rgba(0,0,0,.025);border:1px solid var(--line);box-shadow:0 0 0 1px rgba(255,255,255,.6) inset;display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:9px;transition:background-color .16s var(--ease-out),border-color .16s var(--ease-out);}
 .todo-move-dest-ico{width:28px;height:28px;border-radius:8px;background:var(--soft);display:flex;align-items:center;justify-content:center;color:var(--text);flex:none;}
 .todo-move-dest-info{display:flex;flex-direction:column;min-width:0;}
 .todo-move-dest-sub{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.02em;line-height:1.2;}
@@ -1453,7 +1461,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
   <div class="sw-row">
     <select id="areaSelect" aria-label="영역 선택"></select>
     <input type="text" id="actInput" placeholder="활동 입력" autocomplete="off" aria-label="활동 입력">
-    <button type="button" class="note-tgl" id="noteTgl" aria-label="세부 입력 열기"><span class="nt-sym">+</span><span class="nt-txt">메모</span></button>
+    <button type="button" class="note-tgl" id="noteTgl" aria-label="세부 입력 열기" aria-expanded="false"><span class="nt-sym" aria-hidden="true"></span><span class="nt-txt">메모</span></button>
     <button class="pill dark" id="swBtn" disabled>동기화 확인 중…</button>
   </div>
   <div class="sw-row note-row" id="noteRow">
@@ -1461,7 +1469,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
     <input type="text" id="noteInput" placeholder="무엇을 (할일·루틴·메모)" autocomplete="off" aria-label="세부 입력">
   </div>
   <div class="run-chip" id="runChip"><span class="run-start"><span id="runSince"></span><span>부터 기록 중</span></span><span class="run-sep" aria-hidden="true">·</span><span class="run-elapsed"><span id="runElapsed">0s</span> 경과</span></div>
-  <button class="tracking-sync" id="trackingSync" type="button" aria-label="계정 동기화 상태 확인"><span role="status" aria-live="polite" id="trackingSyncText">동기화 상태 확인 중</span></button>
+  <button class="tracking-sync" id="trackingSync" type="button" aria-label="계정 동기화 상태 확인" hidden><span role="status" aria-live="polite" id="trackingSyncText">동기화 상태 확인 중</span></button>
   </div>
 
   <div class="tl">
@@ -1619,7 +1627,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.13.6<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.13.7<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -1649,7 +1657,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
 <div class="fs-panel" id="actsDlg">
   <div class="fs-head"><button class="fs-back" data-close aria-label="뒤로">‹</button><h3>영역 · 활동 관리</h3></div>
   <div class="dlg-body">
-    <p class="mgr-intro">기록은 <b>영역 → 활동</b> 2단계로 분류됩니다. 타임라인 색은 항상 <b>활동 색</b>을 따르고, 활동 색은 속한 영역의 색 계열로 자동 배색할 수 있습니다.</p>
+    <p class="mgr-intro">여기서 정한 <b>영역 → 활동 순서</b>를 모든 선택창이 공유합니다. 이름·영역·색을 바꾸면 과거 통계도 현재 분류로 표시되며, 측정 시간은 바뀌지 않습니다. 삭제한 항목은 기록을 보존한 채 보관되며 아래에서 복원할 수 있습니다.</p>
     <div class="mgr-sec">
       <div class="mgr-sec-t"><h4>영역 <span class="cnt" id="mgrAreaCnt"></span></h4><span class="mgr-sub">큰 분류 · 왼쪽 그립을 끌어 순서 변경</span></div>
       <button class="btn mgr-paint" id="autoColorBtn" aria-label="전체 자동 배색">🎨 전체 자동 배색</button>
@@ -1661,6 +1669,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
     </div>
     <div id="actsList"></div>
     <button class="btn add-line" id="actAdd">＋ 활동 추가</button>
+    <details id="catalogArchive" class="catalog-archive"><summary>보관된 영역·활동 <span id="catalogArchiveCount"></span></summary><div id="catalogArchiveList"></div></details>
   </div>
   <div class="dlg-foot"><span class="spacer"></span><button class="btn dark" data-close>완료</button></div>
 </div>
@@ -1930,27 +1939,34 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
 const DEFAULT_AREAS=[
   {name:"공부",color:"#E03131"},
   {name:"생활",color:"#EAB308"},
+  {name:"회복",color:"#7048E8"},
+  {name:"운동",color:"#C2255C"},
   {name:"건강",color:"#2F9E44"},
-  {name:"돈",color:"#4263EB"}
+  {name:"미용·청결",color:"#0B7285"},
+  {name:"돈",color:"#4263EB"},
+  {name:"나태",color:"#E8590C"}
 ];
 const DEFAULT_ACTS = [
-  {id:"a01",name:"국어",color:"#8FB4E8",area:"공부"},
-  {id:"a02",name:"수학",color:"#7CC6D4",area:"공부"},
-  {id:"a03",name:"영어",color:"#93C9A8",area:"공부"},
-  {id:"a04",name:"사회문화",color:"#E8CB84",area:"공부"},
-  {id:"a05",name:"정치와 법",color:"#C9A3DE",area:"공부"},
-  {id:"a06",name:"기타공부",color:"#A8B7C7",area:"공부"},
-  {id:"a07",name:"이동",color:"#BDB4A8",area:"생활"},
-  {id:"a08",name:"식사",color:"#E5A878",area:"생활"},
-  {id:"a09",name:"휴식",color:"#E3A0BC",area:"생활"},
-  {id:"a10",name:"여가",color:"#E89A8E",area:"생활"},
-  {id:"a11",name:"정리",color:"#C4B5A0",area:"생활"},
-  {id:"a12",name:"운동(PT)",color:"#7FBD98",area:"건강"},
-  {id:"a13",name:"산책",color:"#AACB7F",area:"건강"},
-  {id:"a14",name:"수면",color:"#8FA8C8",area:"건강"},
-  {id:"a15",name:"재정관리",color:"#7B9FE0",area:"돈"},
-  {id:"a16",name:"소비기록",color:"#A8B8E0",area:"돈"}
+  {id:"a01",name:"국어",color:"#E69494",area:"공부"},
+  {id:"a02",name:"수학",color:"#E7A1A1",area:"공부"},
+  {id:"a03",name:"영어",color:"#E9ADAD",area:"공부"},
+  {id:"a04",name:"사회문화",color:"#EBBABA",area:"공부"},
+  {id:"a05",name:"정치와 법",color:"#EDC5C5",area:"공부"},
+  {id:"a06",name:"기타공부",color:"#F0D1D1",area:"공부"},
+  {id:"a07",name:"이동",color:"#E6D194",area:"생활"},
+  {id:"a08",name:"식사",color:"#E8D8A9",area:"생활"},
+  {id:"a10",name:"여가",color:"#EBE0BE",area:"생활"},
+  {id:"a11",name:"정리",color:"#F0E8D1",area:"생활"},
+  {id:"a14",name:"수면",color:"#A894E6",area:"회복"},
+  {id:"a09",name:"휴식",color:"#D9D1F0",area:"회복"},
+  {id:"a12",name:"운동(PT)",color:"#E694B0",area:"운동"},
+  {id:"a-catalog-bodyweight",name:"맨몸운동",color:"#E8A9BF",area:"운동"},
+  {id:"a-catalog-stretch",name:"스트레칭",color:"#EBBECE",area:"운동"},
+  {id:"a13",name:"산책",color:"#F0D1DC",area:"운동"},
+  {id:"a-catalog-health",name:"건강관리",color:"#94E6A3",area:"건강"},
+  {id:"a15",name:"재정관리",color:"#94A4E6",area:"돈"}
 ];
+// Seeds affect only new profiles; existing catalogs migrate through their owner.
 const DEFAULT_ROUTINES = [
   {id:"rd_default_01",time:"06:30",name:"기상+물"},{id:"rd_default_02",time:"06:40",name:"스트레칭"},{id:"rd_default_03",time:"07:30",name:"아침식사"},{id:"rd_default_04",time:"07:30",name:"등원(출발)"},{id:"rd_default_05",time:"07:40",name:"독서실 도착"},
   {id:"rd_default_06",time:"08:00",name:"아침약"},{id:"rd_default_07",time:"13:00",name:"점심산책"},{id:"rd_default_08",time:"15:00",name:"물+자세"},{id:"rd_default_09",time:"18:00",name:"저녁식사"},{id:"rd_default_10",time:"21:00",name:"운동(PT)"},
@@ -2075,7 +2091,30 @@ function applyLanes(lanes){
 
 /* ================= animations (GSAP, CSS 폴백) ================= */
 const GS=window.gsap||null;
-function rmPref(){ try{ return window.matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(e){ return false; } }
+function rmPref(){ try{ return document.documentElement.dataset.input==="keyboard"||window.matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(e){ return false; } }
+function settleMotion(){
+  if(!rmPref())return;
+  // Finish current owners, including their cleanup callbacks, before removing motion.
+  if(GS)GS.globalTimeline.getChildren(false,true,true).forEach(t=>t.totalProgress(1));
+}
+document.addEventListener("keydown",()=>{document.documentElement.dataset.input="keyboard";settleMotion();},true);
+document.addEventListener("pointerdown",()=>{delete document.documentElement.dataset.input;},true);
+window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change",settleMotion);
+/* MOTION_COMPLETION_CORE_START */
+function afterTransition(el,property,ms,done){
+  let active=true,timer=null;
+  const media=window.matchMedia("(prefers-reduced-motion: reduce)");
+  const cancel=()=>{active=false;clearTimeout(timer);el.removeEventListener("transitionend",end);media.removeEventListener("change",changed);document.removeEventListener("keydown",changed);};
+  const finish=()=>{if(!active)return;cancel();done();};
+  const end=e=>{if(e.target===el&&e.propertyName===property)finish();};
+  const changed=()=>{if(media.matches||rmPref())finish();};
+  if(rmPref()||ms<=0){finish();return cancel;}
+  // A queued cancel from a superseded transition belongs to the old owner.
+  // Unexpected cancellation still reaches completion through the bounded timer.
+  el.addEventListener("transitionend",end);media.addEventListener("change",changed);document.addEventListener("keydown",changed);
+  timer=setTimeout(finish,ms);return cancel;
+}
+/* MOTION_COMPLETION_CORE_END */
 let tlAnimPending=true, statsAnimPending=false, tlNoAnim=false;
 function animTimeline(){
   if(!GS||!tlAnimPending||tlNoAnim||rmPref()){ tlAnimPending=false; return; }
@@ -2103,28 +2142,17 @@ function animStats(){
 }
 
 function pulse(el){
-  if(!GS||!el||rmPref()) return;
-  GS.fromTo(el,{scale:.94},{scale:1,duration:.6,ease:"elastic.out(1,.4)",clearProps:"transform"});
+  if(!el||rmPref()||!el.animate)return;
+  // Control transforms belong to CSS press feedback, not a competing elastic tween.
+  if(el._pulse)el._pulse.cancel();
+  el._pulse=el.animate([{opacity:.7},{opacity:1}],{duration:150,easing:"ease-out"});
 }
 
 function acPickAnim(input,list,row,onCommit){
   if(input._acLock)return;
   input._acLock=true;
-  try{input.focus();}catch(e){}
-  pulse(input);
-  function commitAndClose(){
-    if(onCommit)onCommit();
-    if(input._acHide)input._acHide();
-  }
-  if(GS&&!rmPref()){
-    if(row){GS.fromTo(row,{backgroundColor:"rgba(44,44,43,0.22)"},{backgroundColor:"rgba(44,44,43,0)",duration:.5,ease:"power2.out",clearProps:"backgroundColor"});}
-    GS.to(list,{opacity:0,y:-6,duration:.18,ease:"power2.in",delay:.05,onComplete:function(){ commitAndClose(); GS.set(list,{clearProps:"opacity,transform"}); }});
-  }else{
-    if(row)row.classList.add("picked");
-    list.classList.add("closing");
-    setTimeout(function(){ list.classList.remove("closing"); if(row)row.classList.remove("picked"); commitAndClose(); },200);
-  }
-  setTimeout(function(){input._acLock=false;},380);
+  try{if(onCommit)onCommit();if(input._acHide)input._acHide();pulse(input);}
+  finally{queueMicrotask(()=>{input._acLock=false;});}
 }
 
 /* ================= state ================= */
@@ -2619,6 +2647,38 @@ function appendTodoRestoreIfNeeded(day,dateStr,todo){
   if(latest&&(latest.kind==="delete"||latest.toDate!==dateStr))appendTodoMutation(day,makeTodoMutation("restore",todo,dateStr,dateStr));
 }
 function actById(id){return state.settings.activities.find(a=>a.id===id);}
+/* CATALOG_CORE_START */
+const TG_CATALOG=(function(){
+  function areas(settings){return (settings.areas||[]).filter(a=>!a.archived);}
+  function activities(settings){
+    const rank=new Map(areas(settings).map((a,i)=>[a.name,i]));
+    return (settings.activities||[]).filter(a=>!a.archived&&rank.has(a.area))
+      .map((a,i)=>({a,i})).sort((x,y)=>rank.get(x.a.area)-rank.get(y.a.area)||x.i-y.i).map(x=>x.a);
+  }
+  function archive(item,at){item.archived=true;item.archivedAt=at;}
+  function restore(settings,item){
+    delete item.archived;delete item.archivedAt;
+    const area=(settings.areas||[]).find(a=>a.name===item.area);
+    if(area){delete area.archived;delete area.archivedAt;}
+  }
+  function move(settings,id,area){
+    const act=(settings.activities||[]).find(a=>a.id===id);
+    if(!act||!areas(settings).some(a=>a.name===area))return false;
+    act.area=area;
+    for(const def of settings.routineDefs||[])if(def.actId===id)def.area=area;
+    return true;
+  }
+  return {areas,activities,archive,restore,move};
+})();
+/* CATALOG_CORE_END */
+function activeAreas(){return TG_CATALOG.areas(state.settings);}
+function orderedActivities(){return TG_CATALOG.activities(state.settings);}
+function moveActivity(act,area){
+  if(act.area===area)return;
+  if(!TG_CATALOG.move(state.settings,act.id,area))return;
+  // A move adopts the destination palette. Explicit custom colors remain until moved/repainted.
+  act.color=autoColor(area);
+}
 function actByName(name){return state.settings.activities.find(a=>a.name===name);}
 function areaByName(name){return state.settings.areas.find(a=>a.name===name);}
 function areaColor(name){const a=areaByName(name); return safeHexColor(a&&a.color,"#BDB4A8");}
@@ -2632,7 +2692,7 @@ function autoColor(areaNameArg){
 }
 const RAINBOW=["#E03131","#EAB308","#2F9E44","#4263EB","#7048E8","#C2255C","#0B7285","#E8590C"]; /* red yellow green blue violet crimson teal orange */
 function autoColorAll(){
-  const A=state.settings.areas;
+  const A=activeAreas();
   A.forEach((ar,i)=>{ ar.color=RAINBOW[i%RAINBOW.length]; });
   for(const ar of A) autoColorActs(ar.name,true);
   state.settings.activities.forEach((a,i)=>{ if(!areaByName(a.area)) a.color=hslToHex(i*47,45,75); });
@@ -2641,7 +2701,7 @@ function autoColorAll(){
 function autoColorActs(areaName,skipSave){
   const ar=areaByName(areaName); if(!ar) return;
   const [h]=hexToHsl(ar.color);
-  const acts=state.settings.activities.filter(a=>a.area===areaName);
+  const acts=orderedActivities().filter(a=>a.area===areaName);
   const m=Math.max(acts.length-1,1);
   acts.forEach((a,j)=>{
     const t=acts.length>1? j/m : 0;
@@ -2921,8 +2981,7 @@ function attachAC(input, areaSel, container){
     _openAc.input=input;
     const raw=input.value.trim(), q=raw.toLowerCase();
     const areaFilter=(areaSel && areaSel.value)? areaSel.value:"";
-    let acts=state.settings.activities.slice()
-      .sort((a,b)=>(b.lastUsed||0)-(a.lastUsed||0));
+    let acts=orderedActivities();
     /* 영역이 지정되면 해당 영역 소속 활동만 목록에 표시 */
     if(areaFilter) acts=acts.filter(a=>a.area===areaFilter);
     if(q) acts=acts.filter(a=>a.name.toLowerCase().includes(q));
@@ -2940,7 +2999,7 @@ function attachAC(input, areaSel, container){
       row.addEventListener("pointerenter",function(){scroll.querySelectorAll('.ac-row').forEach(function(x){x.classList.remove('selected')});row.classList.add('selected');acSelIdx=Array.from(scroll.children).indexOf(row);list.dataset.selIdx=acSelIdx});
       scroll.appendChild(row);
     }
-    for(const a of acts.slice(0,8)){
+    for(const a of acts){
       const row=document.createElement("div"); row.className="ac-row";
       row.innerHTML='<span class="dot" style="background:'+safeHexColor(a.color)+'"></span><span class="nm">'+esc(a.name)+'</span>'+(areaFilter? '':'<span class="ar">'+esc(a.area)+'</span>');
       row.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();input.value=a.name;if(areaByName(a.area)){areaSel.value=a.area;if(areaSel.dispatchEvent)areaSel.dispatchEvent(new Event('change',{bubbles:true}));if(window.refreshAreaPickers)refreshAreaPickers();}if(window.syncAreaLock)syncAreaLock();if(window.sizeActInput)sizeActInput(true);if(window.paintActInput)paintActInput();acPickAnim(input,list,row);});
@@ -3056,7 +3115,7 @@ function noteRowOpen(open){
   if(open) requestAnimationFrame(function(){sizeNoteInput(false)});
   const tgl=$("#noteTgl");
   tgl.classList.toggle("on",open);
-  tgl.querySelector(".nt-sym").textContent=open? "−":"+";
+  tgl.setAttribute("aria-expanded",String(open));
   tgl.setAttribute("aria-label",open? "세부 입력 닫기":"세부 입력 열기");
 }
 function noteRowIsOpen(){ return $("#noteRow").classList.contains("open"); }
@@ -3137,7 +3196,7 @@ function resolveActivity(name, areaName, create){
   }
   if(!create) return null;
   if(areaName && !areaByName(areaName)) state.settings.areas.push({name:areaName,color:RAINBOW[state.settings.areas.length%RAINBOW.length]});
-  const area=(areaName && areaByName(areaName))? areaName : (state.settings.areas[0]? state.settings.areas[0].name:"기타");
+  const area=(areaName && areaByName(areaName))? areaName : (activeAreas()[0]? activeAreas()[0].name:"기타");
   act={id:uid("a"),name,color:autoColor(area),area};
   state.settings.activities.push(act);
   return act;
@@ -3153,6 +3212,7 @@ async function beginRun(candidate,act,extra){
   const result=await window.tgCloud.requestStart(candidate);
   if(!result||!result.ok){ renderSw(); renderTimeline(); return false; }
   state.running=copyRun(result.running||candidate);
+  if(act.archived||areaByName(act.area)?.archived)TG_CATALOG.restore(state.settings,act);
   act.lastUsed=Date.now();
   save();
   const synced=result.local?true:(window.tgCloud.syncAction?await window.tgCloud.syncAction("start"):false);
@@ -3428,22 +3488,24 @@ function renderTimeline(){
       const d=makeSegDiv(seg,act,undefined,tagT);
       attachTip(d,'<span class="rt-tip-t">'+esc(act?act.name:"?")+(tagT?" · "+esc(tagT):"")+'</span><span class="rt-tip-s">'+ev.start+"\u2009\u2013\u2009"+ev.end+' · 탭하면 편집</span>');
       d.dataset.evId=ev.id;
+      d.dataset.hoverKey=JSON.stringify(["event",state.viewDate,ev.id]);
       tlContent.appendChild(d);
     });
   }
   renderLive();
   animTimeline();
 }
-tlContent.addEventListener("pointerenter",e=>{
-  const seg=e.target.closest(".seg[data-ev-id]"); if(!seg) return;
-  const id=seg.dataset.evId;
-  tlContent.querySelectorAll('.seg[data-ev-id="'+id+'"]').forEach(s=>s.classList.add("hover-group"));
-},true);
-tlContent.addEventListener("pointerleave",e=>{
-  const seg=e.target.closest(".seg[data-ev-id]"); if(!seg) return;
-  const id=seg.dataset.evId;
-  tlContent.querySelectorAll('.seg[data-ev-id="'+id+'"]').forEach(s=>s.classList.remove("hover-group"));
-},true);
+/* LOGICAL_HOVER_CORE_START */
+function paintLogicalHover(container,event,on){
+  if(event.pointerType==="touch"||!window.matchMedia("(hover:hover) and (pointer:fine)").matches)return;
+  const item=event.target.closest("[data-hover-key]");if(!item)return;
+  const related=event.relatedTarget&&event.relatedTarget.closest&&event.relatedTarget.closest("[data-hover-key]");
+  if(related&&related.dataset.hoverKey===item.dataset.hoverKey)return;
+  container.querySelectorAll("[data-hover-key]").forEach(node=>{if(node.dataset.hoverKey===item.dataset.hoverKey)node.classList.toggle("hover-group",on);});
+}
+/* LOGICAL_HOVER_CORE_END */
+tlContent.addEventListener("pointerover",e=>paintLogicalHover(tlContent,e,true));
+tlContent.addEventListener("pointerout",e=>paintLogicalHover(tlContent,e,false));
 function renderLive(){
   tlContent.querySelectorAll(".seg.running").forEach(x=>x.remove());
   const now=new Date();
@@ -3554,7 +3616,9 @@ function renderRtMarkers(){
     }
     var tt=(re>rf)? _src.time+"\u2009\u2013\u2009"+_src.end : _src.time;
     function bindTip(el){
+      el.dataset.hoverKey=JSON.stringify([isRt?"routine":"todo",state.viewDate,_src.id]);
       el.addEventListener("pointerenter",function(){
+        if(!window.matchMedia("(hover:hover) and (pointer:fine)").matches)return;
         tip.style.display="block";
         tip.innerHTML='<span class="rt-tip-t">'+(isDone?'\u2713 ':'')+esc(isRt?rt.name:_itd.title)+'</span>'+(tt?'<span class="rt-tip-s">'+esc(tt)+'</span>':'');
         var r=el.getBoundingClientRect();
@@ -4261,7 +4325,7 @@ function updateWeekAuxSections(built){
   extra.innerHTML='<div class="mrow"><span class="name">활동 다양성</span><span class="v">'+uniqActs.size+'개</span></div>';
   wiBox.appendChild(extra);
 }
-let weekStripDates=null;
+let weekStripDates=null,weekTargetDates=null,weekCssCancel=null,weekRefreshPending=false;
 function weekBufferRange(dates){
   const before=[]; { const d=dateOf(dates[0]); for(let i=7;i>=1;i--){ const t=new Date(d); t.setDate(d.getDate()-i); before.push(ymd(t)); } }
   const after=[]; { const d=dateOf(dates[dates.length-1]); for(let i=1;i<=7;i++){ const t=new Date(d); t.setDate(d.getDate()+i); after.push(ymd(t)); } }
@@ -4318,25 +4382,25 @@ function snapRenderWeekWindow(){
   });
   if(GS) GS.set(strip,{x:-dayIndex(dates[0])*colWidth,willChange:"auto"});
   else strip.style.transform="translateX("+(-dayIndex(dates[0])*colWidth)+"px)";
-  weekStripDates=dates;
+  weekStripDates=dates;weekTargetDates=null;weekRefreshPending=false;
   updateWeekAuxSections(weekAuxPayload(dates,prevDates,areaNames,data,prevData,weekMode));
   prewarmWeekBuffer();
 }
 let weekTween=null;
 function weekReducedMotion(){
-  try{ return window.matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(e){ return false; }
+  return rmPref();
 }
 function killWeekTween(reset){
-  if(!GS) return;
+  if(weekCssCancel){weekCssCancel();weekCssCancel=null;}
   if(weekTween){ weekTween.kill(); weekTween=null; }
   const strip=$("#weekChart");
-  if(strip){
+  if(strip&&GS){
     GS.killTweensOf(strip);
     if(reset) GS.set(strip,{willChange:"auto"});
   }
 }
 function animateWeekWindowTo(newDates){
-  const oldDates=weekStripDates;
+  const oldDates=weekTargetDates||weekStripDates;
   const strip=$("#weekChart");
   const colWidth=weekColWidth();
   const oldStart=dayIndex(oldDates[0]), newStart=dayIndex(newDates[0]);
@@ -4356,18 +4420,24 @@ function animateWeekWindowTo(newDates){
   const oldX=-oldStart*colWidth, newX=-newStart*colWidth;
   const newWinData=newDates.map(ds=>data[unionDates.indexOf(ds)]);
   const auxPayload=weekAuxPayload(newDates,prevDates,areaNames,newWinData,prevData,weekMode);
+  const cssX=!GS?getComputedStyle(strip).transform:null;
+  killWeekTween(false);
+  weekTargetDates=newDates;
+  let finished=false;
   const finish=()=>{
+    if(finished||weekTargetDates!==newDates)return;
+    finished=true;weekTargetDates=null;
     if(GS){ GS.set(strip,{x:newX,willChange:"auto"}); }
     else{ strip.style.transform="translateX("+newX+"px)"; strip.style.transition=""; }
     weekStripDates=newDates;
     updateWeekAuxSections(auxPayload);
     prewarmWeekBuffer();
+    if(weekRefreshPending){weekRefreshPending=false;snapRenderWeekWindow();}
   };
   if(GS&&!weekReducedMotion()){
     let curX=parseFloat(GS.getProperty(strip,"x"));
     if(isNaN(curX)) curX=oldX;
-    killWeekTween(false);
-    const mdir=(newX-curX)>=0?1:-1;
+    if(Math.abs(newX-curX)<.5){finish();return;}
     const distCols=Math.abs(newX-curX)/Math.max(colWidth,1);
     const isWeekStep=distCols>=6.5;
     const dur=isWeekStep ? Math.min(2.25,1.72+(distCols-7)*.035) : Math.min(1.55,1.12+distCols*.045);
@@ -4380,21 +4450,23 @@ function animateWeekWindowTo(newDates){
     const tl=GS.timeline({onComplete:function(){ weekTween=null; finish(); }});
     tl.fromTo(strip,{x:curX},{x:newX,duration:dur,ease:dialEase,force3D:true},0);
     weekTween=tl;
-  }else if(GS){
+  }else if(weekReducedMotion()){
     killWeekTween(true);
     finish();
   }else{
     strip.style.transition="none";
-    strip.style.transform="translateX("+oldX+"px)";
+    strip.style.transform=cssX&&cssX!=="none"?cssX:"translateX("+oldX+"px)";
     void strip.offsetWidth;
     strip.style.transition="transform 1.65s cubic-bezier(.37,0,.13,1)";
     strip.style.transform="translateX("+newX+"px)";
-    strip.addEventListener("transitionend",function h(){ strip.removeEventListener("transitionend",h); finish(); });
+    weekCssCancel=afterTransition(strip,"transform",1700,()=>{weekCssCancel=null;finish();});
   }
 }
 function renderStWeek(){
   const dates=weekDaysFor(state.viewDate);
-  const changed = weekStripDates && (dates.length!==weekStripDates.length || dates.some((d,i)=>d!==weekStripDates[i]));
+  const current=weekTargetDates||weekStripDates;
+  const changed = current && (dates.length!==current.length || dates.some((d,i)=>d!==current[i]));
+  if(weekTargetDates&&!changed&&isWeekChartVisible()){weekRefreshPending=true;return;}
   if(changed && isWeekChartVisible()){
     animateWeekWindowTo(dates);
   }else{
@@ -4439,7 +4511,7 @@ function renderStMonth(){
       b.addEventListener("click",()=>{
         if(moCat===key) return;
         moCat=key; renderStMonth();
-        if(GS){
+        if(GS&&!rmPref()){
           GS.from("#monthHeat .cell:not(.pad)",{opacity:0,scale:.86,duration:.24,stagger:.003,ease:"power2.out",clearProps:"opacity,transform"});
           GS.from("#trend4 .tbar i",{scaleY:0,transformOrigin:"center bottom",duration:.4,ease:"power2.out",clearProps:"transform"});
         }
@@ -4836,7 +4908,7 @@ function openLinkDlg(item,kind){
   lkTarget=item; lkKind=kind;
   $("#lkTitle").innerHTML="<b>"+esc(kind==="todo"?item.title:item.name)+"</b> 에 연결할 활동을 고르세요. 한 번 연결하면 다음부터 바로 시작됩니다.";
   const sel=$("#lkArea"); sel.innerHTML="";
-  for(const a of state.settings.areas){ const op=document.createElement("option"); op.value=a.name; op.textContent=a.name; sel.appendChild(op); }
+  for(const a of activeAreas()){ const op=document.createElement("option"); op.value=a.name; op.textContent=a.name; sel.appendChild(op); }
   if(item.area&&areaByName(item.area)) sel.value=item.area;
   if(window.refreshAreaPickers) refreshAreaPickers();
   $("#lkAct").value="";
@@ -4952,10 +5024,14 @@ function timeBtn(value,onChange){
   return btn;
 }
 /* ---- 루틴 시간 선택 (단일 시점/구간) ---- */
-let _rttCb=null,_rttMode="point",_rttField="start";
+let _rttCb=null,_rttMode="point",_rttField="start",_rttSession=0;
 const _rttVal={start:"",end:""};
 const RW_H=38;
-let _rwTimer=null,_rwSquelch=false;
+let _rwTimer=null,_rwSquelch=false,_rwEpoch=0,_rwTarget=null;
+function rwCancel(){
+  _rwEpoch++;clearTimeout(_rwTimer);_rwTimer=null;_rwSquelch=false;_rwTarget=null;
+  if(GS)GS.killTweensOf([$("#rwHr"),$("#rwMin")]);
+}
 function rttPad(n){ return String(n).padStart(2,"0"); }
 function rttFieldEl(f){ return $(f==="start"? "#rttStart":"#rttEnd"); }
 function rttRenderField(f){
@@ -4970,6 +5046,8 @@ function rwBuild(){
   for(let h=0;h<24;h++){ const d=document.createElement("div"); d.className="rtt-item"; d.textContent=rttPad(h); d.dataset.i=h; hr.appendChild(d); }
   for(let m=0;m<60;m++){ const d=document.createElement("div"); d.className="rtt-item"; d.textContent=rttPad(m); d.dataset.i=m; mn.appendChild(d); }
   for(const col of [hr,mn]){
+    col.addEventListener("pointerdown",rwCancel,{passive:true});
+    col.addEventListener("wheel",rwCancel,{passive:true});
     col.addEventListener("scroll",()=>{ if(_rwSquelch) return; rwMark(); clearTimeout(_rwTimer); _rwTimer=setTimeout(rwCommit,140); },{passive:true});
     col.addEventListener("click",e=>{ const it=e.target.closest(".rtt-item"); if(it) rwGlide(col,Number(it.dataset.i)); });
   }
@@ -4988,18 +5066,24 @@ function rwCommit(){
   if(GS&&!rmPref()) GS.fromTo(rttFieldEl(_rttField).querySelector(".rtt-fv"),{scale:1.12},{scale:1,duration:.3,ease:"back.out(2.2)"});
 }
 function rwGlide(col,i){
+  rwCancel();
+  const epoch=_rwEpoch,field=_rttField;
   const top=i*RW_H;
-  if(GS&&!rmPref()){ _rwSquelch=true; GS.to(col,{scrollTop:top,duration:.4,ease:"power3.out",onUpdate:rwMark,onComplete:()=>{ _rwSquelch=false; rwMark(); rwCommit(); }}); }
-  else { col.scrollTop=top; rwMark(); rwCommit(); }
+  _rwTarget=rttPad(col===$("#rwHr")?i:rwIdx($("#rwHr")))+":"+rttPad(col===$("#rwMin")?i:rwIdx($("#rwMin")));
+  _rttVal[field]=_rwTarget;rttRenderField(field);rttHintDefault();
+  if(GS&&!rmPref()){ _rwSquelch=true; GS.to(col,{scrollTop:top,duration:.25,ease:"power3.out",overwrite:true,onUpdate:rwMark,onComplete:()=>{ if(epoch!==_rwEpoch||field!==_rttField)return;_rwSquelch=false;_rwTarget=null;rwMark(); }}); }
+  else { col.scrollTop=top;_rwTarget=null;rwMark(); }
 }
 function rwScrollTo(v,anim){
+  rwCancel();
+  const epoch=_rwEpoch;
   const parts=(v||"07:00").split(":").map(Number);
   const hr=$("#rwHr"),mn=$("#rwMin");
   if(anim&&GS&&!rmPref()){
-    _rwSquelch=true; let done=0; const fin=()=>{ if(++done===2){ _rwSquelch=false; rwMark(); } };
+    _rwSquelch=true;_rwTarget=v; let done=0; const fin=()=>{ if(epoch===_rwEpoch&&++done===2){ _rwSquelch=false;_rwTarget=null;rwMark(); } };
     GS.to(hr,{scrollTop:parts[0]*RW_H,duration:.5,ease:"power3.out",onUpdate:rwMark,onComplete:fin});
     GS.to(mn,{scrollTop:parts[1]*RW_H,duration:.5,ease:"power3.out",onUpdate:rwMark,onComplete:fin});
-  } else { if(GS) GS.killTweensOf([hr,mn]); hr.scrollTop=parts[0]*RW_H; mn.scrollTop=parts[1]*RW_H; rwMark(); }
+  } else { hr.scrollTop=parts[0]*RW_H; mn.scrollTop=parts[1]*RW_H; rwMark(); }
 }
 function rttSetActive(f,anim){
   _rttField=f;
@@ -5022,6 +5106,7 @@ function rttSetMode(m,init){
   else { rttSetActive("end",true); if(GS&&!rmPref()) GS.fromTo("#rttEndRow",{opacity:0,y:-6},{opacity:1,y:0,duration:.3,ease:"power2.out",clearProps:"transform,opacity"}); }
 }
 function openRtTimeDlg(cur,onPick){
+  const session=++_rttSession;
   _rttCb=onPick; _rttField="start";
   _rttVal.start=(cur&&cur.time)||"";
   _rttVal.end=(cur&&cur.end)||"";
@@ -5029,15 +5114,16 @@ function openRtTimeDlg(cur,onPick){
   rttRenderField("start"); rttRenderField("end");
   $("#rtTimeDlg").showModal();
   rttSetMode(cur&&cur.end? "range":"point",true);
-  requestAnimationFrame(()=>rwScrollTo(_rttVal[_rttField]||"07:00",false));
+  requestAnimationFrame(()=>{if(session===_rttSession&&$("#rtTimeDlg").open)rwScrollTo(_rttVal[_rttField]||"07:00",false);});
   if(GS&&!rmPref()) GS.fromTo("#rttWheel",{opacity:0,y:12},{opacity:1,y:0,duration:.4,ease:"power3.out",delay:.06,clearProps:"transform,opacity"});
 }
 document.querySelectorAll('#rtTimeDlg [data-rttmode]').forEach(b=>b.addEventListener("click",()=>rttSetMode(b.dataset.rttmode)));
 $("#rttStart").addEventListener("click",()=>rttSetActive("start",true));
 $("#rttEnd").addEventListener("click",()=>rttSetActive("end",true));
+$("#rtTimeDlg").addEventListener("close",()=>{_rttSession++;rwCancel();});
 $("#rttClear").addEventListener("click",()=>{ const cb=_rttCb; _rttCb=null; $("#rtTimeDlg").close(); if(cb) cb({time:"",end:""}); });
 $("#rttApply").addEventListener("click",()=>{
-  clearTimeout(_rwTimer); rwCommit();
+  if(_rwSquelch&&_rwTarget)rwScrollTo(_rwTarget,false);else rwCancel();rwCommit();
   const t=_rttVal.start||"";
   const e=_rttMode==="range"? (_rttVal.end||""):"";
   if(_rttMode==="range"){
@@ -5265,18 +5351,10 @@ $("#rtEditToggle").addEventListener("change",e=>{
 
 /* ================= area picker ================= */
 function apPickAnim(btn,list,row,closeFn){
+  if(btn._apLock)return;
   btn._apLock=true;
-  pulse(btn);
-  if(GS){
-    if(row){GS.fromTo(row,{backgroundColor:"rgba(44,44,43,0.22)"},{backgroundColor:"rgba(44,44,43,0)",duration:.5,ease:"power2.out",clearProps:"backgroundColor"});}
-    if(list){GS.to(list,{opacity:0,y:-6,duration:.18,ease:"power2.in",delay:.05,onComplete:function(){ if(closeFn)closeFn(); GS.set(list,{clearProps:"opacity,transform"}); }});}
-    else if(closeFn) closeFn();
-  }else{
-    if(row)row.classList.add("picked");
-    if(list)list.classList.add("closing");
-    setTimeout(function(){ if(list)list.classList.remove("closing"); if(row)row.classList.remove("picked"); if(closeFn)closeFn(); },200);
-  }
-  setTimeout(function(){btn._apLock=false;},380);
+  try{if(closeFn)closeFn();pulse(btn);}
+  finally{queueMicrotask(()=>{btn._apLock=false;});}
 }
 function placeApList(btn,list){
   if(!btn||!list) return;
@@ -5356,7 +5434,7 @@ function areaBtn(value,onSelect,opts){
     }
     list._updateThumb=updateThumb
     items=[]
-    state.settings.areas.forEach(function(a,i){
+    activeAreas().forEach(function(a,i){
       const row=document.createElement('div')
       row.className='ac-row'+(a.name===cur?' selected':'')
       row.innerHTML='<span class="dot" style="background:'+safeHexColor(a.color)+'"></span><span class="nm">'+esc(a.name)+'</span>'
@@ -5366,7 +5444,7 @@ function areaBtn(value,onSelect,opts){
       scroll.appendChild(row)
       items.push(row)
     })
-    selectedIdx=state.settings.areas.findIndex(function(a){return a.name===cur})
+    selectedIdx=activeAreas().findIndex(function(a){return a.name===cur})
     if(selectedIdx<0)selectedIdx=0
     list.dataset.selIdx=selectedIdx
   function positionList(){
@@ -5421,14 +5499,14 @@ function openTagPicker(btn,value,onPick){
   clear.innerHTML='<span class="nm">연결 없음</span>';
   clear.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();pick(null,null,clear);});
   clear.addEventListener('pointerdown',function(ev){ev.stopPropagation();});
-  state.settings.areas.forEach(function(a){
+  activeAreas().forEach(function(a){
     var hd=document.createElement('div');
     hd.className='ac-row cat-hd'+((!cur.actId&&cur.area===a.name)?' selected':'');
     hd.innerHTML='<span class="dot" style="background:'+safeHexColor(a.color)+'"></span><span class="nm">'+esc(a.name)+'</span><span class="cat-only">카테고리만</span>';
     hd.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();pick(a.name,null,hd);});
     hd.addEventListener('pointerdown',function(ev){ev.stopPropagation();});
     scroll.appendChild(hd);
-    state.settings.activities.filter(function(x){return x.area===a.name;}).forEach(function(x){
+    orderedActivities().filter(function(x){return x.area===a.name;}).forEach(function(x){
       var row=document.createElement('div');
       row.className='ac-row cat-sub'+(cur.actId===x.id?' selected':'');
       row.innerHTML='<span class="dot" style="background:'+safeHexColor(x.color)+'"></span><span class="nm">'+esc(x.name)+'</span>';
@@ -5508,14 +5586,14 @@ function catActBtn(value,onSelect,opts){
     clear.innerHTML='<span class="nm">연결 없음</span>'
     clear.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();pick(null,null,clear)})
     clear.addEventListener('pointerdown',function(ev){ev.stopPropagation()})
-    state.settings.areas.forEach(function(a){
+    activeAreas().forEach(function(a){
       const hd=document.createElement('div')
       hd.className='ac-row cat-hd'+((!cur.actId&&cur.area===a.name)?' selected':'')
       hd.innerHTML='<span class="dot" style="background:'+safeHexColor(a.color)+'"></span><span class="nm">'+esc(a.name)+'</span><span class="cat-only">카테고리만</span>'
       hd.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();pick(a.name,null,hd)})
       hd.addEventListener('pointerdown',function(ev){ev.stopPropagation()})
       scroll.appendChild(hd)
-      state.settings.activities.filter(function(x){return x.area===a.name}).forEach(function(x){
+      orderedActivities().filter(function(x){return x.area===a.name}).forEach(function(x){
         const row=document.createElement('div')
         row.className='ac-row cat-sub'+(cur.actId===x.id?' selected':'')
         row.innerHTML='<span class="dot" style="background:'+safeHexColor(x.color)+'"></span><span class="nm">'+esc(x.name)+'</span>'
@@ -5643,11 +5721,11 @@ function renderSelects(){
   for(const id of ["#areaSelect","#todoArea"]){
     const sel=$(id), cur=sel.value;
     sel.innerHTML="";
-    for(const a of state.settings.areas){
+    for(const a of activeAreas()){
       const op=document.createElement("option"); op.value=a.name; op.textContent=a.name;
       sel.appendChild(op);
     }
-    if(cur && areaByName(cur)) sel.value=cur;
+    if(cur && activeAreas().some(a=>a.name===cur)) sel.value=cur;
   }
   refreshAreaPickers();
   if(window._todoPickBtn) window._todoPickBtn._revalidate();
@@ -5742,9 +5820,22 @@ function colorField(initial, onChange, opts){
 }
 
 /* ================= manager (groups + drag) ================= */
+function renderCatalogArchive(){
+  const box=$("#catalogArchiveList"),items=[...state.settings.areas,...state.settings.activities].filter(x=>x.archived);
+  $("#catalogArchiveCount").textContent=items.length?"("+items.length+")":"";
+  $("#catalogArchive").hidden=!items.length;
+  box.replaceChildren();
+  for(const item of items){
+    const row=document.createElement("div");row.className="catalog-archive-row";
+    const label=document.createElement("span");label.textContent=item.name+(item.area?" · "+item.area:" · 영역");
+    const restore=document.createElement("button");restore.className="btn";restore.textContent="복원";restore.setAttribute("aria-label",item.name+" 복원");
+    restore.addEventListener("click",()=>{TG_CATALOG.restore(state.settings,item);save();renderAll();renderManager();});
+    row.append(label,restore);box.append(row);
+  }
+}
 function renderManager(){
   const abox=$("#areasList"); abox.innerHTML="";
-  for(const ar of state.settings.areas){
+  for(const ar of activeAreas()){
     const row=document.createElement("div"); row.className="act-edit"; row.dataset.aname=ar.name;
     const ahd=document.createElement("span"); ahd.className="handle"; ahd.setAttribute("aria-label","끌어서 순서 변경"); attachTip(ahd,'<span class="rt-tip-t">끌어서 순서 변경</span>');
     ahd.addEventListener("pointerdown",e=>startAreaDrag(e,ar,row));
@@ -5770,6 +5861,7 @@ function renderManager(){
       for(const ds in state.days){
         const d=state.days[ds]; if(!d) continue;
         for(const t of (d.todos||[])) if(t.area===oldName) t.area=nv;
+        for(const m of (d.todoMutations||[])) if(m.todo&&m.todo.area===oldName) m.todo.area=nv;
         for(const rt of (d.routines||[])) if(rt.area===oldName) rt.area=nv;
       }
       if(expandedGrps.has(oldName)){ expandedGrps.delete(oldName); expandedGrps.add(nv); }
@@ -5777,25 +5869,24 @@ function renderManager(){
       save(); renderAll(); renderManager();
     });
     const del=document.createElement("button"); del.className="del icon-btn"; del.textContent="✕"; del.setAttribute("aria-label","삭제");
-    const _actN=state.settings.activities.filter(x=>x.area===ar.name).length;
+    const _actN=orderedActivities().filter(x=>x.area===ar.name).length;
     const cnt=document.createElement("span"); cnt.className="a-cnt"; cnt.textContent=_actN; attachTip(cnt,'<span class="rt-tip-t">이 영역의 활동 수</span>');
-    if(state.settings.areas.length<=1){ del.classList.add("blocked"); attachTip(del,'<span class="rt-tip-t">영역은 최소 1개 필요합니다</span>'); }
+    if(activeAreas().length<=1){ del.classList.add("blocked"); attachTip(del,'<span class="rt-tip-t">영역은 최소 1개 필요합니다</span>'); }
     else if(_actN>0){ del.classList.add("blocked"); attachTip(del,'<span class="rt-tip-t">활동이 있는 영역은 삭제할 수 없습니다</span>'); }
     del.addEventListener("click",()=>{
-      if(state.settings.areas.length<=1){ toast("영역은 최소 1개 필요합니다."); return; }
-      if(state.settings.activities.some(a=>a.area===ar.name)){ toast("이 영역을 쓰는 활동이 있어 삭제할 수 없습니다. 활동을 먼저 다른 영역으로 옮겨 주세요."); return; }
-      const _idx=state.settings.areas.indexOf(ar);
-      state.settings.areas=state.settings.areas.filter(x=>x!==ar);
+      if(activeAreas().length<=1){ toast("영역은 최소 1개 필요합니다."); return; }
+      if(orderedActivities().some(a=>a.area===ar.name)){ toast("이 영역을 쓰는 활동이 있어 삭제할 수 없습니다. 활동을 먼저 다른 영역으로 옮겨 주세요."); return; }
+      TG_CATALOG.archive(ar,Date.now());
       save(); renderAll(); renderManager();
-      toast("'"+ar.name+"' 영역 삭제됨",()=>{ state.settings.areas.splice(Math.min(_idx,state.settings.areas.length),0,ar); save(); renderAll(); renderManager(); });
+      toast("'"+ar.name+"' 영역 보관됨 · 과거 기록 유지",()=>{ TG_CATALOG.restore(state.settings,ar); save(); renderAll(); renderManager(); });
     });
     row.append(ahd,col,nm,cnt,del);
     abox.appendChild(row);
   }
-  (function(){const _a=$("#mgrAreaCnt"),_c=$("#mgrActCnt"); if(_a) _a.textContent=state.settings.areas.length; if(_c) _c.textContent=state.settings.activities.length;})();
+  (function(){const _a=$("#mgrAreaCnt"),_c=$("#mgrActCnt"); if(_a) _a.textContent=activeAreas().length; if(_c) _c.textContent=orderedActivities().length;})();
   const box=$("#actsList"); box.innerHTML="";
-  for(const ar of state.settings.areas){
-    const acts=state.settings.activities.filter(a=>a.area===ar.name);
+  for(const ar of activeAreas()){
+    const acts=orderedActivities().filter(a=>a.area===ar.name);
     const grp=document.createElement("div"); grp.className="grp"; grp.dataset.area=ar.name;
     const head=document.createElement("button"); head.className="grp-head"; head.dataset.area=ar.name;
     const open=expandedGrps.has(ar.name);
@@ -5831,13 +5922,12 @@ function renderManager(){
           if(nv!==a.name && state.settings.activities.some(x=>x!==a && x.name.toLowerCase()===nv.toLowerCase())){ nm.value=a.name; toast("같은 이름의 활동이 이미 있습니다"); return; }
           a.name=nv; nm.value=a.name; save(); renderAll();
         });
-        const arBtn=areaBtn(a.area,function(name){a.area=name;save();renderAll();renderManager();},{sm:true,container:$("#actsDlg")});
+        const arBtn=areaBtn(a.area,function(name){moveActivity(a,name);save();renderAll();renderManager();},{sm:true,container:$("#actsDlg")});
         const del=document.createElement("button"); del.className="del"; del.textContent="✕"; del.setAttribute("aria-label","삭제");
         del.addEventListener("click",()=>{
-          const _idx=state.settings.activities.indexOf(a);
-          state.settings.activities=state.settings.activities.filter(x=>x!==a);
+          TG_CATALOG.archive(a,Date.now());
           save(); renderAll(); renderManager();
-          toast("'"+a.name+"' 활동 삭제됨",()=>{ state.settings.activities.splice(Math.min(_idx,state.settings.activities.length),0,a); save(); renderAll(); renderManager(); });
+          toast("'"+a.name+"' 활동 보관됨 · 과거 기록 유지",()=>{ TG_CATALOG.restore(state.settings,a); save(); renderAll(); renderManager(); });
         });
         hd.addEventListener("pointerdown",e=>startActDrag(e,a,row));
         row.append(hd,col,nm,arBtn,del);
@@ -5847,6 +5937,7 @@ function renderManager(){
     }
     box.appendChild(grp);
   }
+  renderCatalogArchive();
 }
 /* smooth drag — real block lift + FLIP siblings (activities) */
 let mdrag=null;
@@ -5868,6 +5959,7 @@ function flipSibs(parent){
   });
 }
 function startActDrag(e,act,row){
+  if(mdrag||adrag)return;
   e.preventDefault();
   const rect=row.getBoundingClientRect();
   const offY=e.clientY-rect.top, offX=e.clientX-rect.left;
@@ -5879,8 +5971,7 @@ function startActDrag(e,act,row){
   row.style.position='fixed'; row.style.width=rect.width+'px';
   row.style.top=rect.top+'px'; row.style.left=rect.left+'px';
   row.style.zIndex='600'; row.style.pointerEvents='none'; row.style.transition='none';
-  requestAnimationFrame(()=>{row.style.transition='top .12s cubic-bezier(.2,.7,.3,1),left .12s cubic-bezier(.2,.7,.3,1),box-shadow .2s ease,opacity .2s ease';});
-  mdrag={act,row,ph,target:null,offY,offX};
+  mdrag={act,row,ph,target:null,offY,offX,originX:e.clientX,originY:e.clientY};
   const hd=e.currentTarget;
   hd.setPointerCapture(e.pointerId);
   hd.addEventListener("pointermove",actDragMove);
@@ -5915,8 +6006,7 @@ function actDragMove(e){
   if(!mdrag) return;
   var r=mdrag.row;
   mdrag._lastX=e.clientX; mdrag._lastY=e.clientY;
-  r.style.top=(e.clientY-mdrag.offY)+'px';
-  r.style.left=(e.clientX-mdrag.offX)+'px';
+  r.style.transform='translate3d('+(e.clientX-mdrag.originX)+'px,'+(e.clientY-mdrag.originY)+'px,0)';
   resolveActDrop(e.clientX,e.clientY,true);
   dragAutoScroll(e.clientY,function(){ if(mdrag) resolveActDrop(mdrag._lastX,mdrag._lastY,false); });
 }
@@ -5981,15 +6071,15 @@ function actDragEnd(e){
   mdrag=null;
   if(!target){renderManager();return;}
   const arr=state.settings.activities;
+  const destination=target.type==='grp'?target.area:(arr.find(x=>x.id===target.id)||act).area;
+  moveActivity(act,destination);
   const from=arr.indexOf(act);
   if(from>=0) arr.splice(from,1);
   if(target.type==='row'){
     const refIdx=arr.findIndex(x=>x.id===target.id);
     const ref=arr[refIdx];
-    act.area=ref?ref.area:act.area;
     arr.splice(target.before?refIdx:refIdx+1,0,act);
   }else{
-    act.area=target.area;
     let last=-1;
     arr.forEach((x,i)=>{if(x.area===target.area) last=i;});
     arr.splice(last+1,0,act);
@@ -6008,10 +6098,12 @@ function actDragCancel(e){
   row.classList.remove('dragging');
   row.style.cssText='';
   mdrag=null;
+  renderManager();
 }
 /* smooth drag — real block lift + FLIP siblings (areas) */
 let adrag=null;
 function startAreaDrag(e,area,row){
+  if(mdrag||adrag)return;
   e.preventDefault();
   const rect=row.getBoundingClientRect();
   const offY=e.clientY-rect.top, offX=e.clientX-rect.left;
@@ -6023,8 +6115,7 @@ function startAreaDrag(e,area,row){
   row.style.position='fixed'; row.style.width=rect.width+'px';
   row.style.top=rect.top+'px'; row.style.left=rect.left+'px';
   row.style.zIndex='600'; row.style.pointerEvents='none'; row.style.transition='none';
-  requestAnimationFrame(()=>{row.style.transition='top .12s cubic-bezier(.2,.7,.3,1),left .12s cubic-bezier(.2,.7,.3,1),box-shadow .2s ease,opacity .2s ease';});
-  adrag={area,row,ph,target:null,offY,offX};
+  adrag={area,row,ph,target:null,offY,offX,originX:e.clientX,originY:e.clientY};
   const hd=e.currentTarget;
   hd.setPointerCapture(e.pointerId);
   hd.addEventListener("pointermove",areaDragMove);
@@ -6052,8 +6143,7 @@ function startAreaDrag(e,area,row){
 function areaDragMove(e){
   if(!adrag) return;
   adrag._lastX=e.clientX; adrag._lastY=e.clientY;
-  adrag.row.style.top=(e.clientY-adrag.offY)+'px';
-  adrag.row.style.left=(e.clientX-adrag.offX)+'px';
+  adrag.row.style.transform='translate3d('+(e.clientX-adrag.originX)+'px,'+(e.clientY-adrag.originY)+'px,0)';
   resolveAreaDrop(e.clientX,e.clientY,true);
   dragAutoScroll(e.clientY,function(){ if(adrag) resolveAreaDrop(adrag._lastX,adrag._lastY,false); });
 }
@@ -6086,6 +6176,7 @@ function areaDragCancel(e){
   row.classList.remove('dragging');
   row.style.cssText='';
   adrag=null;
+  renderManager();
 }
 $("#areaAdd").addEventListener("click",()=>{
   let base="새 영역", n=base, k=2;
@@ -6100,7 +6191,7 @@ function toggleActAddForm(presetArea){
   row=document.createElement("div");
   row.id="actAddRow";
   row.className="act-edit act-add-row";
-  const areaDefault=preset||(state.settings.areas[0]&&state.settings.areas[0].name)||"";
+  const areaDefault=preset||(activeAreas()[0]&&activeAreas()[0].name)||"";
   let selArea=areaDefault;
   const picker=areaBtn(selArea,function(name){selArea=name;},{sm:true,container:$("#actsDlg")});
   const nameInp=document.createElement("input"); nameInp.type="text"; nameInp.placeholder="활동 이름"; nameInp.autocomplete="off";
@@ -6110,13 +6201,10 @@ function toggleActAddForm(presetArea){
   confirmBtn.addEventListener("click",function(){
     const nm=nameInp.value.trim();
     if(!nm){ nameInp.focus(); return; }
-    const idx=state.settings.activities.filter(a=>a.area===selArea).length;
-    const areaC=areaColor(selArea);
-    const [h]=hexToHsl(areaC);
-    const t=Math.min(idx/7,1);
-    const color=hslToHex(h, 62-t*12, 74+t*14);
-    state.settings.activities.push({id:uid("a"),name:nm,color,area:selArea});
-    expandedGrps.add(selArea);
+    const existing=state.settings.activities.find(a=>a.name.toLowerCase()===nm.toLowerCase());
+    const act=resolveActivity(nm,selArea,true);
+    if(existing){TG_CATALOG.restore(state.settings,act);toast("기존 활동을 사용합니다 · "+act.name);}
+    expandedGrps.add(act.area);
     row.remove();
     save(); renderAll(); renderManager();
   });
@@ -6219,7 +6307,7 @@ function applyPlan(json){
     const _ex=td.id? day.todos.find(x=>x.id===td.id):null;
     if(_ex){ if(_hasTw){ _ex.time=_tw.time; _ex.end=_tw.end; } st++; continue; }
     let _actId=null,_area=td.area||"";
-    if(td.act){ const _a=resolveActivity(td.act,_area||(state.settings.areas[0]&&state.settings.areas[0].name)||"",true); if(_a){ _actId=_a.id; if(!_area) _area=_a.area; } }
+    if(td.act){ const _a=resolveActivity(td.act,_area||(activeAreas()[0]&&activeAreas()[0].name)||"",true); if(_a){ _actId=_a.id; if(!_area) _area=_a.area; } }
     if(_area && !areaByName(_area)) state.settings.areas.push({name:_area,color:RAINBOW[state.settings.areas.length%RAINBOW.length]}); const _newTodo={id:td.id||uid("m"),title:td.title,area:_area,actId:_actId,done:false,time:_tw.time,end:_tw.end};day.todos.push(_newTodo);appendTodoRestoreIfNeeded(day,json.date,_newTodo);
     nt++;
   }
@@ -6229,7 +6317,7 @@ function applyPlan(json){
     const _e=(er.end&&/^\d{1,2}:\d{2}$/.test(er.end)&&_t&&toMin(er.end)<=1440&&toMin(er.end)>toMin(_t))? er.end:"";
     if(day.routines.some(x=>x.name===er.name&&(x.time||"")===_t)){ sr++; continue; }
     let _actId=null,_area=er.area||null;
-    if(er.act){ const _a=resolveActivity(er.act,_area||(state.settings.areas[0]&&state.settings.areas[0].name)||"",true); if(_a){ _actId=_a.id; if(!_area) _area=_a.area; } }
+    if(er.act){ const _a=resolveActivity(er.act,_area||(activeAreas()[0]&&activeAreas()[0].name)||"",true); if(_a){ _actId=_a.id; if(!_area) _area=_a.area; } }
     if(_area && !areaByName(_area)) state.settings.areas.push({name:_area,color:RAINBOW[state.settings.areas.length%RAINBOW.length]}); day.routines.push({id:uid("r"),time:_t,end:_e,name:er.name,actId:_actId,area:_area,done:false,extra:true});
     nr++;
   }
@@ -6364,7 +6452,7 @@ function applyLog(json,mode){
   let n=0;
   for(const ev of (json.events||[])){
     if(!ev.start||!ev.end) continue;
-    const areaName=ev.area||state.settings.areas[0].name;
+    const areaName=ev.area||activeAreas()[0].name;
     if(!areaByName(areaName)) state.settings.areas.push({name:areaName,color:RAINBOW[state.settings.areas.length%RAINBOW.length]});
     const act=resolveActivity(ev.act||"기타", areaName, true);
     const s0=toMin(ev.start); let e0=toMin(ev.end); if(e0===0&&s0>0) e0=1440;
@@ -6687,6 +6775,7 @@ function ecalScrollTo(y,m,animate,dir){
   ecalFitHeight(y,m);
   if(!el) return;
   if(ecalScrollTween){ ecalScrollTween.kill(); ecalScrollTween=null; }
+  sc.style.scrollSnapType="y mandatory";
   const target=Math.max(0,Math.min(el.offsetTop, sc.scrollHeight-sc.clientHeight));
   if(!animate||weekReducedMotion()){ sc.scrollTop=target; ecalSyncTitle(); return; }
   if(GS){
@@ -6712,7 +6801,17 @@ function ecalSyncFoot(){
   else s.textContent= ecalFrom? (fmtMD(ecalFrom)+" ~ "+(ecalTo? fmtMD(ecalTo):"?")) : "";
   $("#ecalApply").disabled= ecalMode==="day"? !ecalDay : !(ecalFrom&&ecalTo);
 }
-let ecalClosing=false;
+let ecalClosing=false,ecalSession=0,ecalApplyTimer=null,ecalCloseCancel=null;
+function resetEcalSession(){
+  ecalSession++;clearTimeout(ecalApplyTimer);ecalApplyTimer=null;
+  if(ecalCloseCancel){ecalCloseCancel();ecalCloseCancel=null;}
+  if(ecalScrollTween){ecalScrollTween.kill();ecalScrollTween=null;}
+  if(GS){GS.killTweensOf($("#expCalDlg"));GS.set($("#expCalDlg"),{clearProps:"opacity,transform"});}
+  $("#expCalDlg").classList.remove("closing","bdout");
+  $("#ecalScroll").style.scrollSnapType="y mandatory";
+  ecalClosing=false;
+}
+$("#expCalDlg").addEventListener("close",()=>{if(!$("#expCalDlg").open)resetEcalSession();});
 function ecalCellOf(ds){ return $("#ecalScroll").querySelector('.cal-cell[data-ds="'+ds+'"]'); }
 function ecalCellPop(ds){
   const c=ecalCellOf(ds); if(!c||weekReducedMotion()) return;
@@ -6736,7 +6835,7 @@ function ecalPickDay(ds){
   if(ecalMode==="day"){
     ecalDay=ds; ecalPaint(); ecalCellPop(ds);
     if(weekReducedMotion()){ ecalApplyNow(); }
-    else{ ecalClosing=true; setTimeout(()=>{ ecalApplyNow(); },190); }
+    else{ const session=ecalSession;ecalClosing=true;ecalApplyTimer=setTimeout(()=>{ecalApplyTimer=null;if(session===ecalSession&&$("#expCalDlg").open)ecalApplyNow();},190); }
     return;
   }
   if(ecalPick===0){ ecalFrom=ds; ecalTo=""; ecalPick=1; ecalPaint(); ecalCellPop(ds); return; }
@@ -6750,22 +6849,28 @@ function ecalPickDay(ds){
 }
 function ecalCloseFx(done){
   const dlg=$("#expCalDlg");
+  const session=ecalSession;
+  if(ecalCloseCancel)ecalCloseCancel();
   let fired=false;
-  const finish=()=>{ if(fired) return; fired=true; dlg.classList.remove("closing","bdout"); if(GS) GS.set(dlg,{clearProps:"opacity,transform"}); dlg.close(); ecalClosing=false; if(done) done(); };
+  let timer=null;
+  const cancel=()=>{fired=true;clearTimeout(timer);dlg.removeEventListener("animationend",on);};
+  const finish=()=>{if(fired||session!==ecalSession)return;cancel();ecalCloseCancel=null;dlg.classList.remove("closing","bdout");if(GS)GS.set(dlg,{clearProps:"opacity,transform"});dlg.close();ecalClosing=false;if(done)done();};
+  const on=e=>{if(e.target===dlg&&e.animationName==="dlgOut")finish();};
+  ecalCloseCancel=cancel;
   if(weekReducedMotion()){ finish(); return; }
   if(GS){
     dlg.classList.add("bdout");
     GS.killTweensOf(dlg);
-    GS.to(dlg,{opacity:0,y:14,scale:.94,duration:.24,ease:"power2.in",onComplete:finish});
+    GS.to(dlg,{opacity:0,y:14,scale:.94,duration:.2,ease:"power3.out",onComplete:finish});
   }else{
     dlg.classList.add("closing");
-    const on=(e)=>{ if(e.target!==dlg||e.animationName!=="dlgOut") return; dlg.removeEventListener("animationend",on); finish(); };
     dlg.addEventListener("animationend",on);
-    setTimeout(finish,320);
+    timer=setTimeout(finish,320);
   }
 }
 let ecalCallback=null;
 function openEcalForDate(targetDs,callback){
+  resetEcalSession();
   ecalCallback=callback;
   ecalMode="day"; ecalDay=targetDs||ymd(new Date()); ecalPick=0;
   const base=dateOf(ecalDay);
@@ -6782,6 +6887,7 @@ function openEcalForDate(targetDs,callback){
   if(GS&&mEl&&!weekReducedMotion()) GS.from(mEl.querySelectorAll(".cal-cell:not(.empty)"),{opacity:0,scale:.75,duration:.22,stagger:.004,ease:"power2.out",clearProps:"opacity,transform"});
 }
 function ecalApplyNow(){
+  clearTimeout(ecalApplyTimer);ecalApplyTimer=null;
   if(ecalCallback){
     const cb=ecalCallback; ecalCallback=null;
     const picked=ecalDay;
@@ -6804,6 +6910,7 @@ $("#ecalScroll").addEventListener("scroll",()=>{
   ecalRaf=requestAnimationFrame(()=>{ ecalRaf=0; ecalSyncTitle(); });
 });
 $("#expDateBtn").addEventListener("click",()=>{
+  resetEcalSession();
   ecalCallback=null;
   const mRow=$("#expCalDlg").querySelector(".ecal-modes");
   if(mRow){ mRow.hidden=false; mRow.style.display=""; }
@@ -6875,6 +6982,8 @@ function fsOverlayEl(){
   return o;
 }
 function openFsPanel(panel){
+  if(panel._closeMotion){panel._closeMotion();panel._closeMotion=null;}
+  panel.classList.remove("closing-right");panel.style.transform="";
   panel.classList.add("open"); fsOverlayEl().classList.add("show");
   /* Fixed popovers use viewport coordinates. Reposition after this panel's own transform finishes.
      Descendant transition events bubble, so ignore them rather than consuming the one-shot handler. */
@@ -6885,17 +6994,17 @@ function openFsPanel(panel){
   };
   panel.addEventListener("transitionend",_onPanelEnd);
 }
-function closeFsPanel(panel){ panel.classList.remove("open"); fsOverlayEl().classList.remove("show"); }
+function closeFsPanel(panel){ if(panel._closeMotion){panel._closeMotion();panel._closeMotion=null;}panel.classList.remove("open","closing-right");panel.style.transform="";fsOverlayEl().classList.remove("show"); }
 function closeFsPanelRight(panel){
   fsOverlayEl().classList.remove("show");
   panel.classList.add("closing-right");
-  panel.addEventListener("transitionend", function h(e){
-    if(e.propertyName!=="transform") return;
+  if(panel._closeMotion)panel._closeMotion();
+  panel._closeMotion=afterTransition(panel,"transform",360,function(){
     panel.classList.add("dragging");
     panel.classList.remove("open","closing-right");
     panel.style.transform="";
     requestAnimationFrame(()=>requestAnimationFrame(()=>panel.classList.remove("dragging")));
-    panel.removeEventListener("transitionend",h);
+    panel._closeMotion=null;
   });
 }
 function attachSwipeClose(panel){
@@ -7092,8 +7201,9 @@ function initShellWidth(){
   });
 }
 initShellWidth();
-function openSideNav(){ $("#sideNav").classList.add("open"); $("#sideOverlay").classList.add("open"); requestAnimationFrame(()=>$("#sideOverlay").classList.add("show")); }
-function closeSideNav(){ $("#sideNav").classList.remove("open"); $("#sideOverlay").classList.remove("show"); setTimeout(()=>$("#sideOverlay").classList.remove("open"),260); }
+let sideCloseCancel=null,sideOpenFrame=null;
+function openSideNav(){ if(sideCloseCancel)sideCloseCancel();cancelAnimationFrame(sideOpenFrame);$("#sideNav").classList.add("open");$("#sideOverlay").classList.add("open");sideOpenFrame=requestAnimationFrame(()=>$("#sideOverlay").classList.add("show")); }
+function closeSideNav(){ cancelAnimationFrame(sideOpenFrame);if(sideCloseCancel)sideCloseCancel();$("#sideNav").classList.remove("open");const overlay=$("#sideOverlay");overlay.classList.remove("show");sideCloseCancel=afterTransition(overlay,"opacity",280,()=>{overlay.classList.remove("open");sideCloseCancel=null;}); }
 function updateSnToday(){ const el=$("#snTodayVal"); if(el) el.textContent=fmtDur(dayDetail(ymd(new Date())).total); }
 $("#menuBtn").addEventListener("click",()=>{ updateSnToday(); if(window.tgCloud&&window.tgCloud.refreshStatus)window.tgCloud.refreshStatus(); openSideNav(); });
 $("#trackingSync").addEventListener("click",()=>$("#menuBtn").click());
@@ -7327,7 +7437,7 @@ function renderCal(){
     c.addEventListener("click",()=>{ $("#calDlg").close(); jumpToDate(ds); });
     grid.appendChild(c);
   }
-  if(GS) GS.from(grid.querySelectorAll(".cal-cell:not(.empty)"),{opacity:0,scale:.75,duration:.22,stagger:.004,ease:"power2.out",clearProps:"opacity,transform"});
+  if(GS&&!rmPref()) GS.from(grid.querySelectorAll(".cal-cell:not(.empty)"),{opacity:0,scale:.75,duration:.22,stagger:.004,ease:"power2.out",clearProps:"opacity,transform"});
 }
 function openCalDlg(){
   const dt=dateOf(state.viewDate); calY=dt.getFullYear(); calM=dt.getMonth();
@@ -7393,7 +7503,7 @@ function shiftDay(n){
   tlAnimPending=true;
   save(); renderAll();
   const dl=$("#dateLabel");
-  if(GS){
+  if(GS&&!rmPref()){
     GS.fromTo(dl,{opacity:0,x:n>0?16:-16},{opacity:1,x:0,duration:.32,ease:"power2.out",clearProps:"opacity,transform"});
   }else if(dl){
     dl.classList.remove("css-in-l","css-in-r");
@@ -7416,7 +7526,7 @@ function openTlFs(){
   renderTimeline(); renderLive();
   var nb=tlContent.querySelector(".now-bar");
   if(nb) tlFsBody.scrollTop=Math.max(0,parseFloat(nb.style.top)-tlFsBody.clientHeight/2);
-  if(GS){
+  if(GS&&!rmPref()){
     GS.fromTo(tlFs,{opacity:0},{opacity:1,duration:.22,ease:"power1.out",clearProps:"opacity"});
     GS.fromTo(".tl-fs-head",{y:-14,opacity:0},{y:0,opacity:1,duration:.34,ease:"power3.out",clearProps:"transform,opacity"});
     tlAnimPending=true; animTimeline();
@@ -7430,7 +7540,7 @@ function closeTlFs(){
     renderTimeline(); renderLive();
     if(GS) GS.set(tlFs,{clearProps:"opacity"});
   };
-  if(GS) GS.to(tlFs,{opacity:0,duration:.18,ease:"power1.in",onComplete:fin});
+  if(GS&&!rmPref()) GS.to(tlFs,{opacity:0,duration:.18,ease:"power1.in",onComplete:fin});
   else fin();
 }
 $("#tlFsBtn").addEventListener("click",function(){openTlFs();});
@@ -7574,7 +7684,7 @@ function seedDemo(){
 }
 load();
 migrateRoutines();
-expandedGrps=new Set(state.settings.areas[0]? [state.settings.areas[0].name]:[]);
+expandedGrps=new Set(activeAreas()[0]? [activeAreas()[0].name]:[]);
 buildTimeline();
 if(DEMO){
   seedDemo();
@@ -7804,7 +7914,7 @@ if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){pai
 attachSlideInd(document.querySelector(".tabbar"));
 (function(){
   const sel=$("#todoArea"); sel.style.display="none";
-  const btn=catActBtn({area:sel.value||((state.settings.areas[0]||{}).name)||null,actId:null},function(v){ sel.value=v.area||""; });
+  const btn=catActBtn({area:sel.value||((activeAreas()[0]||{}).name)||null,actId:null},function(v){ sel.value=v.area||""; });
   sel.parentNode.insertBefore(btn,sel);
   window._todoPickBtn=btn;
 })();
@@ -7905,6 +8015,7 @@ const TG_SYNC_OBSERVATION={
     const view=TG_SYNC_OBSERVATION.view({authKnown:authKnown,signedIn:!!user,expectedCloud:cloudUnavailable||expectsCloud(),ready:ready,online:navigator.onLine!==false,pending:!!outbox.run,matches:same(normRun(state.running),normRun(syncBase.running)),confirmedAt:lastRunningServerAt,now:Date.now()});
     if(text.textContent!==view.text)text.textContent=view.text;
     if(el.dataset.kind!==view.kind)el.dataset.kind=view.kind;
+    el.hidden=view.kind!=="warn";
   }
 
   function paintStatus(msg,kind){
@@ -7983,7 +8094,11 @@ const TG_SYNC_OBSERVATION={
     base=Array.isArray(base)?base:[]; local=Array.isArray(local)?local:[]; remote=Array.isArray(remote)?remote:[];
     function mapOf(a){ const m=new Map(); a.forEach((x,i)=>m.set(itemKey(x,i,prefix),x)); return m; }
     const B=mapOf(base),L=mapOf(local),R=mapOf(remote),order=[];
-    [local,remote,base].forEach(function(a){a.forEach(function(x,i){const k=itemKey(x,i,prefix);if(!order.includes(k))order.push(k);});});
+    const keys=a=>a.map((x,i)=>itemKey(x,i,prefix));
+    // Content edits (e.g. lastUsed) must not silently undo a remote reorder.
+    const localOrderChanged=!same(keys(local),keys(base)),remoteOrderChanged=!same(keys(remote),keys(base));
+    const remoteFirst=(prefix==="activity"||prefix==="area")&&remoteOrderChanged&&(!localOrderChanged||!preferLocal);
+    (remoteFirst?[remote,local,base]:[local,remote,base]).forEach(function(a){a.forEach(function(x,i){const k=itemKey(x,i,prefix);if(!order.includes(k))order.push(k);});});
     const out=[];
     order.forEach(function(k){
       const b=B.get(k),l=L.get(k),r=R.get(k);
@@ -7993,6 +8108,14 @@ const TG_SYNC_OBSERVATION={
       else if(!lc&&rc) pick=r;
       else if(!lc&&!rc) pick=(r!==undefined?r:l);
       else if(same(l,r)) pick=l;
+      else if((prefix==="activity"||prefix==="area")&&b&&l&&r){
+        pick={};
+        for(const field of new Set([...Object.keys(b),...Object.keys(l),...Object.keys(r)])){
+          const lChanged=!same(l[field],b[field]),rChanged=!same(r[field],b[field]);
+          const value=field==="lastUsed"?Math.max(Number(l[field])||0,Number(r[field])||0):lChanged&&rChanged?(preferLocal?l[field]:r[field]):lChanged?l[field]:r[field];
+          if(value!==undefined)pick[field]=copy(value);
+        }
+      }
       else pick=preferLocal?l:r;
       if(pick!==undefined) out.push(copy(pick));
     });
@@ -8574,7 +8697,7 @@ const TG_SYNC_OBSERVATION={
     try{
       app=firebase.initializeApp(FB_CONFIG);auth=firebase.auth();db=firebase.firestore();
       try{db.enablePersistence({synchronizeTabs:true}).catch(function(){});}catch(e){}
-    }catch(err){setStatus("Firebase 초기화 실패: "+(err&&err.message||err),"err");return;}
+    }catch(err){authKnown=true;cloudUnavailable=expectsCloud();ready=false;paintTrackingSync();setStatus("Firebase 초기화 실패: "+(err&&err.message||err),"err");return;}
     if(ui.login())ui.login().addEventListener("click",login);
     if(ui.logout())ui.logout().addEventListener("click",logout);
     if(ui.sync())ui.sync().addEventListener("click",async function(){
