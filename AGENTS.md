@@ -30,8 +30,9 @@ C-TRACK-01 (D-015): Resuming the same measurement within 60,000ms inclusive brid
 
 ## Current contracts
 
-Verified production baseline (2026-09-03): v3.13.5 (release commit `849167be1610049dc7bfd1a66ec7cc12dc8c2039`).
-- Public index blob `907c0d3bd1624dd48c64c93cf618b1763f57fd77`; SW blob `ebd4f5d629ff99ca63574b1614574bec80e12f2d`; cache `timegrid-v3.13.5-20260903`.
+Verified production baseline (2026-09-03): v3.13.6 (release commit `ef5908e5b6771e777641249bf6318efd92dda760`).
+- Public index blob `20eca48ba1ff6e15ce33f0488e4825da8895bf6d`; SW blob `dc72d2cf944e88cae777f376b02bd22dce54476b`; cache `timegrid-v3.13.6-20260903`.
+- C-SYNC-01: Measurement and sync scope are independent. Tracker exposes local-only, reauthentication, pending and server-confirmed states. Keep account expectation across passive auth loss; explicit logout selects local mode. Preserve local sessions and outbox. Confirm receipt only from a matching running server read/transaction with no pending timer operation, never a cached/pending-write callback. Automation cloud absence cannot establish device inactivity; acquisition and mutation timestamps remain separate. Run `node tests/sync-observation.test.mjs` for auth/sync changes.
 - External assets (Firebase, GSAP) enforce pinned SHA-384 SRI and anonymous CORS. Palette colors normalize to `#RRGGBB`. Firestore rules enforce `timegridOwner` custom claim and UID-path equality; email allowlists are deprecated.
 - `statusMutations` own completion state; `done` is derived. Master `routineDefs` and daily instances maintain separate IDs linked by `routineDefId`; normalize ID-less semantic duplicates. Preserve `todoMutations` (move/delete/restore).
 - Identical tracking restarted within 60 seconds merges exact timestamps and continuity lineage across the gap. Manual minute edits sever lineage.
