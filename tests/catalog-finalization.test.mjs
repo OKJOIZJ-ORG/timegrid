@@ -21,7 +21,7 @@ function fixture(){
   vm.createContext(context);
   vm.runInContext(section('/* CONTINUITY_CORE_START */','/* CONTINUITY_CORE_END */')+
     section('function statSpan(ev){','function statRangeDays(')+
-    section('const EXACT_EVENT_KEYS=','function freeRanges(')+
+    section('const EXACT_EVENT_KEYS=','/* ================= autocomplete (custom) ================= */')+
     section('function prepareFinalization(','async function swStop('),context);
   return {state,context,saved:()=>saved,events:(days=state.days)=>Object.values(days).flatMap(d=>d.events)};
 }
@@ -186,4 +186,65 @@ test('pending edit guard permits unrelated records but rejects moving one across
   assert.equal(f.context.pendingEventEdit(date,unrelated,610,611),false);
   assert.equal(f.context.pendingEventEdit(date,unrelated,599,602),true);
   assert.equal(f.context.pendingEventEdit(date,null,610,611),false);
+});
+
+for(const endOffset of [0,1,1234,59_999])test('pending exact end 02:03 + '+endOffset+'ms reserves its entire occupied edit minute',()=>{
+  const f=fixture(),dayStart=new Date(2026,8,3).getTime();
+  f.state.viewDate=date;
+  const end=dayStart+123*60_000+endOffset;
+  f.state.finalizations=[f.context.prepareFinalization(run('precise',dayStart+120*60_000+567),end)];
+  const canonical=JSON.stringify(f.state.days),intent=JSON.stringify(f.state.finalizations);
+  const projected=f.context.measurementDay(date),pending=projected.events[0],before=JSON.stringify(pending);
+  const firstFree=endOffset===0?123:124;
+  assert.deepEqual(copy(f.context.freeRanges(projected,123,140)),[[firstFree,140]],'manual edit starts after the whole occupied minute');
+  assert.deepEqual(copy(f.context.freeRanges(projected,110,130)),[[110,120],[firstFree,130]],'start rounds outward to its containing minute too');
+  vm.runInContext(section('function pendingEventEdit(','function openEvDlg('),f.context);
+  assert.equal(f.context.pendingEventEdit(date,null,123,140),endOffset!==0,'retiming must use the same outward boundary');
+  assert.equal(f.context.pendingEventEdit(date,null,124,140),false,'first free whole minute remains editable');
+  assert.equal(JSON.stringify(f.state.days),canonical,'occupation calculation never changes canonical storage');
+  assert.equal(JSON.stringify(f.state.finalizations),intent,'occupation calculation never rounds the intent');
+  assert.equal(JSON.stringify(pending),before,'projection retains exact time and display metadata');
+  assert.equal(pending.startTs,dayStart+120*60_000+567);
+  assert.equal(pending.endTs,end);
+});
+
+test('manual insertion after pending fractional endpoint remains separate and editable after materialization',()=>{
+  const f=fixture(),dayStart=new Date(2026,8,3).getTime(),end=dayStart+123*60_000+1234;
+  f.state.viewDate=date;
+  f.state.finalizations=[f.context.prepareFinalization(run('precise',dayStart+120*60_000),end)];
+  const projected=f.context.measurementDay(date),free=f.context.freeRanges(projected,123,140);
+  for(const [s,e]of free)f.context.addInterval(f.context.ensureDay(date),'manual',s,e);
+  const manualBefore=copy(f.events().find(e=>e.actId==='manual'));
+  const materialized=f.context.materializedFinalizationDays(f.state.finalizations,f.state.days);
+  const rows=f.events(materialized),manualAfter=rows.find(e=>e.actId==='manual'),precise=rows.find(e=>e.actId==='activity');
+  assert.deepEqual(copy(manualAfter),manualBefore,'finalization does not clip, rename, or detach the newly inserted manual event');
+  assert.equal(manualAfter.start,'02:04');
+  assert.equal(manualAfter.end,'02:20');
+  assert.equal(manualAfter.pendingFinalization,undefined);
+  assert.equal(precise.endTs,end);
+  assert.ok(f.context.exactEventBounds(date,manualAfter).startTs>=precise.endTs);
+});
+
+test('pending fractional span across midnight reserves each day boundary without rounding saved timestamps',()=>{
+  const f=fixture(),midnight=new Date(2026,8,4).getTime(),next='2026-09-04';
+  f.state.viewDate=date;
+  f.state.finalizations=[f.context.prepareFinalization(run('midnight-precise',midnight-1234),midnight+1234)];
+  const days=f.context.measurementDays();
+  assert.deepEqual(copy(f.context.freeRanges(days[date],1438,1440)),[[1438,1439]]);
+  f.state.viewDate=next;
+  assert.deepEqual(copy(f.context.freeRanges(days[next],0,20)),[[1,20]]);
+  const rows=f.events(days);
+  assert.equal(rows[0].startTs,midnight-1234);
+  assert.equal(rows[1].endTs,midnight+1234);
+  assert.equal(rows.reduce((total,e)=>total+e.endTs-e.startTs,0),2468);
+});
+
+test('ordinary canonical exact records retain their existing minute edit boundary',()=>{
+  const f=fixture(),dayStart=new Date(2026,8,3).getTime();
+  f.state.viewDate=date;
+  f.context.materializeExactSpan(run('stored',dayStart+120*60_000),dayStart+123*60_000+1234);
+  const before=JSON.stringify(f.state.days),stored=f.events()[0];
+  assert.equal(stored.end,'02:03');
+  assert.deepEqual(copy(f.context.freeRanges(f.state.days[date],123,140)),[[123,140]],'outward reservation applies only while exact Stop is pending');
+  assert.equal(JSON.stringify(f.state.days),before);
 });

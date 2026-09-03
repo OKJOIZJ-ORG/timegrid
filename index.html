@@ -2813,10 +2813,20 @@ function materializeExactSpan(run,endTs){
   return true;
 }
 /* [s,e) 중 기존 이벤트가 선점하지 않은 빈 구간 목록 */
+function occupiedMinutes(ev,date){
+  let s=toMin(ev.start),e=toMin(ev.end);if(e===0&&s>0)e=1440;
+  // Manual edits have minute precision. Reserve every minute touched by a pending
+  // exact span; never fabricate a fractional-minute event or clip speculative data.
+  if(ev.pendingFinalization){
+    const bounds=exactEventBounds(date,ev),base=dateOf(date).getTime();
+    if(bounds){s=Math.floor((bounds.startTs-base)/60000);e=Math.ceil((bounds.endTs-base)/60000);}
+  }
+  return {s:Math.max(0,s),e:Math.min(1440,e)};
+}
 function freeRanges(day,s,e){
   const occ=[];
   for(const ev of day.events){
-    const es=toMin(ev.start), ee=toMin(ev.end);
+    const {s:es,e:ee}=occupiedMinutes(ev,state.viewDate);
     if(ee>s && es<e) occ.push([Math.max(es,s),Math.min(ee,e)]);
   }
   occ.sort((a,b)=>a[0]-b[0]);
@@ -3810,7 +3820,7 @@ function pendingEventEdit(date,event,start,end){
     if(event&&ev.id===event.id)return true;
     const other=exactEventBounds(date,ev);
     if(bounds&&other&&bounds.startTs<other.endTs&&bounds.endTs>other.startTs)return true;
-    const span=statSpan(ev);
+    const span=occupiedMinutes(ev,date);
     return start!=null&&end!=null&&span&&start<span.e&&end>span.s;
   });
 }
