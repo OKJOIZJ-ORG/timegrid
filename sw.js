@@ -1,10 +1,11 @@
-const VERSION = "timegrid-v3.14.0-20260903";
+const VERSION = "timegrid-v3.14.1-20260903";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const APP_SHELL = [
   "./",
   "./index.html",
   "./catalog-core.js",
+  "./continuity-core.js",
   "./catalog-manager.js",
   "./catalog-manager.css",
   "./manifest.webmanifest",

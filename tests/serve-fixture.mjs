@@ -22,10 +22,22 @@ const server=http.createServer((req,res)=>{
         const pendingStart=new Date();pendingStart.setHours(2,0,0,0);
         state.finalizations=[{id:'fixture-stop',scope:'cloud',running:{sessionId:'fixture-stop',actId:'a1',startTs:pendingStart.getTime()},endedAt:pendingStart.getTime()+181234,zeroSpan:false}];
         const fixtureDay=`)
+    if(url.searchParams.has('continuity')){
+      const mode=url.searchParams.get('continuity');
+      const same=mode==='matching';
+      html=html.replace('  seedDemo();state.running=null;',`  seedDemo();state.running=null;
+        state.days={};ensureDay(state.viewDate);
+        const fixtureNow=Date.now();
+        const fixtureAct=state.settings.activities[0].id;
+        materializeExactSpan({actId:fixtureAct,sessionId:'fixture-first',startTs:fixtureNow-610000,note:'연결 메모'},fixtureNow-310000);
+        const fixtureRun={actId:fixtureAct,sessionId:'fixture-second',startTs:fixtureNow-280000,note:${JSON.stringify(same?'연결 메모':'다른 메모')}};
+        ${mode==='edit'?'materializeExactSpan(fixtureRun,fixtureNow-10000);':'state.running=fixtureRun;'}
+      `).replace('fixtureDay.todos[0].time="21:30";fixtureDay.todos[1].time="09:00";fixtureDay.todos[1].end="10:10";','')
+    }
     if(url.searchParams.has('no-gsap'))html=html.replace(/<script src="https:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/gsap\/[^>]+><\/script>/g,'')
     res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(html);return
   }
-  if(!/^\/(?:icons|brand)\/[\w.-]+$/.test(route)&&!['/manifest.webmanifest','/catalog-core.js','/catalog-manager.js','/catalog-manager.css'].includes(route)){res.writeHead(404);res.end();return}
+  if(!/^\/(?:icons|brand)\/[\w.-]+$/.test(route)&&!['/manifest.webmanifest','/catalog-core.js','/continuity-core.js','/catalog-manager.js','/catalog-manager.css'].includes(route)){res.writeHead(404);res.end();return}
   const file=path.join(root,route);if(!fs.existsSync(file)){res.writeHead(404);res.end();return}
   res.writeHead(200,{'Content-Type':route.endsWith('.png')?'image/png':route.endsWith('.js')?'text/javascript':route.endsWith('.css')?'text/css':'application/json'});fs.createReadStream(file).pipe(res)
 })

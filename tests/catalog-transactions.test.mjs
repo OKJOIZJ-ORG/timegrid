@@ -5,6 +5,7 @@ import test from 'node:test';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import C from '../catalog-core.js';
+import TG_CONTINUITY_CORE from '../continuity-core.js';
 
 const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const previous=execFileSync('git',['show','cea7e2a:index.html'],{cwd:fileURLToPath(new URL('..',import.meta.url)),encoding:'utf8',maxBuffer:4*1024*1024});
@@ -47,9 +48,9 @@ function client(server,{local=false,now=start+20_000}={}){
   const state={settings:copy(server.data.get('settings')),days:{},running:copy(server.data.get('running').running),finalizations:[]};
   let seq=0;
   class Clock extends Date {static now(){return now;}}
-  const ctx={state,TG_CATALOG:C,console,Date:Clock,JSON,Map,Set,Math,copy,copyRun:copy,uid:p=>p+'_'+(++seq),
+  const ctx={state,TG_CATALOG:C,TG_CONTINUITY_CORE,console,Date:Clock,JSON,Map,Set,Math,copy,copyRun:copy,uid:p=>p+'_'+(++seq),
     user:local?null:{uid:'synthetic'},ready:true,authKnown:true,cloudUnavailable:false,runLocking:false,runLockLabel:'',navigator:{onLine:true},
-    db:server.db,userPaths:()=>server.paths,outbox:{run:null,days:{}},syncBase:{settings:copy(state.settings),days:{},dayMeta:{},running:copy(state.running),runningVersion:7},
+    db:server.db,userPaths:()=>server.paths,TG_MAX_RUNNING_MS:20*3600000,outbox:{run:null,days:{}},syncBase:{settings:copy(state.settings),days:{},dayMeta:{},running:copy(state.running),runningVersion:7},
     normSettings:s=>C.normalize({...s,catalogHistory:C.mergeHistory(state.settings.catalogHistory,s?.catalogHistory)}),
     normRun:r=>r?{...r,sessionId:r.sessionId||'legacy-'+r.startTs+'-'+r.actId}:null,effectiveRun:r=>r,runStale:()=>false,
     metaOf:r=>({rev:r.syncRev||0,at:r.updatedAtMs||0}),serverStamp:()=>0,tgDeviceId:()=> 'test-device',
@@ -216,6 +217,21 @@ test('pending display projection does not enter actual flushDay payload',async()
   assert.equal(events(s).length,0);
   assert.equal(s.data.get('days/'+date).todos[0].name,'Local edit');
   assert.equal(s.data.get('running').finalizations.length,1);
+});
+
+test('live continuity projection cannot leak through generic day upload or raw running identity',async()=>{
+  const live=run('live',start+50_000),s=database(base(),live),a=client(s,{now:start+70_000});
+  a.materializeExactSpan(run('earlier'),start+20_000);seedDays(s,a);
+  const canonical=copy(events(s)),raw=copy(a.state.running);
+  a.state.days[date].todos.push({id:'local-todo',name:'Unrelated edit'});
+  const projected=a.measurementDays()[date].events;
+  assert.equal(projected.length,1);assert.equal(projected[0].endTs,start+70_000);
+  assert.equal(projected[0].runningProjection,true);
+  a.markDirty();await a.flushDay('synthetic',date);
+  assert.deepEqual(events(s),canonical);
+  assert.deepEqual(copy(a.state.running),raw);
+  assert.deepEqual(s.data.get('running').running,raw);
+  assert.equal(s.data.get('days/'+date).todos[0].id,'local-todo');
 });
 
 test('cross-midnight finalization reads and commits every lineage fragment, preserving exact overlap',async()=>{

@@ -14,7 +14,7 @@ try{
     const result=spawnSync(process.execPath,['--check',file],{encoding:'utf8',windowsHide:true})
     assert.equal(result.status,0,result.stderr)
   }
-  for(const name of ['sw.js','catalog-core.js','catalog-manager.js']){
+  for(const name of ['sw.js','catalog-core.js','continuity-core.js','catalog-manager.js']){
     const sw=spawnSync(process.execPath,['--check',new URL('../'+name,import.meta.url).pathname.replace(/^\/([A-Z]:)/,'$1')],{encoding:'utf8',windowsHide:true})
     assert.equal(sw.status,0,sw.stderr)
     assert.ok(!fs.readFileSync(new URL('../'+name,import.meta.url),'utf8').includes('\uFFFD'))

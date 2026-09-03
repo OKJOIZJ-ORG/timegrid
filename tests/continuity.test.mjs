@@ -3,6 +3,7 @@ import fs from "node:fs"
 import path from "node:path"
 import vm from "node:vm"
 import TG_CATALOG from '../catalog-core.js'
+import TG_CONTINUITY_CORE from '../continuity-core.js'
 import { fileURLToPath } from "node:url"
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
@@ -15,7 +16,7 @@ assert.match(html, /fragmentCount:pieces\.length/, "midnight spans retain one lo
 assert.match(html, /Number\(endTs\)>Number\(r\.startTs\)&&!materializeExactSpan\(r,Number\(endTs\)\)/, "positive stop spans use exact continuity; zero spans don't fabricate time")
 
 const source = html.slice(start, end) + "\n;globalThis.__core=TG_CONTINUITY;"
-const context = { console, Date, JSON, Map, Set, Math }
+const context = { console, Date, JSON, Map, Set, Math, TG_CONTINUITY_CORE }
 vm.createContext(context)
 vm.runInContext(source, context)
 const core = context.__core
@@ -42,7 +43,7 @@ function fixture() {
   let sequence = 0
   const state = { days: {} }
   const writer = {
-    state, Date, JSON, Map, Set, Math, TG_CATALOG,
+    state, Date, JSON, Map, Set, Math, TG_CATALOG, TG_CONTINUITY_CORE,
     uid: prefix => `${prefix}_${++sequence}`,
     toMin: clock => { const [h, m] = clock.split(":").map(Number); return h * 60 + m },
     hhmm: minute => `${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`,

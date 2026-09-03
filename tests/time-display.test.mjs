@@ -37,7 +37,16 @@ assert.match(html, /id="runElapsed">0s<\/span> 경과/, "the active-session chip
 assert.doesNotMatch(html, /id="runName"|id="runDot"/, "the running status must not repeat the selected activity identity")
 assert.match(html, /TG_TIME_DISPLAY\.compact\(TG_TIME_DISPLAY\.elapsed/, "the active-session status uses the compact unit formatter")
 assert.match(html, /setInterval\(\(\)=>\{renderTotal\(\); renderActiveElapsed\(\);/, "the active-session clock updates on the existing one-second ticker")
-assert.match(html, /const liveSec=rb\? TG_TIME_DISPLAY\.wholeSeconds\(rb\.re-rb\.rs\) : 0/, "sub-minute entity badges cannot leak fractional seconds")
+const badge={textContent:''}
+const badgeContext={state:{running:{todoId:'t'},viewDate:'2026-09-03'},TG_TIME_DISPLAY:time,
+  document:{querySelectorAll:()=>[badge]},ensureDay:()=>({todos:[{id:'t'}]}),
+  todoMeasuredMin:()=>20.999/60,fmtShort:minutes=>'minutes:'+minutes}
+vm.createContext(badgeContext)
+vm.runInContext(html.slice(html.indexOf('function tickTmrBadges(){'),html.indexOf('let lkTarget=null')),badgeContext)
+badgeContext.tickTmrBadges();assert.equal(badge.textContent,'20s','projected sub-minute badges floor fractional seconds')
+badgeContext.todoMeasuredMin=()=>70/60
+badgeContext.tickTmrBadges();assert.equal(badge.textContent,'minutes:'+70/60,'projected duration includes live time exactly once')
+assert.match(html,/ctx\.fillText\("총 기록 "\+TG_TIME_DISPLAY\.compact\(total\*60\)/,'PNG header shares whole-second formatting')
 assert.match(html, /rs=TG_TIME_DISPLAY\.daySecond\(r\.startTs\)/, "running daily bounds retain start milliseconds")
 assert.match(html, /re=TG_TIME_DISPLAY\.daySecond\(now\.getTime\(\)\)/, "running daily bounds retain current milliseconds")
 

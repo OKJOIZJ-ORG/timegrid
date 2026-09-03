@@ -28,6 +28,15 @@ Maintain the product specification and a dated Patch Notes entry within the same
 
 C-TRACK-01 (D-015): Resuming the same measurement within 60,000ms inclusive bridges the gap into a continuous saved span and block. C-TRACK-02: Independent timestamp intervals sharing a rounded display minute must both be preserved without deletion. Treat these as complementary, coexisting contracts; execute `node tests/continuity.test.mjs` whenever measurement timing logic is modified.
 
+D-018 / v3.14.1: Eligible restart projects a continuous block and total while
+running, using shared `continuity-core.js`; raw session start/ID and atomic Stop
+remain authoritative. Different free notes remain separate; metadata-only edits
+reconcile eligible neighbors while preserving exact outer bounds/lineage. Treat
+canonical, pending and active measured time as occupied when bridging a gap.
+True minute-time edits detach lineage; missing imported fragments are not rebuilt.
+Run `tests/live-continuity.test.mjs`, transactions and time-display tests too.
+Release/activation evidence: `../TimeGridAutomation/memory/knowledge/live-continuity-coaching-20260903.md`.
+
 ## Current contracts
 
 Verified production baseline (2026-09-03): v3.14.0 (release commit `4c9444b98df78135c5b95d45cb6b52058bcca780`).

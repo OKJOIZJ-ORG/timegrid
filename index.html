@@ -1527,7 +1527,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.14.0<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.14.1<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -1823,6 +1823,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.7/gsap.min.js" integrity="sha384-pEQB1h4Zmn9xhS6jotzltHSIQq6N0Oh3BXkCNOH5LKI81R2NRbb9efarAJYw9gTY" crossorigin="anonymous"></script>
 <link rel="stylesheet" href="./catalog-manager.css">
 <script src="./catalog-core.js"></script>
+<script src="./continuity-core.js"></script>
 <script src="./catalog-manager.js"></script>
 <script>
 "use strict";
@@ -2197,6 +2198,7 @@ function hhmm(min){
 function runningDayBounds(r, dateStr){
   if(!r||!r.startTs||!dateStr) return null;
   if(Date.now()-Number(r.startTs)>TG_MAX_RUNNING_MS) return null;
+  r={...r,startTs:TG_CONTINUITY.logicalStart(r,state.days)};
   const startD=new Date(r.startTs), now=new Date();
   if(!Number.isFinite(startD.getTime())||startD>now) return null;
   const startDay=ymd(startD), endDay=ymd(now);
@@ -2490,39 +2492,7 @@ const TG_ROUTINE_IDENTITY=(function(){
 })();
 /* ROUTINE_IDENTITY_CORE_END */
 /* CONTINUITY_CORE_START */
-const TG_CONTINUITY=(function(){
-  const WINDOW_MS=60000;
-  function note(v){return String(v||"").trim().replace(/\s+/g," ");}
-  function identity(v){
-    const actId=String(v&&v.actId||"");if(!actId)return null;
-    if(v&&v.todoId)return {kind:"todo",actId:actId,linkedId:String(v.todoId),note:""};
-    if(v&&v.routineId)return {kind:"routine",actId:actId,linkedId:String(v.routineId),note:""};
-    return {kind:"free",actId:actId,linkedId:"",note:note(v&&v.note)};
-  }
-  function same(a,b){const l=identity(a),r=identity(b);return !!l&&!!r&&l.kind===r.kind&&l.actId===r.actId&&l.linkedId===r.linkedId&&l.note===r.note;}
-  function decide(previous,next,windowMs){
-    const end=Number(previous&&previous.endTs)||0,start=Number(next&&next.startTs)||0,gap=start-end;
-    if(!end||!start)return {merge:false,reason:"missing-exact-time",gapMs:null};
-    if(!same(previous,next))return {merge:false,reason:"different-identity",gapMs:gap};
-    if(gap<0)return {merge:false,reason:"overlap",gapMs:gap};
-    if(gap>(Number(windowMs)||WINDOW_MS))return {merge:false,reason:"gap-too-large",gapMs:gap};
-    return {merge:true,reason:"within-window",gapMs:gap};
-  }
-  function splitSpan(startTs,endTs){
-    const start=Number(startTs)||0,end=Number(endTs)||0,out=[];let cursor=start,guard=0;
-    if(!start||end<=start)return out;
-    while(cursor<end&&guard<32){
-      const base=new Date(cursor);base.setHours(0,0,0,0);
-      const next=new Date(base);next.setDate(next.getDate()+1);
-      const dayStart=base.getTime(),dayEnd=next.getTime(),fragmentEnd=Math.min(end,dayEnd);
-      const date=[base.getFullYear(),String(base.getMonth()+1).padStart(2,"0"),String(base.getDate()).padStart(2,"0")].join("-");
-      out.push({date:date,startTs:cursor,endTs:fragmentEnd,dayStart:dayStart,dayEnd:dayEnd});
-      cursor=fragmentEnd;guard++;
-    }
-    return cursor===end?out:[];
-  }
-  return {WINDOW_MS:WINDOW_MS,identity:identity,same:same,decide:decide,splitSpan:splitSpan};
-})();
+const TG_CONTINUITY=globalThis.TG_CONTINUITY_CORE;
 /* CONTINUITY_CORE_END */
 function appendTodoMutation(day,mutation){
   if(!day||!mutation)return;
@@ -2737,39 +2707,22 @@ function subtractExact(events,dateStr,startTs,endTs){
   return out;
 }
 function continuityCandidate(run){
-  let best=null;
-  for(const ds of Object.keys(state.days||{})){
-    const day=state.days[ds]||{};
-    for(const ev of (day.events||[])){
-      const bounds=exactEventBounds(ds,ev);if(!bounds||bounds.endTs>Number(run.startTs))continue;
-      const decision=TG_CONTINUITY.decide({...ev,endTs:bounds.endTs},{...run,startTs:Number(run.startTs)});
-      if(!decision.merge)continue;
-      if(!best||bounds.endTs>best.bounds.endTs)best={date:ds,event:ev,bounds:bounds,decision:decision};
-    }
-  }
-  if(!best)return null;
-  const spanId=best.event.continuityId||best.event.id;
-  for(const ds of Object.keys(state.days||{})){
-    for(const ev of ((state.days[ds]||{}).events||[])){
-      if(ev===best.event||String(ev.continuityId||ev.id||"")===String(spanId||""))continue;
-      const bounds=exactEventBounds(ds,ev);
-      if(bounds&&bounds.startTs<Number(run.startTs)&&bounds.endTs>best.bounds.endTs)return null;
-    }
-  }
-  return best;
+  return TG_CONTINUITY.candidate(run,state.days);
 }
-function materializeExactSpan(run,endTs){
+function materializeExactSpan(run,endTs,displayOnly=false){
   const runStart=Number(run&&run.startTs)||0,runEnd=Number(endTs)||0;
-  if(!runStart||!runEnd||runEnd<=runStart)return false;
-  if(TG_CATALOG.spanStored(state.days,run,runEnd))return true;
+  if(!runStart||!runEnd||runEnd<runStart||(!displayOnly&&runEnd===runStart))return false;
+  if(!displayOnly&&TG_CATALOG.spanStored(state.days,run,runEnd))return true;
   const candidate=continuityCandidate(run);
   const merging=!!candidate;
   const spanId=merging?String(candidate.event.continuityId||candidate.event.id):String(run.continuityId||("span_"+(run.sessionId||uid("run"))));
   const spanStart=merging?Number(candidate.event.spanStartTs||candidate.bounds.startTs):runStart;
+  const pieces=TG_CONTINUITY.splitSpan(spanStart,runEnd);
+  if(!pieces.length)return false;
   const oldByDate=new Map(),sessionIds=[];
-  let gapIncludedMs=0;
+  let gapIncludedMs=Number(run.gapIncludedMs)||0;
   if(merging){
-    gapIncludedMs=(Number(candidate.event.gapIncludedMs)||0)+candidate.decision.gapMs;
+    gapIncludedMs+=(Number(candidate.event.gapIncludedMs)||0)+candidate.decision.gapMs;
     for(const ds of Object.keys(state.days||{})){
       const day=state.days[ds]||{},keep=[];
       for(const ev of (day.events||[])){
@@ -2782,9 +2735,7 @@ function materializeExactSpan(run,endTs){
       day.events=keep;
     }
   }
-  if(run.sessionId&&!sessionIds.includes(run.sessionId))sessionIds.push(run.sessionId);
-  const pieces=TG_CONTINUITY.splitSpan(spanStart,runEnd);
-  if(!pieces.length)return false;
+  for(const sid of [...(run.sessionIds||[]),run.sessionId])if(sid&&!sessionIds.includes(sid))sessionIds.push(sid);
   pieces.forEach(function(piece,index){
     const day=ensureDay(piece.date);
     const projection=exactMinuteProjection(piece.startTs,piece.endTs,piece.dayStart,piece.dayEnd);
@@ -2812,12 +2763,61 @@ function materializeExactSpan(run,endTs){
   });
   return true;
 }
+function measurementSpans(){
+  const groups=new Map();
+  for(const [date,day] of Object.entries(state.days))for(const ev of day.events||[]){
+    const key=String(ev.continuityId||ev.id),bounds=exactEventBounds(date,ev);if(!bounds)continue;
+    const group=groups.get(key)||{key,parts:[]};group.parts.push({date,ev,...bounds});groups.set(key,group);
+  }
+  return [...groups.values()].flatMap(group=>{
+    group.parts.sort((a,b)=>a.startTs-b.startTs);
+    // A missing/edited fragment is not permission to reconstruct erased time.
+    if(group.parts.some((part,i)=>i&&part.startTs!==group.parts[i-1].endTs))return [];
+    const start=group.parts[0].startTs,end=group.parts.at(-1).endTs;
+    if(group.parts.some(({ev})=>(ev.spanStartTs!=null&&Number(ev.spanStartTs)!==start)||(ev.spanEndTs!=null&&Number(ev.spanEndTs)!==end)||(ev.fragmentCount!=null&&Number(ev.fragmentCount)!==group.parts.length)))return [];
+    return [{...group,event:group.parts[0].ev,startTs:group.parts[0].startTs,endTs:group.parts.at(-1).endTs}];
+  }).sort((a,b)=>a.startTs-b.startTs);
+}
+function editMeasurementMetadata(ev,actId,note){
+  const id=String(ev.continuityId||ev.id);
+  for(const day of Object.values(state.days))for(const part of day.events||[]){
+    if(String(part.continuityId||part.id)!==id)continue;
+    part.actId=actId;
+    if(!part.todoId&&!part.routineId){if(note)part.note=note;else delete part.note;}
+  }
+  let selected=id;
+  // Reconcile only the edited logical span and its newly eligible neighbors.
+  // Each pass removes one span, so this terminates without a heuristic limit.
+  while(true){
+    const spans=measurementSpans();let joined=false;
+    for(const right of spans){
+      const run={...right.event,startTs:right.startTs};
+      const left=continuityCandidate(run);
+      const leftKey=left&&String(left.event.continuityId||left.event.id);
+      if(!left||(right.key!==selected&&leftKey!==selected))continue;
+      const leftGroup=spans.find(s=>s.key===leftKey);if(!leftGroup)continue;
+      if(!TG_CONTINUITY.splitSpan(leftGroup.startTs,right.endTs).length)continue;
+      const occupiedGap=Object.entries(measurementDays()).some(([date,day])=>(day.events||[]).some(part=>{
+        if(!part.pendingFinalization&&!part.runningProjection)return false;
+        const bounds=exactEventBounds(date,part);
+        return bounds&&bounds.startTs<right.startTs&&bounds.endTs>leftGroup.endTs;
+      }));
+      if(occupiedGap)continue;
+      const source=JSON.parse(JSON.stringify(run));
+      source.sessionIds=[...new Set(right.parts.flatMap(p=>p.ev.sessionIds||[]))];
+      for(const day of Object.values(state.days))day.events=(day.events||[]).filter(part=>String(part.continuityId||part.id)!==right.key);
+      materializeExactSpan(source,right.endTs);
+      selected=leftKey;joined=true;break;
+    }
+    if(!joined)return;
+  }
+}
 /* [s,e) 중 기존 이벤트가 선점하지 않은 빈 구간 목록 */
 function occupiedMinutes(ev,date){
   let s=toMin(ev.start),e=toMin(ev.end);if(e===0&&s>0)e=1440;
   // Manual edits have minute precision. Reserve every minute touched by a pending
   // exact span; never fabricate a fractional-minute event or clip speculative data.
-  if(ev.pendingFinalization){
+  if(ev.pendingFinalization||ev.runningProjection){
     const bounds=exactEventBounds(date,ev),base=dateOf(date).getTime();
     if(bounds){s=Math.floor((bounds.startTs-base)/60000);e=Math.ceil((bounds.endTs-base)/60000);}
   }
@@ -3174,7 +3174,7 @@ function recoverLocalFinalizations(){
   }catch(e){Object.assign(state,before);throw e;}
 }
 let pendingViewCache=null;
-function measurementDays(){
+function stoppedMeasurementDays(){
   const pending=(state.finalizations||[]).filter(f=>f.scope!=='local');if(!pending.length)return state.days;
   const signature=TG_CATALOG.key([pending,state.days,state.settings.catalogRevision]);
   if(pendingViewCache?.signature!==signature){
@@ -3186,9 +3186,29 @@ function measurementDays(){
   }
   return pendingViewCache.days;
 }
+let activeViewCache=null;
+function measurementDays(now=Date.now()){
+  const stopped=stoppedMeasurementDays(),run=state.running;
+  if(!run||now<run.startTs||now-run.startTs>TG_MAX_RUNNING_MS)return stopped;
+  // Display-only: use Stop rules without changing the authoritative session.
+  const signature=TG_CATALOG.key([stopped,run,state.settings.catalogRevision,now]);
+  if(activeViewCache?.signature!==signature){
+    const original=state.days;let days;
+    try{state.days=copyRun(stopped);materializeExactSpan(run,now,true);days=state.days;}
+    finally{state.days=original;}
+    for(const [date,day] of Object.entries(days))for(const event of day.events||[]){
+      if((event.sessionIds||[]).includes(run.sessionId)){
+        event.runningProjection=true;
+        event.id='live_'+(run.sessionId||run.startTs)+'_'+date;
+      }
+    }
+    activeViewCache={signature,days};
+  }
+  return activeViewCache.days;
+}
 function measurementDay(date){return measurementDays()[date]||state.days[date];}
 function measuredDayView(day){
-  if(!(state.finalizations||[]).length)return day;
+  if(!state.running&&!(state.finalizations||[]).length)return day;
   const date=Object.keys(state.days).find(date=>state.days[date]===day);
   return date?measurementDay(date):day;
 }
@@ -3216,7 +3236,7 @@ function renderSw(){
   if(r){
     btn.textContent=action.locking?(action.label||"중지 중…"):"■ 정지";btn.className="pill stop";btn.disabled=!!action.locking;
     const act=actById(r.actId);
-    const d=new Date(r.startTs);$("#runSince").textContent=hhmm(d.getHours()*60+d.getMinutes());$("#runChip").classList.add("on");renderActiveElapsed();
+    const d=new Date(TG_CONTINUITY.logicalStart(r,state.days));$("#runSince").textContent=hhmm(d.getHours()*60+d.getMinutes());$("#runChip").classList.add("on");renderActiveElapsed();
     if(act){$("#actInput").value=act.name;if(window.sizeActInput)sizeActInput(true);if(areaByName(act.area)){$("#areaSelect").value=act.area;if(window.refreshAreaPickers)refreshAreaPickers();}}
     if(r.todoId||r.routineId){noteTag=r.todoId?{kind:"todo",id:r.todoId}:{kind:"routine",id:r.routineId};$("#noteChipK").textContent=r.todoId?"할일":"루틴";$("#noteChipT").textContent=runTagTitle(r)||"?";$("#noteChip").style.display="inline-flex";$("#noteInput").style.display="none";noteRowOpen(true);}
     else if(r.note){noteTag=null;$("#noteChip").style.display="none";$("#noteInput").style.display="";$("#noteInput").value=r.note;noteRowOpen(true);}
@@ -3270,17 +3290,6 @@ function totalSec(){
     const exactStart=Number(ev&&ev.startTs)||0,exactEnd=Number(ev&&ev.endTs)||0;
     sec+=exactStart&&exactEnd>exactStart?(exactEnd-exactStart)/1000:Math.max(0,(toMin(ev.end)-toMin(ev.start))*60);
   }
-  const r=state.running;
-  const b=r && runningDayBounds(r, state.viewDate);
-  if(b){
-    /* overlap-safe live seconds; midnight-safe via runningDayBounds */
-    let run=b.re-b.rs;
-    for(const ev of day.events){
-      const es=toMin(ev.start)*60, ee=toMin(ev.end)*60;
-      run-=Math.max(0,Math.min(b.re,ee)-Math.max(b.rs,es));
-    }
-    sec+=Math.max(0,run);
-  }
   return sec;
 }
 function renderTotal(){
@@ -3289,7 +3298,9 @@ function renderTotal(){
 function renderActiveElapsed(){
   const r=state.running,chip=$("#runChip"),out=$("#runElapsed");
   if(!r||!chip||!out)return;
-  const elapsed=TG_TIME_DISPLAY.compact(TG_TIME_DISPLAY.elapsed(r.startTs,Date.now()));
+  const start=TG_CONTINUITY.logicalStart(r,state.days);
+  const since=new Date(start);$("#runSince").textContent=hhmm(since.getHours()*60+since.getMinutes());
+  const elapsed=TG_TIME_DISPLAY.compact(TG_TIME_DISPLAY.elapsed(start,Date.now()));
   out.textContent=elapsed;
   const act=actById(r.actId),detail=runTagTitle(r),identity=(act?act.name:"현재 활동")+(detail?" "+detail:"");
   chip.setAttribute("aria-label",identity+", "+$("#runSince").textContent+"부터 기록 중, 현재 측정 "+elapsed+" 경과");
@@ -3392,7 +3403,7 @@ function renderTimeline(){
     sg[bi]._rsv=bRsv; sg[bi]._alnR=bR;
     return sg[bi];
   };
-  for(const ev of day.events){
+  for(const ev of day.events.filter(ev=>!ev.runningProjection)){
     const _act=recordedActById(ev.actId);
     let _tag="";
     if(ev.todoId){ const _t=day.todos.find(x=>x.id===ev.todoId); if(_t) _tag=_t.title; }
@@ -3424,7 +3435,7 @@ function renderTimeline(){
     vl.className="vline"; vl.style.left=(c/6*100)+"%";
     tlContent.appendChild(vl);
   }
-  for(const ev of day.events){
+  for(const ev of day.events.filter(ev=>!ev.runningProjection)){
     const act=recordedActById(ev.actId);
     let tagT="";
     if(ev.todoId){ const _t=day.todos.find(x=>x.id===ev.todoId); if(_t) tagT=_t.title; }
@@ -3468,7 +3479,9 @@ function renderLive(){
     rsegs.forEach((seg,i)=>{
       seg.labeled=(seg.hour===_runPick);
       seg.alignR=seg.labeled&&_runAlnR;
-      tlContent.appendChild(makeSegDiv(seg,act,"running"));
+      const node=makeSegDiv(seg,act,"running",runTagTitle(r));
+      node.dataset.hoverKey=JSON.stringify(['running',r.sessionId||r.startTs]);
+      tlContent.appendChild(node);
     });
   }
   if(state.viewDate===ymd(now)){
@@ -3814,7 +3827,7 @@ tlContent.addEventListener("pointercancel",e=>{
 /* ================= event edit dialog ================= */
 let editingEvId=null;
 function pendingEventEdit(date,event,start,end){
-  const pending=(measurementDay(date)?.events||[]).filter(ev=>ev.pendingFinalization);
+  const pending=(measurementDay(date)?.events||[]).filter(ev=>ev.pendingFinalization||ev.runningProjection);
   const bounds=event&&exactEventBounds(date,event);
   return pending.some(ev=>{
     if(event&&ev.id===event.id)return true;
@@ -3825,7 +3838,7 @@ function pendingEventEdit(date,event,start,end){
   });
 }
 function openEvDlg(ev){
-  if(ev.pendingFinalization){toast('종료 기록 동기화 후 수정할 수 있습니다.');return;}
+  if(ev.pendingFinalization||ev.runningProjection){toast('측정을 정지하고 기록이 저장된 뒤 수정할 수 있습니다.');return;}
   editingEvId=ev.id;
   const act=recordedActById(ev.actId);
   const sel=$("#evArea"); sel.innerHTML="";
@@ -3871,12 +3884,18 @@ $("#evSave").addEventListener("click",()=>{
   /* time input cannot express 24:00 so UI shows 23:59; keep EOD if untouched */
   if(e===1439 && $("#evEnd").dataset.eod==="1" && evv==="23:59") e=1440;
   if(e<=s){ msg.textContent="종료 시각이 시작보다 늦어야 합니다."; msg.className="msg err"; return; }
-  if(pendingEventEdit(state.viewDate,ev,s,e)){msg.textContent="종료 기록 동기화 후 수정할 수 있습니다.";msg.className="msg err";return;}
   const recorded=recordedActById(ev.actId);
   const explicitId=$("#evAct").dataset.selectedActId;
   const act=explicitId&&actById(explicitId)?.name===name?actById(explicitId):recorded&&recorded.name===name?recorded:resolveActivity(name, $("#evArea").value, true);
   if(!act){msg.textContent="활동을 선택하세요.";return;}
   const live=actById(act.id);if(live)live.lastUsed=Date.now();
+  // Unchanged time controls are a metadata edit, not a minute-precision rewrite.
+  const previousEnd=(ev.end==='24:00'||ev.end==='00:00'&&toMin(ev.start)>0)?1440:toMin(ev.end);
+  if(s===toMin(ev.start)&&e===previousEnd){
+    editMeasurementMetadata(ev,act.id,$("#evNote").value.trim());
+    save();renderAll();$("#evDlg").close();return;
+  }
+  if(pendingEventEdit(state.viewDate,ev,s,e)){msg.textContent="측정을 정지하고 기록이 저장된 뒤 수정할 수 있습니다.";msg.className="msg err";return;}
   /* 수정 구간이 다른 기록을 침범하면 확인 후에만 잠식한다 */
   const _ov=day.events.filter(x=>{ if(x.id===editingEvId) return false; const xs=toMin(x.start); let xe=toMin(x.end); if(xe===0&&xs>0) xe=1440; return xs<e && xe>s; });
   if(_ov.length){
@@ -4868,10 +4887,8 @@ function tickTmrBadges(){
   let base=0;
   if(r.todoId){ const td=day.todos.find(x=>x.id===r.todoId); if(td) base=todoMeasuredMin(day,td); }
   else{ const rt=day.routines.find(x=>x.id===r.routineId); if(rt) base=routineMeasuredMin(day,rt); }
-  const rb=runningDayBounds(r, state.viewDate);
-  const liveSec=rb? TG_TIME_DISPLAY.wholeSeconds(rb.re-rb.rs) : 0;
-  const total=base+Math.floor(liveSec/60);
-  els.forEach(el=>{ el.textContent=total>0? fmtShort(total) : (liveSec>0? liveSec+"s" : ""); });
+  const total=base;
+  els.forEach(el=>{ const seconds=TG_TIME_DISPLAY.wholeSeconds(total*60);el.textContent=total>=1?fmtShort(total):(seconds>0?seconds+"s":""); });
 }
 let lkTarget=null,lkKind=null;
 function openLinkDlg(item,kind){
@@ -7164,7 +7181,7 @@ $("#tlFsBtn").addEventListener("click",function(){openTlFs();});
 $("#tlFsClose").addEventListener("click",closeTlFs);
 document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!tlFs.hidden) closeTlFs();});
 function tlExportImage(){
-  var day=ensureDay(state.viewDate);
+  ensureDay(state.viewDate);var day=measurementDay(state.viewDate);
   var SC=2, LW=44, GW=520, PADT=64, PADB=28, RH=52;
   var W=LW+GW+20, H=PADT+24*RH+PADB;
   var cv=document.createElement("canvas"); cv.width=W*SC; cv.height=H*SC;
@@ -7173,9 +7190,9 @@ function tlExportImage(){
   ctx.fillStyle="#fff"; ctx.fillRect(0,0,W,H);
   ctx.fillStyle="#2C2C2B"; ctx.font="700 20px "+FONT;
   ctx.fillText(state.viewDate.replace(/-/g,".")+" 타임테이블",16,32);
-  var total=day.events.reduce(function(sm,e){return sm+Math.max(0,toMin(e.end)-toMin(e.start));},0);
+  var total=day.events.reduce(function(sm,e){return sm+(statSpan(e)?.min||0);},0);
   ctx.font="500 13px "+FONT; ctx.fillStyle="#8B8885";
-  ctx.fillText("총 기록 "+Math.floor(total/60)+"h "+(total%60)+"m",16,52);
+  ctx.fillText("총 기록 "+TG_TIME_DISPLAY.compact(total*60),16,52);
   var gx=LW, gy=PADT;
   for(var h=0;h<=24;h++){
     var y=gy+h*RH;
@@ -7232,6 +7249,7 @@ function tlExportImage(){
   }
   for(var i=0;i<day.events.length;i++){
     var ev=day.events[i];
+    if(ev.runningProjection)continue;
     var act=recordedActById(ev.actId);
     var tag="";
     if(ev.todoId){ var tt=day.todos.find(function(x){return x.id===ev.todoId;}); if(tt) tag=tt.title; }

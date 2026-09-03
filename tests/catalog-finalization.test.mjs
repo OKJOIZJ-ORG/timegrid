@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import test from 'node:test';
 import C from '../catalog-core.js';
+import TG_CONTINUITY_CORE from '../continuity-core.js';
 
 const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const copy=value=>JSON.parse(JSON.stringify(value));
@@ -10,7 +11,7 @@ function section(from,to){const start=html.indexOf(from),end=html.indexOf(to,sta
 function fixture(){
   let n=0,saved;
   const state={settings:{catalogRevision:0},days:{},running:null,finalizations:[]};
-  const context={state,TG_CATALOG:C,console,Date,JSON,Map,Set,Math,copy,copyRun:copy,
+  const context={state,TG_CATALOG:C,TG_CONTINUITY_CORE,console,Date,JSON,Map,Set,Math,copy,copyRun:copy,
     uid:prefix=>prefix+'-'+(++n),
     toMin:value=>{const[h,m]=value.split(':').map(Number);return h*60+m;},
     hhmm:minute=>String(Math.floor(minute/60)).padStart(2,'0')+':'+String(minute%60).padStart(2,'0'),
