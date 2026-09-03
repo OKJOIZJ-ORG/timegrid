@@ -22,11 +22,12 @@ Bump application footer version and Service Worker `VERSION` in unison; never re
 
 ## Current contracts
 
-Observed baseline (2026-09-02): v3.13.4 (commit `2d8aff18fa7e4b88f636eb89776a5730c8001b12`).
-- Index blob `1016dc8f7c84018f94b614508e9a9ecc973e7df5`; SW blob `6d1980fe5e39e0b82609bcd83bb630a1fc1f914f`; cache `timegrid-v3.13.4-20260902`.
+Verified production baseline (2026-09-03): v3.13.5 (release commit `849167be1610049dc7bfd1a66ec7cc12dc8c2039`).
+- Public index blob `907c0d3bd1624dd48c64c93cf618b1763f57fd77`; SW blob `ebd4f5d629ff99ca63574b1614574bec80e12f2d`; cache `timegrid-v3.13.5-20260903`.
 - External assets (Firebase, GSAP) enforce pinned SHA-384 SRI and anonymous CORS. Palette colors normalize to `#RRGGBB`. Firestore rules enforce `timegridOwner` custom claim and UID-path equality; email allowlists are deprecated.
 - `statusMutations` own completion state; `done` is derived. Master `routineDefs` and daily instances maintain separate IDs linked by `routineDefId`; normalize ID-less semantic duplicates. Preserve `todoMutations` (move/delete/restore).
 - Identical tracking restarted within 60 seconds merges exact timestamps and continuity lineage across the gap. Manual minute edits sever lineage.
+- Measurement overlap is timestamp-based: separate short events in one rounded minute survive. True overlap clips only covered time and preserves unaffected exact bounds; clipped spans lose invalid lineage. Legacy end `00:00` after a positive start means next-day midnight.
 - Integer-second totals (`HH:MM:SS`) and single-session timers (`Nh Nm Ns`) share millisecond boundaries; live status suppresses duplicate activity titles.
 - Tracker 1s tick updates live nodes only. Marker layout invalidates strictly on data or geometry shifts. Text width measures post-weight-600 paint and font readiness; ignore hidden `clientWidth=0`, enforce placeholder safety margins, and remeasure via `ResizeObserver`.
 - Desktop Planner rows enforce 48px height on a shared 12px subgrid. Mobile Todo: min 66px compact rows and single-line `할일 입력 | 영역 | 추가` composer. Routine: 72px two-tier rows with distributed metadata. Planner outer padding matches interior rhythm; optional children declare explicit columns.
