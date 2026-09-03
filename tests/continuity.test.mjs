@@ -62,6 +62,71 @@ function fixture() {
 const date = "2026-09-03"
 const base = new Date(2026, 8, 3, 10, 0, 0).getTime()
 
+// C-TRACK-01: accepted product intent, confirmed by the user on 2026-09-03.
+// This gap is deliberately counted. It is distinct from timestamp-overlap repair.
+for (const gapMs of [0, 59_999, 60_000, 60_001]) {
+  const f = fixture()
+  f.record("a", base, base + 20_000)
+  const first = { ...f.events(date)[0] }
+  f.record("a", base + 20_000 + gapMs, base + 40_000 + gapMs)
+  const joins = gapMs <= 60_000
+  assert.equal(f.events(date).length, joins ? 1 : 2, `C-TRACK-01: ${gapMs}ms boundary`)
+  assert.equal(f.totalMs(), 40_000 + (joins ? gapMs : 0), "eligible gaps count exactly once")
+  assert.equal(f.events(date)[0].id, first.id, "the original event identity survives")
+  if (joins) {
+    const event = f.events(date)[0]
+    assert.equal(event.startTs, base)
+    assert.equal(event.endTs, base + 40_000 + gapMs)
+    assert.equal(event.continuityId, first.continuityId)
+    assert.equal(event.gapIncludedMs, gapMs)
+    assert.equal(event.sessionIds.length, 2)
+  }
+}
+
+for (const [label, first, next, joins] of [
+  ["same Todo", { todoId: "t1" }, { todoId: "t1" }, true],
+  ["same Routine", { routineId: "r1" }, { routineId: "r1" }, true],
+  ["different Routine", { routineId: "r1" }, { routineId: "r2" }, false],
+  ["equivalent free note", { note: "read  chapter" }, { note: " read chapter " }, true],
+  ["different free note", { note: "chapter 1" }, { note: "chapter 2" }, false],
+  ["different link kind", { todoId: "same-id" }, { routineId: "same-id" }, false],
+]) {
+  const f = fixture()
+  f.record("a", base, base + 20_000, first)
+  f.record("a", base + 50_000, base + 70_000, next)
+  assert.equal(f.events(date).length, joins ? 1 : 2, `C-TRACK-01 identity: ${label}`)
+  assert.equal(f.totalMs(), joins ? 70_000 : 40_000, `C-TRACK-01 duration: ${label}`)
+}
+
+{
+  const f = fixture()
+  f.record("a", base, base + 20_000)
+  const originalId = f.events(date)[0].id
+  f.record("a", base + 50_000, base + 70_000)
+  // Persistence roundtrip must retain the design contract, not reset its lineage.
+  f.state.days = JSON.parse(JSON.stringify(f.state.days))
+  f.record("a", base + 130_000, base + 150_000)
+  const event = f.events(date)[0]
+  assert.equal(f.events(date).length, 1, "C-TRACK-01: repeated resumes remain one event")
+  assert.equal(event.id, originalId)
+  assert.equal(event.gapIncludedMs, 90_000)
+  assert.equal(new Set(event.sessionIds).size, 3)
+  assert.equal(f.totalMs(), 150_000, "each eligible gap counts once after reload")
+}
+
+{
+  const f = fixture()
+  const midnight = new Date(2026, 8, 4).getTime()
+  f.record("a", midnight - 40_000, midnight - 20_000)
+  f.record("a", midnight + 20_000, midnight + 40_000)
+  const pieces = Object.values(f.state.days).flatMap(day => day.events)
+  assert.equal(pieces.length, 2, "C-TRACK-01: midnight needs two date storage fragments")
+  assert.equal(new Set(pieces.map(row => row.continuityId)).size, 1, "one logical measurement across midnight")
+  assert.equal(pieces[0].endTs, pieces[1].startTs, "storage fragments cover the restart gap without a hole")
+  assert.ok(pieces.every(row => row.fragmentCount === 2 && row.gapIncludedMs === 40_000))
+  assert.equal(f.totalMs(), 80_000, "the midnight restart gap counts once in elapsed time")
+}
+
 {
   const f = fixture()
   f.record("a", base, base + 20_000)
