@@ -1527,7 +1527,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.14.3<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.14.4<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -2500,7 +2500,8 @@ function appendTodoMutation(day,mutation){
   day.todoMutations=TG_TODO_MUTATIONS.normalizeList([...(day.todoMutations||[]),mutation]);
 }
 function makeTodoMutation(kind,todo,fromDate,toDate){
-  return TG_TODO_MUTATIONS.create(kind,todo,fromDate,toDate,{deviceId:typeof tgDeviceId==="function"?tgDeviceId():"local"});
+  const latest=TG_TODO_MUTATIONS.latestByTodo(state.days).get(String(todo?.id||""));
+  return TG_TODO_MUTATIONS.create(kind,todo,fromDate,toDate,{at:Math.max(Date.now(),TG_TODO_MUTATIONS.stamp(latest)+1),deviceId:typeof tgDeviceId==="function"?tgDeviceId():"local"});
 }
 function appendTodoRestoreIfNeeded(day,dateStr,todo){
   if(!todo||!todo.id)return;
@@ -4649,12 +4650,16 @@ function makeTmrBtn(item,kind){
   return b;
 }
 let todoActionItem=null,todoActionDate="",todoActionTrigger=null,todoMoveItem=null,todoMoveSource="",todoMoveTarget="";
+function todoHasRecordedHistory(item){
+  return !!item?.id&&Object.values(state.days).some(day=>(day.events||[]).some(ev=>ev.todoId===item.id));
+}
 function todoMoveGuard(day,item){
   if(!day||!item) return {ok:false,reason:"할일을 찾을 수 없습니다."};
-  if(item.done) return {ok:false,reason:"완료한 할일은 날짜를 이동할 수 없습니다."};
   if(state.running&&state.running.todoId===item.id) return {ok:false,reason:"측정을 정지한 뒤 날짜를 이동하세요."};
-  if(todoMeasuredMin(day,item)>0) return {ok:false,reason:"측정 기록이 있는 할일은 원래 날짜에 남겨야 합니다."};
-  return {ok:true,reason:""};
+  if((state.finalizations||[]).some(f=>f.running?.todoId===item.id))return {ok:false,reason:"측정 기록 저장이 끝나면 날짜를 변경할 수 있습니다."};
+  const continuation=todoHasRecordedHistory(item);
+  if(item.done&&!continuation) return {ok:false,reason:"완료한 할일은 날짜를 이동할 수 없습니다."};
+  return {ok:true,continuation,reason:""};
 }
 function nextDateStr(ds){ const d=dateOf(ds); d.setDate(d.getDate()+1); return ymd(d); }
 function shiftDateStr(ds, n){ const d=dateOf(ds); d.setDate(d.getDate()+n); return ymd(d); }
@@ -4725,25 +4730,53 @@ function openTodoAction(item,day,trigger){
   }
   dateSub.textContent=subText;
 
-  const note=$("#todoActionNote");note.hidden=guard.ok;note.textContent=guard.reason;
+  const note=$("#todoActionNote");note.hidden=!guard.reason;note.textContent=guard.reason;
   trigger.setAttribute("aria-expanded","true");
   layer.hidden=false;positionTodoAction(trigger);
   requestAnimationFrame(function(){menu.classList.add("open");const first=menu.querySelector(".todo-action-item:not(:disabled)");if(first)first.focus({preventScroll:true});});
 }
 function moveTodoTo(item,sourceDs,targetDs){
-  const source=ensureDay(sourceDs),guard=todoMoveGuard(source,item);
+  const source=state.days[sourceDs];
+  item=(source?.todos||[]).find(t=>t.id===item?.id);
+  const guard=todoMoveGuard(source,item);
   if(!guard.ok){toast(guard.reason);return false;}
-  if(!targetDs||targetDs===sourceDs){toast("다른 날짜를 선택하세요.");return false;}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(targetDs)||!Number.isFinite(dateOf(targetDs).getTime())||ymd(dateOf(targetDs))!==targetDs||targetDs===sourceDs){toast("다른 날짜를 선택하세요.");return false;}
   const sourceIndex=source.todos.indexOf(item);
-  if(sourceIndex<0){toast("할일을 찾을 수 없습니다.");return false;}
   const target=ensureDay(targetDs);
+  if(guard.continuation){
+    // A date-specific continuation is a normal new Todo, never a second copy
+    // of the measured identity. Repeated local actions reuse explicit lineage.
+    if(target.todos.some(t=>t.continuationOf===item.id)){
+      toast(fmtDateK(targetDs)+"에 할일이 이미 있습니다.");return true;
+    }
+    const next={id:uid("td"),title:item.title,done:false,continuationOf:item.id};
+    for(const key of ["area","areaId","actId","time","end"])if(item[key]!==undefined)next[key]=item[key];
+    target.todos.push(next);save();renderTodos();renderTimeline();renderStats();renderLive();
+    const expected=TG_CATALOG.key(state.days[targetDs].todos.find(t=>t.id===next.id));
+    const initialMutation=TG_TODO_MUTATIONS.latestByTodo(state.days).get(next.id)?.id;
+    toast(fmtDateK(targetDs)+"에 할일을 추가했습니다.",function(){
+      const current=state.days[targetDs]?.todos.find(t=>t.id===next.id);
+      if(!current||TG_CATALOG.key(current)!==expected||TG_TODO_MUTATIONS.latestByTodo(state.days).get(next.id)?.id!==initialMutation||!todoMoveGuard(state.days[targetDs],current).ok||todoHasRecordedHistory(current)){
+        toast("할일이 변경되어 실행 취소하지 않았습니다.");return;
+      }
+      deleteTodo(state.days[targetDs],current,targetDs);
+    });
+    return true;
+  }
   if(target.todos.some(function(x){return x.id===item.id;})){toast("대상 날짜에 같은 TimeGrid ID가 있어 이동하지 않았습니다.");return false;}
   const moved=item,mutation=makeTodoMutation("move",moved,sourceDs,targetDs);
   source.todos.splice(sourceIndex,1);target.todos.push(moved);appendTodoMutation(source,mutation);appendTodoMutation(target,mutation);save();renderTodos();renderTimeline();renderStats();renderLive();
+  const expected=TG_CATALOG.key(state.days[targetDs].todos.find(t=>t.id===moved.id));
   toast("할일을 "+fmtDateK(targetDs)+"로 이동했습니다",function(){
-    const undoMutation=makeTodoMutation("move",moved,targetDs,sourceDs);
-    const i=target.todos.indexOf(moved);if(i>=0)target.todos.splice(i,1);
-    source.todos.splice(Math.min(sourceIndex,source.todos.length),0,item);appendTodoMutation(target,undoMutation);appendTodoMutation(source,undoMutation);save();renderTodos();renderTimeline();renderStats();renderLive();
+    const currentTarget=state.days[targetDs],current=currentTarget?.todos.find(t=>t.id===moved.id);
+    const latest=TG_TODO_MUTATIONS.latestByTodo(state.days).get(moved.id);
+    if(!current||TG_CATALOG.key(current)!==expected||latest?.id!==mutation.id||!todoMoveGuard(currentTarget,current).ok||todoHasRecordedHistory(current)){
+      toast("할일이 변경되어 실행 취소하지 않았습니다.");return;
+    }
+    const currentSource=ensureDay(sourceDs),undoMutation=makeTodoMutation("move",current,targetDs,sourceDs);
+    currentTarget.todos.splice(currentTarget.todos.indexOf(current),1);
+    currentSource.todos.splice(Math.min(sourceIndex,currentSource.todos.length),0,current);
+    appendTodoMutation(currentTarget,undoMutation);appendTodoMutation(currentSource,undoMutation);save();renderTodos();renderTimeline();renderStats();renderLive();
   });
   return true;
 }
@@ -4822,7 +4855,8 @@ function openTodoMove(item,sourceDs,initialDs){
   }
   $("#todoMoveSourceText").textContent=fmtDateK(sourceDs);
   const target=initialDs||shiftDateStr(sourceDs,1);
-  $("#todoMoveMsg").textContent="";
+  const guard=todoMoveGuard(state.days[sourceDs],item);
+  $("#todoMoveMsg").className="msg";$("#todoMoveMsg").textContent=guard.reason;
   setTodoMoveTargetDate(target);
   $("#todoMoveDlg").showModal();
 }

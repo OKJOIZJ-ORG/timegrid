@@ -34,6 +34,19 @@ const server=http.createServer((req,res)=>{
         ${mode==='edit'?'materializeExactSpan(fixtureRun,fixtureNow-10000);':'state.running=fixtureRun;'}
       `).replace('fixtureDay.todos[0].time="21:30";fixtureDay.todos[1].time="09:00";fixtureDay.todos[1].end="10:10";','')
     }
+    if(url.searchParams.has('todo-date')){
+      // Isolated browser storage: run the actual save/normalization path.
+      html=html.replace('if(DEMO) return;','').replace('  if(document.body.dataset.pastel) autoColorAll();',`
+        state.days={};state.running=null;state.finalizations=[];
+        state.viewDate=shiftDateStr(ymd(new Date()),-1);
+        const fixtureTodoDay=ensureDay(state.viewDate),fixtureTodoAct=state.settings.activities[0];
+        fixtureTodoDay.todos=[{id:'fixture-measured-todo',title:'사회문화 전범위 집중 복구',area:fixtureTodoAct.area,areaId:fixtureTodoAct.areaId,actId:fixtureTodoAct.id,time:'09:00',end:'10:00',done:false}];
+        const fixtureStart=dateOf(state.viewDate).getTime()+9*3600000;
+        materializeExactSpan({sessionId:'fixture-work',todoId:'fixture-measured-todo',actId:fixtureTodoAct.id,startTs:fixtureStart},fixtureStart+120000);
+        save();
+        window.fixtureTodo={source:state.viewDate,target:nextDateStr(state.viewDate),id:'fixture-measured-todo'};
+      `)
+    }
     if(url.searchParams.has('no-gsap'))html=html.replace(/<script src="https:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/gsap\/[^>]+><\/script>/g,'')
     if(url.searchParams.has('ack-observation')){
       html=html.replace('if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();',`
