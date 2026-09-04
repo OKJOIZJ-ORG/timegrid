@@ -35,6 +35,42 @@ const server=http.createServer((req,res)=>{
       `).replace('fixtureDay.todos[0].time="21:30";fixtureDay.todos[1].time="09:00";fixtureDay.todos[1].end="10:10";','')
     }
     if(url.searchParams.has('no-gsap'))html=html.replace(/<script src="https:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/gsap\/[^>]+><\/script>/g,'')
+    if(url.searchParams.has('ack-observation')){
+      html=html.replace('if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();',`
+        user={uid:'fixture'};ready=true;authKnown=true;cloudUnavailable=false;
+        let fixtureListener,fixtureListenerOptions,fixtureLastData,fixtureLastMetadata,fixtureReceipt,fixtureAckReads=[];
+        const fixtureWaiters=[];
+        userPaths=()=>({
+          settings:{onSnapshot:()=>()=>{}},days:{onSnapshot:()=>()=>{}},
+          running:{onSnapshot:(options,cb)=>{fixtureListenerOptions=typeof options==='function'?{}:options;fixtureListener=typeof options==='function'?options:cb;return()=>{};}},
+          finalizationAcks:{doc:id=>({get:()=>{fixtureAckReads.push(id);return new Promise(resolve=>fixtureWaiters.push({id,resolve}));}})}
+        });
+        // Ordinary history is deliberately stalled. No timer/heartbeat will
+        // rescue a missing completion render in this fixture.
+        schedulePush=()=>{};
+        startListeners(user.uid);
+        window.fixtureAck={
+          reset(){
+            observedFinalizationAcks.clear();fixtureAckReads=[];fixtureWaiters.length=0;fixtureLastData=undefined;fixtureLastMetadata=undefined;
+            const end=Date.now()-1000;
+            fixtureReceipt=prepareFinalization({sessionId:'fixture-stop',actId:state.settings.activities[0].id,startTs:end-20000},end);
+            state.running=null;state.finalizations=[fixtureReceipt];renderAll();
+          },
+          emit({fromCache=false,hasPendingWrites=false,stale=false}={}){
+            const raw={running:null,finalizations:stale?[fixtureReceipt]:[],syncRev:99};
+            const dataKey=JSON.stringify(raw),metadataKey=JSON.stringify({fromCache,hasPendingWrites});
+            // Firestore suppresses same-data metadata events unless requested.
+            if(dataKey===fixtureLastData&&(metadataKey===fixtureLastMetadata||!fixtureListenerOptions.includeMetadataChanges))return;
+            fixtureLastData=dataKey;fixtureLastMetadata=metadataKey;
+            fixtureListener({exists:true,data:()=>raw,metadata:{fromCache,hasPendingWrites}});
+          },
+          resolve(exists=true){for(const w of fixtureWaiters.splice(0))w.resolve({exists});},
+          reads:()=>fixtureAckReads.length,
+          pending:()=>state.finalizations.length
+        };
+        window.fixtureAck.reset();
+      `)
+    }
     res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(html);return
   }
   if(!/^\/(?:icons|brand)\/[\w.-]+$/.test(route)&&!['/manifest.webmanifest','/catalog-core.js','/continuity-core.js','/catalog-manager.js','/catalog-manager.css'].includes(route)){res.writeHead(404);res.end();return}

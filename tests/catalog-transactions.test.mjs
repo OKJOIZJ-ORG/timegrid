@@ -72,7 +72,7 @@ function client(server,{local=false,now=start+20_000}={}){
     +fn('  function itemKey(x,i,prefix){','  function mergeSettings(')
     +fn('  function markDirty(){','  function userPaths(')
     +fn('  function validateCatalogRevision(raw){','  async function readCatalogHistory(')
-    +fn('  function absorbFinalizations(raw){','  async function readAndApply(')
+    +fn('  /* FINALIZATION_OBSERVATION_CORE_START */','  async function readAndApply(')
     +fn('  async function flushDay(uid,date){','  async function deleteCatalog(')
     +fn('  async function deleteCatalog(preview){','  function startGate(){')
     +fn('  function startGate(){','  function setRunLock(')

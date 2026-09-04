@@ -6,6 +6,58 @@ const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
 function fn(start,end){const a=html.indexOf(start),b=html.indexOf(end,a+start.length);assert.ok(a>=0&&b>a,start);return html.slice(a,b);}
 const deferred=()=>{let resolve;const promise=new Promise(r=>{resolve=r;});return {promise,resolve};};
 
+test('confirmed ack removal repaints the timer without waiting for the next heartbeat',async()=>{
+  const receipt={id:'saved',scope:'cloud'},state={finalizations:[receipt]};let renders=0;
+  const ctx=vm.createContext({state,Set,copy:x=>JSON.parse(JSON.stringify(x)),user:{uid:'synthetic'},
+    userPaths:()=>({running:{get:async()=>({data:()=>({finalizations:[]})})},finalizationAcks:{doc:()=>({get:async()=>({exists:true})})}}),
+    persistCatalogLocal(){},queueRender(){renders++}});
+  vm.runInContext(fn('  /* FINALIZATION_OBSERVATION_CORE_START */','  /* FINALIZATION_OBSERVATION_CORE_END */')+fn('  async function refreshFinalizations(uid,','  async function acknowledgeFinalizations(uid){'),ctx);
+  await ctx.refreshFinalizations('synthetic');
+  assert.equal(state.finalizations.length,0);
+  assert.equal(renders,1,'server-completed Stop must update the disabled button now, not on the 60s heartbeat');
+});
+
+function observationClient(){
+  const state={finalizations:[{id:'saved',scope:'cloud'}],running:null};
+  const ctx=vm.createContext({state,user:{uid:'first'},Set,Map,copy:x=>JSON.parse(JSON.stringify(x)),
+    normRun:r=>r,persistCatalogLocal(){},queueRender(){ctx.renders++},renders:0});
+  vm.runInContext(fn('  /* FINALIZATION_OBSERVATION_CORE_START */','  /* FINALIZATION_OBSERVATION_CORE_END */')+fn('  async function refreshFinalizations(uid,','  async function acknowledgeFinalizations(uid){'),ctx);
+  return ctx;
+}
+test('positive completion survives stale pending and legacy-guard observations',()=>{
+  const c=observationClient();c.applyFinalizationAcks('first',['saved']);
+  c.absorbFinalizations({finalizations:[{id:'saved',scope:'cloud'}]});
+  c.absorbFinalizations({running:null,legacyStopGuard:{running:{sessionId:'saved'}},updatedAtMs:1});
+  assert.equal(c.state.finalizations.length,0);assert.equal(c.renders,1);
+  c.absorbFinalizations({finalizations:[{id:'new',scope:'cloud'}]});
+  assert.equal(c.state.finalizations[0].id,'new','a distinct Stop remains pending');
+  c.user={uid:'second'};c.absorbFinalizations({finalizations:[{id:'saved',scope:'cloud'}]});
+  assert.equal(c.state.finalizations.length,2,'positive evidence is scoped by account');
+});
+test('absence, failed reads and late previous-account completions do not clear pending',async()=>{
+  const c=observationClient();
+  c.userPaths=()=>({finalizationAcks:{doc:()=>({get:async()=>({exists:false})})}});
+  await c.refreshFinalizations('first',{finalizations:[]});
+  assert.equal(c.state.finalizations.length,1,'remote absence alone is not completion');
+  c.userPaths=()=>({finalizationAcks:{doc:()=>({get:async()=>{throw Error('offline')}})}});
+  await assert.rejects(c.refreshFinalizations('first',{finalizations:[]}),/offline/);
+  assert.equal(c.state.finalizations.length,1);assert.equal(c.renders,0);
+  const ack=deferred();c.userPaths=()=>({finalizationAcks:{doc:()=>({get:()=>ack.promise})}});
+  const read=c.refreshFinalizations('first',{finalizations:[]});c.user={uid:'second'};
+  ack.resolve({exists:true});await read;
+  assert.equal(c.state.finalizations.length,1);assert.equal(c.renders,0);
+});
+test('independent ack reads apply each completed receipt without waiting for another stalled read',async()=>{
+  const c=observationClient(),slow=deferred();
+  c.state.finalizations.push({id:'slow',scope:'cloud'},{id:'local',scope:'local'});
+  c.userPaths=()=>({finalizationAcks:{doc:id=>({get:()=>id==='slow'?slow.promise:Promise.resolve({exists:true})})}});
+  const read=c.refreshFinalizations('first',{finalizations:[]});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.deepEqual(Array.from(c.state.finalizations,f=>f.id),['slow','local']);assert.equal(c.renders,1);
+  slow.resolve({exists:true});await read;
+  assert.equal(c.state.finalizations.length,1);assert.equal(c.state.finalizations[0].scope,'local');
+});
+
 test('timer post-action sync never waits for unrelated history or locks a confirmed running session',async()=>{
   const calls=[],pending=deferred();
   const ctx=vm.createContext({user:{uid:'synthetic'},ready:true,navigator:{onLine:true},outbox:{run:null},

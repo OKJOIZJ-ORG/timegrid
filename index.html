@@ -1527,7 +1527,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.14.2<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.14.3<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -7950,12 +7950,31 @@ const TG_SYNC_OBSERVATION={
     if(receipts.length!==revision||receipts.some((r,i)=>r.revision!==i+1))throw new Error('catalog-history-incomplete');
     return receipts;
   }
+  /* FINALIZATION_OBSERVATION_CORE_START */
+  // Positive immutable server evidence, scoped by account. This is a session
+  // cache, not a second durable ledger; reload checks the canonical ack again.
+  const observedFinalizationAcks=new Set();
+  function finalizationAcknowledged(id,ownerUid=user?.uid){
+    return !!ownerUid&&observedFinalizationAcks.has(ownerUid+'/'+id);
+  }
+  function applyFinalizationAcks(ownerUid,ids){
+    if(!ownerUid||user?.uid!==ownerUid)return false;
+    for(const id of ids)observedFinalizationAcks.add(ownerUid+'/'+id);
+    const before=state.finalizations||[];
+    const next=before.filter(f=>f.scope==='local'||!finalizationAcknowledged(f.id,ownerUid));
+    if(next.length===before.length)return false;
+    state.finalizations=next;
+    // Every completion path owns persistence AND notification. The history
+    // queue and heartbeat are not responsible for unlocking the timer UI.
+    try{persistCatalogLocal();}finally{queueRender();}
+    return true;
+  }
   function absorbFinalizations(raw){
-    const map=new Map((state.finalizations||[]).map(f=>[f.id,f]));
-    for(const f of raw.finalizations||[])map.set(f.id,copy(f));
+    const map=new Map((state.finalizations||[]).filter(f=>f.scope==='local'||!finalizationAcknowledged(f.id)).map(f=>[f.id,f]));
+    for(const f of raw.finalizations||[])if(!finalizationAcknowledged(f.id))map.set(f.id,copy(f));
     if(raw.legacyStopGuard&&!raw.running){
       const run=normRun(raw.legacyStopGuard.running);
-      if(run&&!map.has(run.sessionId)){
+      if(run&&!map.has(run.sessionId)&&!finalizationAcknowledged(run.sessionId)){
         const end=Number(raw.updatedAtMs)||0;
         if(end<run.startTs)throw new Error('legacy-stop-time-invalid');
         map.set(run.sessionId,prepareFinalization(run,end));
@@ -7964,6 +7983,7 @@ const TG_SYNC_OBSERVATION={
     state.finalizations=[...map.values()];
     if(state.finalizations.some(f=>f.id===state.running?.sessionId))state.running=null;
   }
+  /* FINALIZATION_OBSERVATION_CORE_END */
   function stripLegacyFinalization(intent,baseDays,localDays){
     const expected=materializedFinalizationDays([intent],baseDays),result=copy(localDays);
     const shape=ev=>{const value={...ev};delete value.id;return TG_CATALOG.key(value);};
@@ -8293,16 +8313,17 @@ const TG_SYNC_OBSERVATION={
     if(dates.size>400)throw new Error('stop-finalization-too-large');
     return [...dates].sort();
   }
-  async function refreshFinalizations(uid){
-    const p=userPaths(uid),snap=await p.running.get({source:'server'}),raw=snap.data()||{};
+  async function refreshFinalizations(uid,observedRunning){
+    const p=userPaths(uid);
+    const raw=observedRunning??(await p.running.get({source:'server'})).data()??{};
+    if(user?.uid!==uid)return raw;
     absorbFinalizations(raw);
-    const pending=(state.finalizations||[]).slice(),completed=new Set();
-    for(const receipt of pending){
+    const pending=(state.finalizations||[]).filter(f=>f.scope!=='local');
+    await Promise.all(pending.map(async receipt=>{
       const ack=await p.finalizationAcks.doc(receipt.id).get({source:'server'});
-      if(ack.exists)completed.add(receipt.id);
-    }
-    state.finalizations=(state.finalizations||[]).filter(f=>!completed.has(f.id));
-    persistCatalogLocal();
+      if(ack.exists)applyFinalizationAcks(uid,[receipt.id]);
+    }));
+    if(user?.uid===uid)persistCatalogLocal();
     return raw;
   }
   async function acknowledgeFinalizations(uid){
@@ -8355,6 +8376,7 @@ const TG_SYNC_OBSERVATION={
         tx.set(p.running,{finalizations:remaining,...(guardStop?{legacyStopGuard:null}:{}),catalogProtocol:2,catalogWriteRev:rev,syncRev:rev,updatedAtMs:at,updatedAt:at,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
         return {acknowledged:true,days:materialized,metas,rev};
       });
+      if(user?.uid!==uid)return;
       for(const [date,day] of Object.entries(result.days)){
         const before=captured[date]?normDay(captured[date]):emptyDay();
         const current=state.days[date]?normDay(state.days[date]):emptyDay();
@@ -8363,7 +8385,7 @@ const TG_SYNC_OBSERVATION={
         state.days[date]=mergeDay(before,current,day,true);
         syncBase.days[date]=copy(day);syncBase.dayMeta[date]=result.metas[date];
       }
-      state.finalizations=(state.finalizations||[]).filter(f=>f.id!==requested.id);
+      applyFinalizationAcks(uid,[requested.id]);
       if(result.rev)syncBase.runningVersion=Math.max(syncBase.runningVersion||0,result.rev);
       persistCatalogLocal();persistBase();markDirty();queueRender();
     }
@@ -8501,10 +8523,16 @@ const TG_SYNC_OBSERVATION={
       });
       persistBase();persistOutbox();persistLocal();queueRender();if(!snap.metadata||!snap.metadata.fromCache)markServerOk();schedulePush();
     },function(err){setStatus("기록 실시간 수신 오류 · "+(err&&err.message||err),"err");});
-    unsubRunning=p.running.onSnapshot(function(snap){
+    unsubRunning=p.running.onSnapshot({includeMetadataChanges:true},function(snap){
+      if(user?.uid!==uid)return;
       const d=snap.exists?(snap.data()||{}):{};
       absorbFinalizations(d);
       applyRemoteRunning(d.running||null,metaOf(d),false);if(!snap.metadata||(!snap.metadata.fromCache&&!snap.metadata.hasPendingWrites))markRunningServerOk();schedulePush();
+      // Observe completion independently of a slow ordinary outbox/finalizer.
+      // Missing pending entries alone are not proof: read the immutable ack.
+      if((state.finalizations||[]).some(f=>f.scope!=='local')&&!snap.metadata?.fromCache&&!snap.metadata?.hasPendingWrites){
+        refreshFinalizations(uid,d).catch(()=>{if(user?.uid===uid&&(state.finalizations||[]).some(f=>f.scope!=='local'))setStatus('종료 기록 확인 재시도 대기','warn');});
+      }
     },function(err){setStatus("측정 상태 실시간 수신 오류 · "+(err&&err.message||err),"err");});
   }
 
