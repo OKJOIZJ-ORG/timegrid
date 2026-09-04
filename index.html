@@ -1527,7 +1527,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.14.1<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.14.2<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -1986,6 +1986,7 @@ const GS=window.gsap||null;
 function rmPref(){ try{ return document.documentElement.dataset.input==="keyboard"||window.matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(e){ return false; } }
 function settleMotion(){
   if(!rmPref())return;
+  if(window.settleCatalogMotion)window.settleCatalogMotion();
   // Finish current owners, including their cleanup callbacks, before removing motion.
   if(GS)GS.globalTimeline.getChildren(false,true,true).forEach(t=>t.totalProgress(1));
 }
@@ -7581,7 +7582,7 @@ const TG_SYNC_OBSERVATION={
     if(!s.signedIn)return s.expectedCloud
       ?{kind:"warn",text:"계정 연결 끊김 · 기기 기록 보관 중 · 로그인 필요"}
       :{kind:"warn",text:"이 기기에만 저장 · 윤텔에 전달되지 않음"};
-    if(!s.ready||!s.online)return {kind:"warn",text:"서버 연결 대기 · 기기 기록 보관 중"};
+    if(!s.ready||!s.online)return {kind:"pending",text:"동기화 확인 중…"};
     if(s.pending||!s.matches)return {kind:"warn",text:"측정 상태 전송 대기 · 서버 반영 미확인"};
     if(!s.confirmedAt||s.now-s.confirmedAt>90000)return {kind:"warn",text:"서버 측정 상태 재확인 중"};
     return {kind:"ok",text:"측정 상태 서버 동기화 확인"};
@@ -7624,6 +7625,7 @@ const TG_SYNC_OBSERVATION={
   let runLocking=false,runLockLabel="";
   let liveStatus=false,lastServerOkAt=0,heartbeatBusy=false;
   let lastRunningServerAt=0;
+  let finalizationPromise=null,connectionPromise=null,connectionUid=null;
   let unsubSettings=null,unsubDays=null,unsubRunning=null;
 
   function blankBase(){
@@ -8081,7 +8083,7 @@ const TG_SYNC_OBSERVATION={
 
   async function deleteCatalog(preview){
     const gate=startGate();
-    if(!gate.allowed)throw new Error('cloud-unavailable');
+    if(!gate.allowed&&gate.mode!=='finalizing')throw new Error('cloud-unavailable');
     preview.operationId=preview.operationId||uid('catalog');
     if(gate.mode==='local'){
       const result=TG_CATALOG.deletion(state.settings,preview,{operationId:preview.operationId,at:Date.now(),running:state.running,finalizations:state.finalizations||[],pendingRun:outbox.run});
@@ -8120,6 +8122,7 @@ const TG_SYNC_OBSERVATION={
   }
   function startGate(){
     if(runLocking) return {allowed:false,mode:"locked",label:runLockLabel||"동기화 중…",message:"측정 상태를 확인하고 있습니다"};
+    if((state.finalizations||[]).some(f=>f.scope!=='local'))return {allowed:false,mode:"finalizing",label:"기록 동기화 중…",message:"종료 기록을 저장하고 있습니다"};
     if(!authKnown) return {allowed:false,mode:"pending",label:"동기화 확인 중…",message:"계정 동기화 확인이 끝날 때까지 잠시 기다려 주세요"};
     if(user){
       if(!ready) return {allowed:false,mode:"pending",label:"동기화 확인 중…",message:"클라우드 측정 상태를 확인하고 있습니다"};
@@ -8183,9 +8186,10 @@ const TG_SYNC_OBSERVATION={
   }
   async function requestStop(candidate){
     const target=normRun(candidate);if(!target)return {ok:false,reason:"invalid"};
+    const endedAt=Date.now();
     if(!authKnown) return {ok:false,reason:"pending"};
     function durableLocalStop(){
-      const end=Date.now(),receipt=prepareFinalization(target,end);
+      const end=endedAt,receipt=prepareFinalization(target,end);
       receipt.scope=(!user&&!cloudUnavailable)?'local':'cloud';
       const pending=state.finalizations||[];
       const previousRunning=state.running;
@@ -8201,8 +8205,9 @@ const TG_SYNC_OBSERVATION={
     }
     setRunLock(true,"중지 중…");
     try{
-      await syncBarrier(true);
-      const receipt=prepareFinalization(target,Date.now());
+      // Stop owns only this session. Unrelated history/settings cannot delay its
+      // endpoint or publication; the transaction revalidates current ownership.
+      const receipt=prepareFinalization(target,endedAt);
       const ref=userPaths(user.uid).running;
       const result=await db.runTransaction(async function(tx){
         const snap=await tx.get(ref),raw=snap.exists?(snap.data()||{}):{};
@@ -8304,7 +8309,7 @@ const TG_SYNC_OBSERVATION={
     const p=userPaths(uid);
     for(const requested of (state.finalizations||[]).slice()){
       if(requested.scope==='local')continue;
-      const captured=copy(state.days);
+      const captured=copy(state.days),capturedBase=copy(syncBase.days),capturedOutbox=copy(outbox.days);
       const result=await db.runTransaction(async tx=>{
         const ackRef=p.finalizationAcks.doc(requested.id),ack=await tx.get(ackRef);
         if(ack.exists)return {acknowledged:true,days:{},metas:{}};
@@ -8316,14 +8321,19 @@ const TG_SYNC_OBSERVATION={
         const guardStop=guarded?.sessionId===requested.id&&!raw.running;
         if(!receipt&&guardStop)receipt=prepareFinalization(guarded,Number(raw.updatedAtMs));
         if(!receipt)throw new Error('stop-finalization-not-published');
-        const days={},metas={},rawDays={};
+        const days={},remoteDays={},metas={};
         let dates=finalizationDates(receipt,{});
         while(dates.some(date=>!Object.hasOwn(days,date))){
           for(const date of dates){
             if(Object.hasOwn(days,date))continue;
             const daySnap=await tx.get(p.days.doc(date)),dayRaw=daySnap.data()||{};
-            rawDays[date]=dayRaw;metas[date]=metaOf(dayRaw);
-            days[date]=normDay(dayRaw);
+            metas[date]=metaOf(dayRaw);remoteDays[date]=normDay(dayRaw);
+            const base=capturedBase[date]?normDay(capturedBase[date]):emptyDay();
+            const local=captured[date]?normDay(captured[date]):base;
+            const localAt=capturedOutbox[date]?.at||state._localUpdatedAt||0;
+            // Flush only source-day edits into the same atomic commit before
+            // deciding continuity (including a queued note edit or deletion).
+            days[date]=mergeDay(base,local,remoteDays[date],localAt>=metas[date].at);
           }
           dates=finalizationDates(receipt,days);
         }
@@ -8332,7 +8342,7 @@ const TG_SYNC_OBSERVATION={
         const now=Date.now();
         for(const [date,day] of Object.entries(materialized)){
           if(!Object.hasOwn(days,date))throw new Error('stop-finalization-date-unread');
-          if(same(day,days[date]))continue;
+          if(same(day,remoteDays[date]))continue;
           const rev=metas[date].rev+1;
           tx.set(p.days.doc(date),{...day,catalogProtocol:2,catalogWriteRev:rev,catalogRevision:catalogRaw.catalogRevision||0,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
           metas[date]={rev,at:now};
@@ -8348,14 +8358,22 @@ const TG_SYNC_OBSERVATION={
       for(const [date,day] of Object.entries(result.days)){
         const before=captured[date]?normDay(captured[date]):emptyDay();
         const current=state.days[date]?normDay(state.days[date]):emptyDay();
-        // Preserve edits that happened while the transaction was waiting.
+        // Captured local edits are already part of the atomic result. Preserve
+        // only subsequent edits here, without overriding its finalized spans.
         state.days[date]=mergeDay(before,current,day,true);
         syncBase.days[date]=copy(day);syncBase.dayMeta[date]=result.metas[date];
       }
       state.finalizations=(state.finalizations||[]).filter(f=>f.id!==requested.id);
-      if(result.rev)syncBase.runningVersion=result.rev;
+      if(result.rev)syncBase.runningVersion=Math.max(syncBase.runningVersion||0,result.rev);
       persistCatalogLocal();persistBase();markDirty();queueRender();
     }
+  }
+  function finalizePending(uid){
+    // Foreground Stop and background retries share one local finalizer. Other
+    // devices still converge through the immutable ack and transaction retries.
+    if(finalizationPromise)return finalizationPromise;
+    finalizationPromise=acknowledgeFinalizations(uid).finally(()=>{finalizationPromise=null;});
+    return finalizationPromise;
   }
   function pushNow(){
     if(!user||!db||!ready||DEMO) return Promise.resolve(false);
@@ -8372,11 +8390,15 @@ const TG_SYNC_OBSERVATION={
           markDirty();
           const runType=outbox.run&&outbox.run.type;
           if(runType==="set") await flushRunning(user.uid);
+          if(outbox.run&&outbox.run.type==="clear") await flushRunning(user.uid);
+          await finalizePending(user.uid);
           if(outbox.settingsAt) await flushSettings(user.uid);
           const dates=Object.keys(outbox.days||{}).sort();
-          for(const date of dates) await flushDay(user.uid,date);
-          if(outbox.run&&outbox.run.type==="clear") await flushRunning(user.uid);
-          await acknowledgeFinalizations(user.uid);
+          for(const date of dates){
+            if(outbox.run&&outbox.run.type==="clear") await flushRunning(user.uid);
+            await finalizePending(user.uid);
+            await flushDay(user.uid,date);
+          }
         }while((flushAgain||hasDirty())&&pass<4);
         if(hasDirty()) schedulePush();
       }catch(err){
@@ -8413,16 +8435,21 @@ const TG_SYNC_OBSERVATION={
       setStatus(kind==="stop"?"오프라인 종료 · 재연결 시 기록 동기화":"오프라인 · 측정 데이터 동기화 대기","warn");
       return false;
     }
-    setRunLock(true,kind==="stop"?"기록 동기화 중…":"시작 데이터 동기화 중…");
     try{
-      await syncBarrier(false);
-      setLiveStatus();
+      // The timer transaction already confirmed Start/Stop. Only unfinished
+      // Stop spans block the next Start; ordinary edits drain independently.
+      if(kind==="stop"){
+        if(outbox.run&&outbox.run.type==="clear")await flushRunning(user.uid);
+        await finalizePending(user.uid);
+      }
+      schedulePush();queueRender();
+      if(!hasDirty())setLiveStatus();
       return true;
     }catch(err){
       setStatus((kind==="stop"?"종료 기록":"측정 시작 데이터")+" 동기화 재시도 대기","warn");
       schedulePush();
       return false;
-    }finally{setRunLock(false);}
+    }finally{queueRender();}
   }
   async function heartbeat(){
     if(heartbeatBusy||!user||!ready||navigator.onLine===false||document.visibilityState==="hidden") return false;
@@ -8503,7 +8530,13 @@ const TG_SYNC_OBSERVATION={
       setStatus("Google 로그인하면 세 기기에 같은 기록이 실시간 동기화됩니다.");
     }
   }
-  async function onSignedIn(u){
+  function onSignedIn(u){
+    if(connectionPromise)return connectionUid===u.uid?connectionPromise:connectionPromise.then(()=>auth.currentUser?.uid===u.uid?onSignedIn(u):undefined);
+    connectionUid=u.uid;
+    connectionPromise=connectSignedIn(u).finally(()=>{connectionPromise=null;connectionUid=null;});
+    return connectionPromise;
+  }
+  async function connectSignedIn(u){
     authKnown=true;cloudUnavailable=false;
     user=u;ready=false;
     paintUser();setStatus("계정 권한 확인 중…");queueRender();
@@ -8520,6 +8553,7 @@ const TG_SYNC_OBSERVATION={
       setStatus("계정 권한 확인 실패 · 측정 시작 차단","warn");queueRender();
       return;
     }
+    if(auth.currentUser?.uid!==u.uid)return;
     if(ownerAccess!==true){
       if(navigator.onLine===false){
         cloudUnavailable=true;
@@ -8535,6 +8569,7 @@ const TG_SYNC_OBSERVATION={
     paintUser();setStatus("실시간 동기화 준비 중…");queueRender();
     try{
       await bootstrap(u.uid);
+      if(auth.currentUser?.uid!==u.uid)return;
       ready=true;
       startListeners(u.uid);
       queueRender();
@@ -8591,12 +8626,16 @@ const TG_SYNC_OBSERVATION={
     });
     auth.getRedirectResult().catch(function(err){if(err&&err.code&&err.code!=="auth/redirect-cancelled-by-user")setStatus("로그인 리다이렉트 오류: "+(err.message||err),"err");});
     auth.onAuthStateChanged(function(u){if(u)onSignedIn(u);else onSignedOut();});
-    function resume(){if(!user||!ready)return;heartbeat();markDirty();pushNow();}
+    function resume(){
+      if(!user)return;
+      if(!ready){if(auth.currentUser&&navigator.onLine!==false)onSignedIn(auth.currentUser);return;}
+      heartbeat();markDirty();pushNow();
+    }
     document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible")resume();else{markDirty();pushNow();}});
-    window.addEventListener("focus",resume);window.addEventListener("online",function(){if(user&&!ready&&cloudUnavailable&&auth.currentUser){onSignedIn(auth.currentUser);return;}resume();});window.addEventListener("offline",function(){if(user)setStatus("오프라인 · 동기화 재개 대기","warn");});window.addEventListener("pagehide",function(){markDirty();pushNow();});
+    window.addEventListener("focus",resume);window.addEventListener("online",resume);window.addEventListener("offline",function(){if(user)setStatus("오프라인 · 동기화 재개 대기","warn");});window.addEventListener("pagehide",function(){markDirty();pushNow();});
     setInterval(tickLiveStatus,1000);
     setInterval(heartbeat,LIVE_HEARTBEAT_MS);
-    setInterval(function(){if(user&&ready){markDirty();if(hasDirty())pushNow();}},RETRY_PULSE_MS);
+    setInterval(function(){if(user&&!ready){resume();return;}if(user&&ready){markDirty();if(hasDirty())pushNow();}},RETRY_PULSE_MS);
   }
 
   window.tgCloud={

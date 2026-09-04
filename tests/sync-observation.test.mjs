@@ -13,7 +13,9 @@ assert.equal(policy.expectsCloud('prior-account',null),true)
 assert.equal(policy.expectsCloud('local','prior-account'),false,'explicit logout opts into local scope')
 const connected={authKnown:true,signedIn:true,expectedCloud:true,ready:true,online:true,pending:false,matches:true,confirmedAt:1000,now:1001}
 assert.equal(policy.view(connected).kind,'ok')
-for(const patch of [{ready:false},{online:false},{pending:true},{matches:false},{confirmedAt:0},{now:91001}]) {
+for(const patch of [{ready:false},{online:false}])assert.equal(policy.view({...connected,...patch}).kind,'pending','initial/connectivity wait belongs to the timer button and account panel')
+assert.doesNotMatch(core,/서버 연결 대기 · 기기 기록 보관 중/)
+for(const patch of [{pending:true},{matches:false},{confirmedAt:0},{now:91001}]) {
   assert.equal(policy.view({...connected,...patch}).kind,'warn',JSON.stringify(patch))
 }
 assert.equal(policy.view({...connected,now:91000}).kind,'ok','90 second existing confirmation boundary is inclusive')

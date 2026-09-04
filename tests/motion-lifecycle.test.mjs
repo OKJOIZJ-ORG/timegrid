@@ -67,38 +67,46 @@ vm.runInContext('resetEcalSession()',ec);staleClose();assert.equal(closed,0);ass
 const managerSource=fs.readFileSync(new URL('../catalog-manager.js',import.meta.url),'utf8')
 const managerDrag=managerSource.slice(managerSource.indexOf('  function attachDrag('),managerSource.indexOf('  function catalogRow('))
 assert.ok(managerDrag.startsWith('  function attachDrag('))
-const handle=element(),dragRow=element(),dropRow=element(),captures=new Set(),ghosts=[],drops=[]
-let removedGhosts=0
-handle.setPointerCapture=i=>captures.add(i);handle.hasPointerCapture=i=>captures.has(i);handle.releasePointerCapture=i=>captures.delete(i)
+const handle=element(),dragRow=element(),dropRow=element(),dragList=element(),captures=new Set(),ghosts=[],drops=[]
+let removedGhosts=0,openedMenus=0
+dragList.setPointerCapture=i=>captures.add(i);dragList.hasPointerCapture=i=>captures.has(i);dragList.releasePointerCapture=i=>captures.delete(i)
+dragList.children=[dragRow,dropRow];dragRow.parentNode=dropRow.parentNode=dragList
+dragList.getBoundingClientRect=()=>({top:0});dropRow.offsetTop=80;dropRow.offsetHeight=44
+dragList.append=node=>{dragList.children=dragList.children.filter(n=>n!==node);dragList.children.push(node)}
+dragList.insertBefore=(node,target)=>{dragList.children=dragList.children.filter(n=>n!==node);const i=target?dragList.children.indexOf(target):dragList.children.length;dragList.children.splice(i,0,node)}
 dragRow.getBoundingClientRect=()=>({top:20,left:30,width:220,height:44})
-dragRow.cloneNode=()=>({...element(),setAttribute(){},querySelectorAll:()=>[],remove:()=>removedGhosts++})
+dragRow.cloneNode=()=>({...element(),getBoundingClientRect:dragRow.getBoundingClientRect,setAttribute(){},querySelectorAll:()=>[],remove:()=>removedGhosts++})
 dropRow.dataset={kind:'activity',id:'next'};dropRow.getBoundingClientRect=()=>({top:80,height:44});dropRow.closest=()=>dropRow
-const dragDoc={body:{append:g=>ghosts.push(g)},querySelectorAll:()=>[dragRow,dropRow],querySelector:()=>null,elementFromPoint:()=>dropRow}
-const dragCtx=vm.createContext({document:dragDoc,dragCancel:null,setTimeout:()=>1,reorder:(...args)=>drops.push(args)})
+const dragDoc={...element(),body:{...element(),append:g=>ghosts.push(g)},querySelectorAll:()=>[dragRow,dropRow],querySelector:()=>null,elementFromPoint:()=>dropRow}
+const dragFrames=new Map();let nextFrame=0
+const dragCtx=vm.createContext({document:dragDoc,window:{...element(),innerWidth:390,getSelection:()=>({removeAllRanges(){}})},dragCancel:null,canMove:()=>false,cancelRowMotion(){},openMenu(){openedMenus++},rowPositions:()=>new Map(),animateRows(){},requestAnimationFrame:f=>{dragFrames.set(++nextFrame,f);return nextFrame},cancelAnimationFrame:i=>dragFrames.delete(i),setTimeout:()=>1,reorder:(...args)=>drops.push(args)})
+const moveDrag=e=>{dragList.emit('pointermove',e);for(const[id,f]of [...dragFrames]){dragFrames.delete(id);f()}}
 vm.runInContext(managerDrag+';this.attach=attachDrag',dragCtx)
 dragCtx.attach(handle,dragRow,'activity','original')
 const pe=(x,y,pointerId=1)=>({button:0,isPrimary:true,pointerId,clientX:x,clientY:y,preventDefault(){},stopPropagation(){}})
-handle.emit('pointerdown',pe(50,60));handle.emit('pointermove',pe(75,95,2))
+handle.emit('pointerdown',pe(50,60));moveDrag(pe(75,95,2))
 assert.equal(ghosts.length,0,'another pointer cannot move this drag')
-handle.emit('pointermove',pe(75,95))
+moveDrag(pe(75,95))
 assert.equal(ghosts.length,1)
 assert.equal(ghosts[0].style.transform,'translate3d(25px,35px,0)')
 assert.equal(ghosts[0].style.top,'20px');assert.equal(ghosts[0].style.left,'30px')
 assert.equal(ghosts[0].inert,true,'the visual clone cannot receive keyboard focus')
-handle.emit('pointercancel',pe(75,95))
+dragList.emit('pointercancel',pe(75,95))
 assert.equal(removedGhosts,1);assert.equal(captures.size,0);assert.equal(drops.length,0)
 assert.equal(dragCtx.dragCancel,null);assert.equal(dragRow.classList.contains('cm-drag-origin'),false)
 assert.equal(dropRow.classList.contains('cm-drop-before'),false)
-handle.emit('pointermove',pe(90,100));assert.equal(ghosts.length,1,'cancel removes movement listeners')
-handle.emit('pointerdown',pe(50,60));handle.emit('pointermove',pe(52,62));handle.emit('pointerup',pe(52,62))
+moveDrag(pe(90,100));assert.equal(ghosts.length,1,'cancel removes movement listeners')
+handle.emit('pointerdown',pe(50,60));moveDrag(pe(52,62));dragList.emit('pointerup',pe(52,62))
 assert.equal(ghosts.length,1);assert.equal(drops.length,0,'a click-sized movement cannot reorder')
-handle.emit('pointerdown',pe(50,60));handle.emit('pointermove',pe(75,95));dragCtx.dragCancel()
+assert.equal(openedMenus,1,'a stationary captured gesture opens the grip menu once')
+handle.emit('pointerdown',pe(50,60));moveDrag(pe(75,95));dragCtx.dragCancel()
 assert.equal(removedGhosts,2);assert.equal(drops.length,0,'re-render/blur cancellation never commits')
-handle.emit('pointerdown',pe(50,60));handle.emit('pointermove',pe(75,95));handle.emit('lostpointercapture',pe(75,95))
+handle.emit('pointerdown',pe(50,60));moveDrag(pe(75,95));dragList.emit('lostpointercapture',pe(75,95))
 assert.equal(removedGhosts,3);assert.equal(drops.length,0,'unexpected capture loss restores the list')
-handle.emit('pointerdown',pe(50,60));handle.emit('pointermove',pe(75,95));handle.emit('pointerup',pe(75,95))
+handle.emit('pointerdown',pe(50,60));moveDrag(pe(75,95));dragList.emit('pointerup',pe(75,95))
 assert.equal(drops.length,1);assert.deepEqual(drops[0],['activity','original','next',true])
 assert.equal(dragCtx.dragCancel,null);assert.equal(captures.size,0)
+assert.equal(openedMenus,1,'drag completion or cancellation never activates a menu')
 
 // Logical keys, not labels or segment geometry, own pointer state.
 const one=element(),two=element(),other=element();one.dataset.hoverKey=two.dataset.hoverKey='routine/date/id1';other.dataset.hoverKey='routine/date/id2'

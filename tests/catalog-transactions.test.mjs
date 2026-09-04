@@ -134,6 +134,28 @@ test('online Stop atomically publishes intent; finalizer atomically writes days,
   await a.deleteCatalog(C.preview(a.state.settings,'activity','meal'));
 });
 
+test('Stop does not wait for unrelated history sync and captures the click endpoint',async()=>{
+  const s=database(base(),run()),a=client(s);
+  let barriers=0;
+  a.syncBarrier=async()=>{barriers++;throw Error('unrelated-history-offline');};
+  const stop=await a.requestStop(copy(a.state.running));
+  assert.equal(stop.ok,true,'an unrelated backlog cannot prevent the running-only Stop transaction');
+  assert.equal(barriers,0);
+  assert.equal(stop.endedAt,start+20_000);
+  assert.deepEqual(s.commits[0],['running']);
+});
+
+test('Stop fixes its endpoint before network waits or transaction retries',async()=>{
+  const s=database(base(),run()),a=client(s);
+  const original=s.db.runTransaction;
+  s.db.runTransaction=async callback=>{
+    a.Date.now=()=>start+80_000;
+    return original(callback);
+  };
+  const stop=await a.requestStop(copy(a.state.running));
+  assert.equal(stop.endedAt,start+20_000);
+});
+
 test('atomic commit failure leaves days, pending, and ack unchanged, then retry succeeds',async()=>{
   const s=database(),a=client(s);publish(s,a);
   const before=serialize([...s.data]);s.failNextCommit=true;
@@ -208,6 +230,42 @@ test('unrelated local Todo edit while finalization waits survives merge and late
   await a.flushDay('synthetic',date);
   assert.equal(s.data.get('days/'+date).todos[0].name,'During transaction');
   assert.equal(events(s).length,1);
+});
+
+for(const winner of ['finalizer','day'])test('concurrent Stop finalization and generic day upload preserve both changes: '+winner,async()=>{
+  const s=database(),a=client(s);
+  a.materializeExactSpan(run('earlier'),start+20_000);seedDays(s,a);
+  a.state.days[date].todos.push({id:'new-todo',name:'Preserve local edit'});
+  a.markDirty();
+  publish(s,a,run('later',start+50_000),start+70_000);
+  if(winner==='finalizer'){
+    s.beforeCommitOnce=()=>a.acknowledgeFinalizations('synthetic');
+    await a.flushDay('synthetic',date);
+  }else{
+    s.beforeCommitOnce=()=>a.flushDay('synthetic',date);
+    await a.acknowledgeFinalizations('synthetic');
+  }
+  assert.equal(events(s).length,1);assert.equal(events(s)[0].endTs,start+70_000);
+  assert.equal(s.data.get('days/'+date).todos[0].id,'new-todo');
+  assert.equal(a.state.days[date].events[0].endTs,start+70_000);
+  assert.equal(a.state.days[date].todos[0].id,'new-todo');
+  assert.ok(s.data.has('acks/later'));
+});
+
+for(const edit of ['note','delete'])test('priority finalization respects queued predecessor '+edit+' before deciding continuity',async()=>{
+  const s=database(),a=client(s);
+  a.materializeExactSpan({...run('earlier'),note:'original'},start+20_000);seedDays(s,a);
+  if(edit==='note')a.state.days[date].events[0].note='different';
+  else a.state.days[date].events=[];
+  a.markDirty();
+  publish(s,a,{...run('later',start+50_000),note:'original'},start+70_000);
+  await a.acknowledgeFinalizations('synthetic');
+  const result=events(s);
+  assert.equal(result.length,edit==='note'?2:1);
+  const later=result.find(e=>(e.sessionIds||[]).includes('later'));
+  assert.equal(later.startTs,start+50_000);assert.equal(later.endTs,start+70_000);
+  if(edit==='note')assert.equal(result.find(e=>(e.sessionIds||[]).includes('earlier')).note,'different');
+  assert.deepEqual(copy(a.state.days[date].events),copy(s.data.get('days/'+date).events));
 });
 
 test('pending display projection does not enter actual flushDay payload',async()=>{

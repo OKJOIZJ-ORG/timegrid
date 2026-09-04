@@ -3,6 +3,24 @@
   'use strict';
   let selectedAreaId = null, mobileDetail = false, menuClose = null, layerClose = null, dragCancel = null;
   let serial = 0;
+  let landingCancel = null;
+  const rowMotion = new Map();
+  const canMove = () => !window.matchMedia('(prefers-reduced-motion:reduce)').matches && document.documentElement.dataset.input !== 'keyboard';
+  function cancelRowMotion() { for (const animation of rowMotion.values()) animation.cancel(); rowMotion.clear(); }
+  function rowPositions(list) { return new Map([...list.children].map(node => [node, node.getBoundingClientRect()])); }
+  function animateRows(before) {
+    cancelRowMotion();
+    if (!canMove()) return;
+    const easing = getComputedStyle(document.documentElement).getPropertyValue('--ease-out').trim();
+    for (const [node, rect] of before) {
+      if (!node.isConnected || node.classList.contains('cm-drag-origin')) continue;
+      const next = node.getBoundingClientRect(), y = rect.top - next.top, x = rect.left - next.left;
+      if ((!x && !y) || !node.animate) continue;
+      const animation = node.animate([{ transform: `translate(${x}px,${y}px)` }, { transform: 'none' }], { duration: 180, easing });
+      rowMotion.set(node, animation);
+      animation.onfinish = () => { if (rowMotion.get(node) === animation) rowMotion.delete(node); };
+    }
+  }
   const areaId = area => area.id || TG_CATALOG.legacyAreaId(area.name);
   const areas = () => TG_CATALOG.areas(state.settings);
   const activities = () => TG_CATALOG.activities(state.settings);
@@ -323,56 +341,102 @@
   }
   function attachDrag(handle, row, kind, id) {
     handle.addEventListener('pointerdown', event => {
-      if (event.button !== 0 || event.isPrimary === false || dragCancel) return;
-      event.stopPropagation();
+      if (event.button !== 0 || event.isPrimary === false) return;
+      dragCancel?.();
+      event.preventDefault(); event.stopPropagation(); cancelRowMotion();
       const pointerId = event.pointerId, startX = event.clientX, startY = event.clientY;
-      let ghost = null, drop = null, moved = false;
-      handle.setPointerCapture(pointerId);
+      const initialWidth = window.innerWidth;
+      const list = row.parentNode, originalRows = [...list.children];
+      let ghost = null, drop = null, moved = false, finished = false, frame = 0, point = event;
+      document.body.classList.add('cm-drag-active');
+      window.getSelection()?.removeAllRanges();
+      // Keep capture on the stable list; the dragged row moves between slots.
+      list.setPointerCapture(pointerId);
       function clearHints() { document.querySelectorAll('.cm-drop-before,.cm-drop-after,.cm-drop-area').forEach(node => node.classList.remove('cm-drop-before', 'cm-drop-after', 'cm-drop-area')); }
       function move(moveEvent) {
         if (moveEvent.pointerId !== pointerId) return;
         if (!moved && Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY) < 5) return;
         moveEvent.preventDefault(); moved = true;
+        point = moveEvent;
         if (!ghost) {
           const rect = row.getBoundingClientRect(); ghost = row.cloneNode(true); ghost.className = 'cm-row cm-drag-ghost';
-          ghost.setAttribute('aria-hidden', 'true'); ghost.inert = true; ghost.style.width = rect.width + 'px'; ghost.style.top = rect.top + 'px'; ghost.style.left = rect.left + 'px';
+          ghost.setAttribute('aria-hidden', 'true'); ghost.inert = true; ghost.style.width = rect.width + 'px'; ghost.style.height = rect.height + 'px'; ghost.style.top = rect.top + 'px'; ghost.style.left = rect.left + 'px';
           ghost.querySelectorAll('[id]').forEach(node => node.removeAttribute('id')); document.body.append(ghost); row.classList.add('cm-drag-origin');
         }
-        ghost.style.transform = 'translate3d(' + (moveEvent.clientX - startX) + 'px,' + (moveEvent.clientY - startY) + 'px,0)';
-        clearHints(); drop = null;
-        const hit = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)?.closest('.cm-row');
-        if (!hit || hit === row) return;
-        if (kind === 'activity' && hit.dataset.kind === 'area') {
+        if (!frame) frame = requestAnimationFrame(paintDrag);
+      }
+      function paintDrag() {
+        frame = 0;
+        if (finished || !ghost) return;
+        ghost.style.transform = 'translate3d(' + (point.clientX - startX) + 'px,' + (point.clientY - startY) + 'px,0)';
+        clearHints();
+        const hit = document.elementFromPoint(point.clientX, point.clientY)?.closest('.cm-row');
+        if (kind === 'activity' && hit?.dataset.kind === 'area') {
           hit.classList.add('cm-drop-area'); drop = { area: hit.dataset.id };
-        } else if (hit.dataset.kind === kind) {
-          const rect = hit.getBoundingClientRect(), before = moveEvent.clientY < rect.top + rect.height / 2;
-          hit.classList.add(before ? 'cm-drop-before' : 'cm-drop-after'); drop = { id: hit.dataset.id, before };
+        } else if (hit && hit !== row && hit.parentNode === list && hit.dataset.kind === kind) {
+          // Use layout positions, not animated rectangles, to avoid oscillating
+          // hit targets. Preview changes DOM order only; persistence is on drop.
+          const top = list.getBoundingClientRect().top + hit.offsetTop;
+          const before = point.clientY < top + hit.offsetHeight / 2;
+          if (before ? row.nextElementSibling !== hit : hit.nextElementSibling !== row) {
+            const positions = rowPositions(list);
+            list.insertBefore(row, before ? hit : hit.nextElementSibling);
+            animateRows(positions);
+          }
+          drop = { id: hit.dataset.id, before };
+        } else if (!hit || (hit !== row && hit.parentNode !== list)) {
+          drop = null;
         }
         const scroller = document.querySelector('#actsDlg .dlg-body');
         if (scroller) {
           const rect = scroller.getBoundingClientRect();
-          if (moveEvent.clientY < rect.top + 40) scroller.scrollTop -= 14;
-          else if (moveEvent.clientY > rect.bottom - 40) scroller.scrollTop += 14;
+          const old = scroller.scrollTop;
+          if (point.clientY < rect.top + 40) scroller.scrollTop -= 10;
+          else if (point.clientY > rect.bottom - 40) scroller.scrollTop += 10;
+          if (old !== scroller.scrollTop) frame = requestAnimationFrame(paintDrag);
         }
       }
       function finish(finishEvent, cancelled) {
         if (finishEvent && finishEvent.pointerId !== pointerId) return;
+        if (finished) return;
+        if (frame) { cancelAnimationFrame(frame); frame = 0; if (!cancelled) paintDrag(); }
+        finished = true; cancelAnimationFrame(frame);
         const destination = drop;
-        ghost?.remove(); row.classList.remove('cm-drag-origin'); clearHints();
-        handle.removeEventListener('pointermove', move); handle.removeEventListener('pointerup', up); handle.removeEventListener('pointercancel', cancel); handle.removeEventListener('lostpointercapture', cancel);
-        if (handle.hasPointerCapture(pointerId)) handle.releasePointerCapture(pointerId);
+        const floating = ghost, floatingRect = floating?.getBoundingClientRect();
+        cancelRowMotion();
+        row.classList.remove('cm-drag-origin'); clearHints();
+        list.removeEventListener('pointermove', move); list.removeEventListener('pointerup', up); list.removeEventListener('pointercancel', cancel); list.removeEventListener('lostpointercapture', cancel);
+        document.removeEventListener('keydown', keydown, true); window.removeEventListener('blur', cancelWindow); window.removeEventListener('resize', resize);
+        if (list.hasPointerCapture(pointerId)) list.releasePointerCapture(pointerId);
+        document.body.classList.remove('cm-drag-active');
         dragCancel = null;
-        if (moved) { handle.dataset.dragged = 'true'; setTimeout(() => { delete handle.dataset.dragged; }, 0); }
-        if (cancelled || !moved || !destination) return;
-        if (destination.area) {
+        // Restore before applying the stable-ID change; cancel never mutates data.
+        for (const node of originalRows) list.append(node);
+        // Capture retargets the native click to the list. Complete stationary
+        // pointer taps here; keyboard/assistive activation remains a click.
+        if (!cancelled && !moved) openMenu(kind, id, handle);
+        if (!cancelled && moved && destination?.area) {
           const item = current(kind, id), parent = current('area', destination.area);
           if (item && parent && item.areaId !== areaId(parent)) {
             moveActivity(item, parent.name); selectedAreaId = areaId(parent); persist(bookmark(kind, id));
           }
-        } else reorder(kind, id, destination.id, destination.before);
+        } else if (!cancelled && moved && destination) reorder(kind, id, destination.id, destination.before);
+        const target = [...document.querySelectorAll('#catalogManager .cm-row')].find(node => node.dataset.kind === kind && node.dataset.id === id);
+        if (!floating || !target || !canMove() || !floating.animate || !target.getClientRects().length) { floating?.remove(); return; }
+        const rect = target.getBoundingClientRect();
+        target.classList.add('cm-drag-origin');
+        floating.style.top = floatingRect.top + 'px'; floating.style.left = floatingRect.left + 'px'; floating.style.transform = 'none';
+        const landing = floating.animate([{ transform: 'none', opacity: .98 }, { transform: `translate(${rect.left - floatingRect.left}px,${rect.top - floatingRect.top}px)`, opacity: 0 }], { duration: 180, easing: getComputedStyle(document.documentElement).getPropertyValue('--ease-out').trim() });
+        const cleanup = () => { floating.remove(); target.classList.remove('cm-drag-origin'); if (dragCancel === stopLanding) dragCancel = null; if (landingCancel === stopLanding) landingCancel = null; };
+        const stopLanding = () => { landing.cancel(); cleanup(); };
+        landing.onfinish = cleanup; landing.oncancel = cleanup; dragCancel = stopLanding; landingCancel = stopLanding;
       }
       const up = event => finish(event, false), cancel = event => finish(event, true);
-      handle.addEventListener('pointermove', move); handle.addEventListener('pointerup', up); handle.addEventListener('pointercancel', cancel); handle.addEventListener('lostpointercapture', cancel);
+      const cancelWindow = () => finish(null, true);
+      const resize = () => { if (window.innerWidth !== initialWidth) finish(null, true); };
+      const keydown = event => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); finish(null, true); } };
+      list.addEventListener('pointermove', move); list.addEventListener('pointerup', up); list.addEventListener('pointercancel', cancel); list.addEventListener('lostpointercapture', cancel);
+      document.addEventListener('keydown', keydown, true); window.addEventListener('blur', cancelWindow); window.addEventListener('resize', resize);
       dragCancel = () => finish(null, true);
     });
   }
@@ -380,7 +444,7 @@
     const id = kind === 'area' ? areaId(item) : item.id;
     const row = el('div', 'cm-row'); row.dataset.kind = kind; row.dataset.id = id;
     if (kind === 'area' && id === selectedAreaId) row.classList.add('cm-selected');
-    const grip = button('', 'cm-grip', event => { if (!grip.dataset.dragged) openMenu(kind, id, event.currentTarget); }, item.name + ' 순서 변경'); grip.append(icon('grip'));
+    const grip = button('', 'cm-grip', event => { if (event.detail === 0) openMenu(kind, id, event.currentTarget); }, item.name + ' 순서 변경'); grip.append(icon('grip'));
     grip.dataset.focusKey = bookmark(kind, id, 'grip');
     grip.addEventListener('keydown', event => {
       if (event.altKey && ['ArrowUp', 'ArrowDown'].includes(event.key)) { event.preventDefault(); step(kind, id, event.key === 'ArrowUp' ? -1 : 1); }
@@ -431,6 +495,7 @@
     root.append(nav, content);
   }
   window.renderCatalogManager = renderCatalogManager;
+  window.settleCatalogMotion = () => { cancelRowMotion(); landingCancel?.(); };
   window.cancelCatalogManagerDrag = () => { dragCancel?.(); };
   window.closeCatalogManagerLayers = () => { menuClose?.(false); layerClose?.(false); dragCancel?.(); };
 })();
