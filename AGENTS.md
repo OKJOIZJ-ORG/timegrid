@@ -37,6 +37,18 @@ True minute-time edits detach lineage; missing imported fragments are not rebuil
 Run `tests/live-continuity.test.mjs`, transactions and time-display tests too.
 Release/activation evidence: `../TimeGridAutomation/memory/knowledge/live-continuity-coaching-20260903.md`.
 
+## Verified local repair candidate — 2026-09-06
+
+v3.14.5 is Verified-local on `codex/adversarial-audit-20260906`, repair commit
+`d7a84136eb0db31999b78d6b15d3312d45859b47`; it is not deployed. See
+[audit and recovery evidence](AUDIT-2026-09-06.md). The production baseline below
+remains v3.14.4. Preserve exact log/linked-ID roundtrips, additive backup identity
+and mutation preservation with overlap rejection, ID-based routine editing and
+legacy migration, UID+auth-generation sync fences, owned SW caches, guarded
+updates and completed view-animation cleanup. New regressions are in
+`import-integrity`, `routine-editor`, `sync-session`, `pwa-lifecycle`, and
+`real-bootstrap` tests; related existing contract tests still apply.
+
 ## Current contracts
 
 Verified production baseline (2026-09-04): v3.14.4 (release commit `d78746325926534f4ded4dbf51ede8ae03b423fb`).
