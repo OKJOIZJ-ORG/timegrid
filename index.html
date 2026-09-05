@@ -1527,7 +1527,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.14.4<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.14.5<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -1549,7 +1549,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
   </div>
 </div>
 
-<div class="pwa-update" id="pwaUpdate" role="status" aria-live="polite" aria-hidden="true">
+<div class="pwa-update" id="pwaUpdate" role="status" aria-live="polite" aria-hidden="true" inert>
   <div class="pwa-update-copy"><b>새 버전이 준비됐어요</b><small id="pwaUpdateMsg">업데이트하면 최신 버전으로 전환됩니다.</small></div>
   <button class="btn" id="pwaUpdateBtn" type="button">업데이트</button>
 </div>
@@ -2006,6 +2006,26 @@ function afterTransition(el,property,ms,done){
   // Unexpected cancellation still reaches completion through the bounded timer.
   el.addEventListener("transitionend",end);media.addEventListener("change",changed);document.addEventListener("keydown",changed);
   timer=setTimeout(finish,ms);return cancel;
+}
+function animateViewEntry(el,dir){
+  if(!el)return;
+  if(el._viewEntryFinish)el._viewEntryFinish();
+  el.classList.remove("view-in-l","view-in-r");
+  if(!dir||rmPref())return;
+  const media=window.matchMedia("(prefers-reduced-motion: reduce)");
+  let active=true,timer=null;
+  const finish=()=>{
+    if(!active)return;active=false;clearTimeout(timer);
+    media.removeEventListener("change",changed);document.removeEventListener("keydown",changed);
+    if(el._viewEntryFinish===finish){el._viewEntryFinish=null;el.classList.remove("view-in-l","view-in-r");}
+  };
+  const changed=()=>{if(media.matches||rmPref())finish();};
+  el._viewEntryFinish=finish;
+  void el.offsetWidth;el.classList.add(dir>0?"view-in-r":"view-in-l");
+  media.addEventListener("change",changed);document.addEventListener("keydown",changed);
+  // Observe this CSS animation object, so a superseded completion cannot settle a new owner.
+  for(const animation of el.getAnimations?.()||[])if(["viewInL","viewInR","viewFade"].includes(animation.animationName))animation.finished.then(finish,finish);
+  timer=setTimeout(finish,320);
 }
 /* MOTION_COMPLETION_CORE_END */
 let tlAnimPending=true, statsAnimPending=false, tlNoAnim=false;
@@ -2470,8 +2490,8 @@ const TG_ROUTINE_IDENTITY=(function(){
     let adoptedLegacy=0,created=0,preservedExtra=0,droppedUnmeasured=0;
     function choose(def){
       let rows=existing.map(function(value,index){return {value:value,index:index};}).filter(function(row){return !used.has(row.index)&&String(row.value&&row.value.routineDefId||"")===def.routineDefId;});
-      if(!rows.length)rows=existing.map(function(value,index){return {value:value,index:index};}).filter(function(row){return !used.has(row.index)&&sig(row.value)===sig(def);});
-      if(!rows.length&&expected.filter(function(row){return row.name===def.name;}).length===1)rows=existing.map(function(value,index){return {value:value,index:index};}).filter(function(row){return !used.has(row.index)&&row.value&&row.value.name===def.name;});
+      if(!rows.length)rows=existing.map(function(value,index){return {value:value,index:index};}).filter(function(row){return !used.has(row.index)&&!row.value?.routineDefId&&sig(row.value)===sig(def);});
+      if(!rows.length&&expected.filter(function(row){return row.name===def.name;}).length===1)rows=existing.map(function(value,index){return {value:value,index:index};}).filter(function(row){return !used.has(row.index)&&row.value&&!row.value.routineDefId&&row.value.name===def.name;});
       function score(row){return (measured.has(String(row.value&&row.value.id||""))?16:0)+(row.value&&row.value.done?8:0)+(!(row.value&&row.value.extra)?4:0)+(sig(row.value)===sig(def)?2:0);}
       rows.sort(function(a,b){return score(b)-score(a)||String(a.value&&a.value.id||"").localeCompare(String(b.value&&b.value.id||""));});
       return rows[0]||null;
@@ -3984,8 +4004,7 @@ function setStatPeriod(p){
   $("#stMonth").hidden=p!=="month";
   statsAnimPending=true; renderStats(); animStats();
   const v=p==="today"?$("#stToday"):p==="week"?$("#stWeek"):$("#stMonth");
-  v.classList.remove("view-in-l","view-in-r");
-  if(changed && dir!==0){ void v.offsetWidth; v.classList.add(dir>0?"view-in-r":"view-in-l"); }
+  animateViewEntry(v,changed?dir:0);
 }
 document.querySelectorAll("#statSeg button").forEach(b=>b.addEventListener("click",()=>setStatPeriod(b.dataset.per)));
 document.querySelectorAll("#wkMode button").forEach(b=>b.addEventListener("click",()=>{
@@ -5218,18 +5237,23 @@ function renderRoutines(){
     list.appendChild(row);
   }
 }
+function currentRoutineDef(id){
+  return id?state.settings.routineDefs.find(def=>String(def.id||"")===String(id)):null;
+}
 function removeRtEditRow(row,def){
-  if(!row||row._rtDelLock) return;
+  const defId=String(def?.id||"");
+  if(!row||row._rtDelLock||!currentRoutineDef(defId)) return;
   row._rtDelLock=true;
-  const _i=state.settings.routineDefs.indexOf(def);
   const finish=function(){
-    state.settings.routineDefs=state.settings.routineDefs.filter(function(x){return x!==def;});
+    const current=currentRoutineDef(defId);if(!current)return;
+    const _i=state.settings.routineDefs.indexOf(current),snapshot=TG_CATALOG.clone(current);
+    state.settings.routineDefs=state.settings.routineDefs.filter(function(x){return String(x.id||"")!==defId;});
     _rtEditAnim=null;
     commitRoutineDefs();
-    toast("루틴 삭제됨: "+def.name,function(){
-      if(!def.id) def.id=uid("rd");
-      state.settings.routineDefs.splice(Math.min(_i<0?0:_i,state.settings.routineDefs.length),0,def);
-      _rtEditAnim={type:"restore",id:def.id};
+    toast("루틴 삭제됨: "+snapshot.name,function(){
+      if(currentRoutineDef(defId))return;
+      state.settings.routineDefs.splice(Math.min(_i<0?0:_i,state.settings.routineDefs.length),0,TG_CATALOG.clone(snapshot));
+      _rtEditAnim={type:"restore",id:defId};
       commitRoutineDefs();
     });
   };
@@ -5273,6 +5297,7 @@ function renderRoutineEditor(list){
   for(const def of state.settings.routineDefs){
     if(!Array.isArray(def.days)||!def.days.length) def.days=[0,1,2,3,4,5,6];
     if(rtEditFilter!=="all" && !def.days.includes(rtEditFilter)) continue;
+    const defId=String(def.id||"");
     shown++;
     const row=document.createElement("div"); row.className="rt-edit-row";
     if(def.id) row.setAttribute("data-rd", def.id);
@@ -5282,9 +5307,9 @@ function renderRoutineEditor(list){
       row.style.transform="translateX(-14px) scale(0.98)";
       row.style.pointerEvents="none";
     }
-    const tm=timeBtn({time:def.time||"",end:def.end||""}, v=>{ def.time=v.time; def.end=v.end||""; commitRoutineDefs(false); });
+    const tm=timeBtn({time:def.time||"",end:def.end||""}, v=>{ const current=currentRoutineDef(defId);if(!current)return;current.time=v.time;current.end=v.end||"";commitRoutineDefs(false); });
     const nm=document.createElement("input"); nm.type="text"; nm.className="rt-edit-name"; nm.value=def.name;
-    nm.addEventListener("change",()=>{const v=nm.value.trim(); if(!v){nm.value=def.name;return;} def.name=v; commitRoutineDefs(false);});
+    nm.addEventListener("change",()=>{const current=currentRoutineDef(defId);if(!current)return;const v=nm.value.trim();if(!v){nm.value=current.name;return;}current.name=v;commitRoutineDefs(false);});
     const del=document.createElement("button"); del.className="del icon-btn"; del.textContent="✕"; del.setAttribute("aria-label","루틴 삭제");
     del.addEventListener("click",function(ev){
       ev.preventDefault(); ev.stopPropagation();
@@ -5294,13 +5319,15 @@ function renderRoutineEditor(list){
     DOWS.forEach((lb,i)=>{
       const b=document.createElement("button"); b.type="button"; b.className="dow-pill"+(i===0?" sun":i===6?" sat":"")+(def.days.includes(i)?" on":""); b.textContent=lb;
       b.addEventListener("click",()=>{
-        if(def.days.includes(i)){ if(def.days.length>1){ def.days=def.days.filter(x=>x!==i); b.classList.remove("on"); } }
-        else{ def.days=[...def.days,i].sort((a,c)=>a-c); b.classList.add("on"); }
+        const current=currentRoutineDef(defId);if(!current)return;
+        const currentDays=Array.isArray(current.days)&&current.days.length?current.days:[0,1,2,3,4,5,6];
+        if(currentDays.includes(i)){ if(currentDays.length>1){ current.days=currentDays.filter(x=>x!==i); b.classList.remove("on"); } }
+        else{ current.days=[...currentDays,i].sort((a,c)=>a-c); b.classList.add("on"); }
         commitRoutineDefs(false);
       });
       days.appendChild(b);
     });
-    const ca=catActBtn({area:(def.actId&&actById(def.actId))? actById(def.actId).area : (def.area||null),areaId:def.areaId||null,actId:def.actId||null},function(v){ def.actId=v.actId||null; def.area=v.area||null;def.areaId=v.areaId||null;commitRoutineDefs(false); },{sm:true});
+    const ca=catActBtn({area:(def.actId&&actById(def.actId))? actById(def.actId).area : (def.area||null),areaId:def.areaId||null,actId:def.actId||null},function(v){const current=currentRoutineDef(defId);if(!current)return;current.actId=v.actId||null;current.area=v.area||null;current.areaId=v.areaId||null;commitRoutineDefs(false);},{sm:true});
     row.append(tm,nm,ca,del,days);
     list.appendChild(row);
   }
@@ -6062,7 +6089,7 @@ function applyLog(json,mode){
     if(!td||typeof td!=="object"||!td.title) continue;
     const _tw=normTodoWindow(td);
     const _hasTw=Object.prototype.hasOwnProperty.call(td,"time")||Object.prototype.hasOwnProperty.call(td,"end");
-    let ex=day.todos.find(x=>(td.id&&x.id===td.id)||x.title===td.title);
+    let ex=td.id?day.todos.find(x=>x.id===td.id):importNamedItem(day.todos,x=>x.title===td.title);
     if(!ex){
       ex={id:td.id||uid("m"),title:td.title,...importClassification(td),done:!!td.done,time:_tw.time,end:_tw.end};
       day.todos.push(ex);
@@ -6077,7 +6104,7 @@ function applyLog(json,mode){
     if(!rt||typeof rt!=="object"||!rt.name) continue;
     const _t=(rt.time&&/^\d{1,2}:\d{2}$/.test(rt.time)&&toMin(rt.time)<1440)? rt.time:"";
     const _e=(rt.end&&/^\d{1,2}:\d{2}$/.test(rt.end)&&_t&&toMin(rt.end)<=1440&&toMin(rt.end)>toMin(_t))? rt.end:"";
-    let ex=day.routines.find(x=>rt.id&&x.id===rt.id)||day.routines.find(x=>rt.routineDefId&&x.routineDefId===rt.routineDefId)||day.routines.find(x=>x.name===rt.name&&(x.time||"")===_t)||day.routines.find(x=>x.name===rt.name);
+    let ex=rt.id?day.routines.find(x=>x.id===rt.id):rt.routineDefId?importNamedItem(day.routines,x=>x.routineDefId===rt.routineDefId):importNamedItem(day.routines,x=>x.name===rt.name&&(x.time||"")===_t);
     if(!ex){
       ex={id:rt.id||uid("r"),routineDefId:rt.routineDefId||null,time:_t,end:_e,name:rt.name,...importClassification(rt),done:!!rt.done,extra:!rt.routineDefId};
       day.routines.push(ex);
@@ -6096,16 +6123,33 @@ function applyLog(json,mode){
     const s0=toMin(ev.start); let e0=toMin(ev.end); if(e0===0&&s0>0) e0=1440;
     if(e0<=s0) continue;
     const tags={};
-    if(ev.todo){ const _td=day.todos.find(x=>x.title===ev.todo); if(_td) tags.todoId=_td.id; }
-    if(ev.routine){ const _rt=day.routines.find(x=>x.name===ev.routine); if(_rt) tags.routineId=_rt.id; }
+    if(ev.todoId) tags.todoId=ev.todoId;
+    else if(ev.todo){ const _td=importNamedItem(day.todos,x=>x.title===ev.todo); if(_td) tags.todoId=_td.id; }
+    if(ev.routineId) tags.routineId=ev.routineId;
+    else if(ev.routine){ const _rt=importNamedItem(day.routines,x=>x.name===ev.routine); if(_rt) tags.routineId=_rt.id; }
     if(!tags.todoId&&!tags.routineId&&ev.note) tags.note=String(ev.note);
     tags._event=ev;
-    addInterval(day,act.id,s0,e0,tags);
+    if(Number(ev.startTs)>0&&Number(ev.endTs)>Number(ev.startTs)){
+      const startTs=Number(ev.startTs),endTs=Number(ev.endTs),base=dateOf(json.date),next=new Date(base);
+      base.setHours(0,0,0,0);next.setHours(0,0,0,0);next.setDate(next.getDate()+1);
+      if(startTs<base.getTime()||endTs>next.getTime())throw new Error('기록의 정확한 시간이 해당 날짜를 벗어납니다.');
+      // Imports retain supplied fragments; they never infer missing continuity.
+      day.events=subtractExact(day.events.filter(x=>!ev.id||x.id!==ev.id),json.date,startTs,endTs);
+      const item={id:ev.id||uid('e'),actId:act.id,...exactMinuteProjection(startTs,endTs,base.getTime(),next.getTime())};
+      for(const key of EXACT_EVENT_KEYS)if(ev[key]!=null)item[key]=copyRun(ev[key]);
+      for(const key of ['todoId','routineId','note'])if(tags[key])item[key]=tags[key];
+      day.events.push(item);day.events.sort((a,b)=>exactEventBounds(json.date,a).startTs-exactEventBounds(json.date,b).startTs);
+    }else addInterval(day,act.id,s0,e0,tags);
     n++;
   }
   for(const id of (json.todosDone||[])){ const t=day.todos.find(x=>x.id===id); if(t) setEntityDone(day,"todo",t.id,true); }
   for(const nm of (json.routinesDone||[])){ const pr=parseRoutine(nm); const rr=day.routines.find(x=>x.name===pr.name); if(rr) setEntityDone(day,"routine",rr.id,true); }
   return n;
+}
+function importNamedItem(items,predicate){
+  const matches=items.filter(predicate);
+  if(matches.length>1)throw new Error('같은 이름의 항목을 구분할 ID가 없습니다. 최신 내보내기를 사용하세요.');
+  return matches[0];
 }
 function applyRoutineDefs(arr){
   state.settings.routineDefs = arr.map(r=>{
@@ -6127,7 +6171,7 @@ function applyBackup(json,mode){
   if(history.length!==revision||history.some((r,i)=>r.revision!==i+1))throw new Error('서로 다른 삭제 이력이 섞인 백업입니다. 원본 계정의 백업인지 확인하세요.');
   const gate=window.tgCloud?.startGate();
   if(gate?.mode!=='local'&&history.some(r=>!state.settings.catalogHistory.some(x=>x.id===r.id)))throw new Error('현재 계정에 없는 삭제 이력이 포함되어 있습니다. 먼저 원본 계정과 동기화하세요.');
-  const importedSettings=TG_CATALOG.normalize({...normalizeSettingsColors(json.settings),catalogHistory:history,catalogRevision:revision});
+  const importedSettings=TG_CATALOG.normalize({...normalizeSettingsColors(json.settings),routineDefs:TG_ROUTINE_DEFS.normalize(json.settings.routineDefs),catalogHistory:history,catalogRevision:revision});
   if(mode==='replace'){
     const removed=state.settings.areas.some(a=>!importedSettings.areas.some(b=>b.id===a.id))||state.settings.activities.some(a=>!importedSettings.activities.some(b=>b.id===a.id));
     if(removed)throw new Error('현재 영역·활동이 백업에 빠져 있습니다. 병합으로 가져오거나 영역·활동 관리에서 삭제한 뒤 교체하세요.');
@@ -6136,6 +6180,17 @@ function applyBackup(json,mode){
     const duplicateArea=importedSettings.areas.some(a=>state.settings.areas.some(b=>b.id!==a.id&&b.name===a.name));
     const duplicateAct=importedSettings.activities.some(a=>state.settings.activities.some(b=>b.id!==a.id&&b.name===a.name&&b.areaId===a.areaId));
     if(duplicateArea||duplicateAct)throw new Error('같은 이름의 서로 다른 항목이 있습니다. 이름을 구분한 후 백업을 병합하세요.');
+    // A backup merge never chooses a winner between independent measurements.
+    // Reject conflicts before mutation; equal display minutes alone are safe.
+    for(const [ds,incoming] of Object.entries(json.days)){
+      const combined=[...(state.days[ds]?.events||[])],ids=new Set(combined.map(e=>e.id).filter(Boolean));
+      for(const event of incoming.events||[]){
+        if(event.id&&ids.has(event.id))continue;
+        const bounds=exactEventBounds(ds,event);
+        if(bounds&&combined.some(existing=>{const other=exactEventBounds(ds,existing);return other&&bounds.startTs<other.endTs&&bounds.endTs>other.startTs;}))throw new Error('서로 다른 ID의 측정 시간이 겹쳐 백업을 병합할 수 없습니다. 원본 기록을 확인하세요.');
+        combined.push(event);if(event.id)ids.add(event.id);
+      }
+    }
   }
   if(mode==="replace"){
     state.settings=importedSettings;
@@ -6143,8 +6198,21 @@ function applyBackup(json,mode){
   }else{
     for(const a of (importedSettings.areas||[])) if(!state.settings.areas.some(x=>x.id===a.id)) state.settings.areas.push(a);
     for(const act of (importedSettings.activities||[])) if(!state.settings.activities.some(x=>x.id===act.id)) state.settings.activities.push(act);
-    for(const r of (importedSettings.routineDefs||[])) if(!state.settings.routineDefs.some(x=>x.name===r.name&&(x.time||"")===(r.time||""))) state.settings.routineDefs.push(r);
-    for(const ds of Object.keys(json.days)) if(!state.days[ds]||!state.days[ds].events.length) state.days[ds]=json.days[ds];
+    for(const r of (importedSettings.routineDefs||[])) if(!state.settings.routineDefs.some(x=>x.id===r.id)) state.settings.routineDefs.push(copyRun(r));
+    for(const ds of Object.keys(json.days)){
+      const incoming=json.days[ds],current=state.days[ds];
+      if(!current){state.days[ds]=copyRun(incoming);continue;}
+      // An event-empty day may still own plans and immutable mutations.
+      // Existing IDs keep current fields; missing IDs append independently.
+      for(const field of ['events','todos','routines','todoMutations','statusMutations']){
+        const rows=current[field]||[],ids=new Set(rows.filter(x=>x?.id).map(x=>x.id));
+        for(const item of incoming[field]||[]){
+          if(item?.id?ids.has(item.id):rows.some(x=>TG_CATALOG.key(x)===TG_CATALOG.key(item)))continue;
+          rows.push(copyRun(item));if(item?.id)ids.add(item.id);
+        }
+        current[field]=rows;
+      }
+    }
   }
   state.settings=TG_CATALOG.normalize({...normalizeSettingsColors(state.settings),catalogHistory:history,catalogRevision:revision,catalogEnforced:enforced});
   const pending=new Map((state.finalizations||[]).map(f=>[f.id,f]));
@@ -6238,9 +6306,9 @@ function buildLog(ds){
     const out={actId:ev.actId,areaId:act?.areaId||null,act:act? act.name:"?", area, start:ev.start, end:ev.end};
     out.id=ev.id;
     ["startTs","endTs","continuityId","spanStartTs","spanEndTs","fragmentIndex","fragmentCount","gapIncludedMs","sessionIds"].forEach(function(k){if(ev[k]!=null)out[k]=JSON.parse(JSON.stringify(ev[k]));});
-    if(ev.todoId){ const _t=day.todos.find(x=>x.id===ev.todoId); if(_t) out.todo=_t.title; }
-    if(ev.routineId){ const _r=day.routines.find(x=>x.id===ev.routineId); if(_r) out.routine=_r.name; }
-    if(!out.todo&&!out.routine&&ev.note) out.note=ev.note;
+    if(ev.todoId){ out.todoId=ev.todoId; const _t=day.todos.find(x=>x.id===ev.todoId); if(_t) out.todo=_t.title; }
+    if(ev.routineId){ out.routineId=ev.routineId; const _r=day.routines.find(x=>x.id===ev.routineId); if(_r) out.routine=_r.name; }
+    if(!out.todoId&&!out.routineId&&ev.note) out.note=ev.note;
     return out;
   });
   const areas=Object.create(null),acts=Object.create(null);
@@ -6950,13 +7018,7 @@ $("#lnkCopyPlan").addEventListener("click",async function(){
     document.querySelectorAll("#jsonDlg .json-tab").forEach(b=>b.setAttribute("aria-selected", b.classList.contains("active")?"true":"false"));
     if(tab==="link") jhPaint();
     const panel=tab==="link"?$("#jpLink"):tab==="import"?$("#jpImport"):$("#jpExport");
-    if(panel){
-      panel.classList.remove("view-in-l","view-in-r");
-      if(changed&&dir!==0&&$("#jsonDlg").classList.contains("open")){
-        void panel.offsetWidth;
-        panel.classList.add(dir>0?"view-in-r":"view-in-l");
-      }
-    }
+    animateViewEntry(panel,changed&&$("#jsonDlg").classList.contains("open")?dir:0);
     requestAnimationFrame(()=>{ moveInd(tabsBox,changed); if(tab==="export") moveInd(segBox,false); });
   };
   const _open0=openJsonDlg;
@@ -7004,13 +7066,7 @@ $("#lnkCopyPlan").addEventListener("click",async function(){
     const db=$("#expDateBtn"); if(db) db.classList.toggle("active", !hit);
     moveInd(segBox,targetChanged);
     const exportView=$("#jexportView");
-    if(exportView){
-      exportView.classList.remove("view-in-l","view-in-r");
-      if(targetChanged&&targetDir!==0&&$("#jsonDlg").classList.contains("open")){
-        void exportView.offsetWidth;
-        exportView.classList.add(targetDir>0?"view-in-r":"view-in-l");
-      }
-    }
+    animateViewEntry(exportView,targetChanged&&$("#jsonDlg").classList.contains("open")?targetDir:0);
     _segTarget=expTarget;
   };
   const xb=$("#expExpand");
@@ -7160,8 +7216,7 @@ function setTab(name){
   }
   if(name==="tracker"){ tlAnimPending=true; renderTimeline(); }
   const v=name==="tracker"? $("#trackerView") : name==="planner"? $("#plannerView") : $("#statsView");
-  v.classList.remove("view-in-l","view-in-r");
-  if(changed && dir!==0){ void v.offsetWidth; v.classList.add(dir>0?"view-in-r":"view-in-l"); }
+  animateViewEntry(v,changed?dir:0);
 }
 $("#tabTracker").addEventListener("click",()=>setTab("tracker"));
 $("#tabPlanner").addEventListener("click",()=>setTab("planner"));
@@ -7662,6 +7717,15 @@ const TG_SYNC_OBSERVATION={
   let finalizationPromise=null,connectionPromise=null,connectionUid=null;
   let unsubSettings=null,unsubDays=null,unsubRunning=null;
 
+  /* SYNC_SESSION_CORE_START */
+  // A UID alone cannot distinguish a later login to the same account. Only the
+  // auth generation that started an operation may publish or apply its result.
+  let syncSessionEpoch=0,connectionEpoch=-1;
+  function captureSyncSession(uid=user?.uid){return {uid,epoch:syncSessionEpoch};}
+  function currentSyncSession(session){return !!session.uid&&user?.uid===session.uid&&syncSessionEpoch===session.epoch;}
+  function requireSyncSession(session){if(!currentSyncSession(session))throw new Error('sync-session-changed');}
+  /* SYNC_SESSION_CORE_END */
+
   function blankBase(){
     return {schema:2,uid:null,settings:null,settingsMeta:{rev:0,at:0},days:{},dayMeta:{},running:null,runningVersion:0,runningAt:0};
   }
@@ -8042,6 +8106,7 @@ const TG_SYNC_OBSERVATION={
   }
   async function reconcileLegacyStops(uid,raw){
     if(!state.legacyCatalogClient)return;
+    const session=captureSyncSession(uid);requireSyncSession(session);
     const p=userPaths(uid),intents=new Map((raw.finalizations||[]).map(f=>[f.id,f]));
     if(raw.legacyStopGuard&&!raw.running){
       const run=normRun(raw.legacyStopGuard.running);if(run)intents.set(run.sessionId,prepareFinalization(run,Number(raw.updatedAtMs)));
@@ -8050,6 +8115,7 @@ const TG_SYNC_OBSERVATION={
     const candidates=new Set(Object.values(state.days||{}).flatMap(d=>(d.events||[]).flatMap(e=>e.sessionIds||[])).filter(id=>!beforeSessions.has(id)));
     for(const id of candidates){
       const ack=await p.finalizationAcks.doc(id).get({source:'server'});
+      requireSyncSession(session);
       if(ack.exists&&ack.data()?.intent)intents.set(id,ack.data().intent);
     }
     let reconciled=state.days;
@@ -8062,21 +8128,26 @@ const TG_SYNC_OBSERVATION={
     state.legacyCatalogClient=false;
   }
   async function readAndApply(uid,quiet,serverOnly){
+    const session=captureSyncSession(uid);requireSyncSession(session);
     const p=userPaths(uid);
     const all=serverOnly
       ? await Promise.all([p.settings.get({source:"server"}),p.days.get({source:"server"}),p.running.get({source:"server"})])
       : await Promise.all([p.settings.get(),p.days.get(),p.running.get()]);
+    requireSyncSession(session);
     if(serverOnly) markServerOk();
     const ss=all[0],ds=all[1],rs=all[2];
     if(ss.exists){
       const raw=ss.data()||{},revision=Number(raw.catalogRevision)||0;
       const history=await readCatalogHistory(p,revision);
+      requireSyncSession(session);
       const check=await p.settings.get({source:'server'});
+      requireSyncSession(session);
       if((Number(check.data()?.catalogRevision)||0)!==revision)throw new Error('catalog-refresh-required');
       applyRemoteSettings({...raw,catalogHistory:history},metaOf(raw),true);
     }
     const rd=rs.exists?(rs.data()||{}):{};
     await reconcileLegacyStops(uid,rd);
+    requireSyncSession(session);
     ds.forEach(function(doc){const d=doc.data()||{};applyRemoteDay(doc.id,d,metaOf(d),true);});
     absorbFinalizations(rd);
     applyRemoteRunning(rd.running||null,metaOf(rd),true);
@@ -8087,12 +8158,15 @@ const TG_SYNC_OBSERVATION={
 
   async function flushSettings(uid){
     if(!outbox.settingsAt) return;
+    const session=captureSyncSession(uid);requireSyncSession(session);
     const p=userPaths(uid),ref=p.settings;
     const captured=normSettings(state.settings),base=syncBase.settings?normSettings(syncBase.settings):normSettings({});
     const localAt=outbox.settingsAt||Date.now(),sent=stable(captured);
     const result=await db.runTransaction(async function(tx){
+      requireSyncSession(session);
       const snap=await tx.get(ref),raw=snap.exists?(snap.data()||{}):{};
       validateCatalogRevision(raw);
+      requireSyncSession(session);
       const remote=snap.exists?normSettings(raw):normSettings({}),meta=metaOf(raw);
       const merged=mergeSettings(base,captured,remote,localAt>=meta.at);
       if(snap.exists&&same(merged,remote)) return {value:remote,meta:meta,wrote:false};
@@ -8100,6 +8174,7 @@ const TG_SYNC_OBSERVATION={
       tx.set(ref,{...TG_CATALOG.cloudSettings(merged),catalogProtocol:2,catalogWriteRev:rev,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
       return {value:merged,meta:{rev:rev,at:now},wrote:true};
     });
+    requireSyncSession(session);
     markServerOk();
     syncBase.settings=copy(result.value);syncBase.settingsMeta=result.meta;
     if(stable(normSettings(state.settings))===sent) state.settings=copy(result.value);
@@ -8110,12 +8185,15 @@ const TG_SYNC_OBSERVATION={
 
   async function flushDay(uid,date){
     if(!outbox.days[date]||!state.days[date]) return;
+    const session=captureSyncSession(uid);requireSyncSession(session);
     const p=userPaths(uid),ref=p.days.doc(date);
     const captured=normDay(state.days[date]),base=syncBase.days[date]?normDay(syncBase.days[date]):emptyDay();
     const localAt=(outbox.days[date]&&outbox.days[date].at)||Date.now(),sent=stable(captured);
     const result=await db.runTransaction(async function(tx){
+      requireSyncSession(session);
       const settingsSnap=await tx.get(p.settings);validateCatalogRevision(settingsSnap.data()||{});
       const snap=await tx.get(ref),raw=snap.exists?(snap.data()||{}):{};
+      requireSyncSession(session);
       const remote=snap.exists?normDay(raw):emptyDay(),meta=metaOf(raw);
       const merged=mergeDay(base,captured,remote,localAt>=meta.at);
       const rawLinks={todos:raw.todos||[],routines:raw.routines||[],todoMutations:raw.todoMutations||[]};
@@ -8125,6 +8203,7 @@ const TG_SYNC_OBSERVATION={
       tx.set(ref,{events:merged.events,todos:merged.todos,routines:merged.routines,todoMutations:merged.todoMutations,statusMutations:merged.statusMutations,catalogProtocol:2,catalogWriteRev:rev,catalogRevision:state.settings.catalogRevision||0,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
       return {value:merged,meta:{rev:rev,at:now},wrote:true};
     });
+    requireSyncSession(session);
     markServerOk();
     syncBase.days[date]=copy(result.value);syncBase.dayMeta[date]=result.meta;
     if(state.days[date]&&stable(normDay(state.days[date]))===sent) state.days[date]=copy(result.value);
@@ -8146,12 +8225,16 @@ const TG_SYNC_OBSERVATION={
       catch(e){state.settings=prior.settings;state.days=prior.days;throw new Error('storage');}
       save();renderAll();return result;
     }
+    const session=captureSyncSession();requireSyncSession(session);
     setRunLock(true,'삭제 전 확인 중…');
     try{
       await syncBarrier(true);
-      const p=userPaths(user.uid);
+      requireSyncSession(session);
+      const p=userPaths(session.uid);
       const result=await db.runTransaction(async tx=>{
+        requireSyncSession(session);
         const ss=await tx.get(p.settings),rs=await tx.get(p.running),existing=await tx.get(p.history.doc(preview.operationId));
+        requireSyncSession(session);
         const raw=ss.data()||{},runRaw=rs.data()||{};validateCatalogRevision(raw);
         if(raw.catalogEnforced!==true)throw new Error('CATALOG_UPGRADE_REQUIRED');
         if(existing.exists)return {settings:normSettings(raw),receipt:existing.data(),replayed:true};
@@ -8164,6 +8247,7 @@ const TG_SYNC_OBSERVATION={
         tx.set(p.settings,{...TG_CATALOG.cloudSettings(next.settings),catalogProtocol:2,catalogWriteRev:rev,syncRev:rev,updatedAtMs:now,updatedAt:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
         return next;
       });
+      requireSyncSession(session);
       state.settings=result.settings;syncBase.settings=copy(result.settings);outbox.settingsAt=0;
       try{
         normalizeCatalogDays();
@@ -8172,7 +8256,7 @@ const TG_SYNC_OBSERVATION={
         if(!await pushNow())throw new Error('CATALOG_CLEANUP_PENDING');
       }catch(e){throw new Error('CATALOG_CLEANUP_PENDING');}
       return result;
-    }finally{setRunLock(false);}
+    }finally{if(currentSyncSession(session))setRunLock(false);}
   }
   function startGate(){
     if(runLocking) return {allowed:false,mode:"locked",label:runLockLabel||"동기화 중…",message:"측정 상태를 확인하고 있습니다"};
@@ -8204,15 +8288,20 @@ const TG_SYNC_OBSERVATION={
       if(!actById(desired.actId)||(state.finalizations||[]).length)return {ok:false,reason:'catalog-or-finalizing'};
       return {ok:true,started:true,local:true,running:desired};
     }
+    const session=captureSyncSession();
     setRunLock(true,"시작 전 동기화 중…");
     try{
       await syncBarrier(true);
-      const paths=userPaths(user.uid),ref=paths.running;
+      requireSyncSession(session);
+      const paths=userPaths(session.uid),ref=paths.running;
       const result=await db.runTransaction(async function(tx){
+        requireSyncSession(session);
         const catalogSnap=await tx.get(paths.settings),catalogRaw=catalogSnap.data()||{};
+        requireSyncSession(session);
         validateCatalogRevision(catalogRaw);
         if(!TG_CATALOG.liveActivity(normSettings(catalogRaw),desired.actId))throw new Error('CATALOG_TARGET_MISSING');
         const snap=await tx.get(ref),raw=snap.exists?(snap.data()||{}):{};
+        requireSyncSession(session);
         const remote=normRun(raw.running||null),meta=metaOf(raw);
         if((raw.finalizations||[]).length||raw.legacyStopGuard)throw new Error('CATALOG_FINALIZING');
         if(remote&&!runStale(remote)) return {started:false,running:remote,meta:meta};
@@ -8220,6 +8309,7 @@ const TG_SYNC_OBSERVATION={
         tx.set(ref,{running:desired,catalogProtocol:2,catalogWriteRev:rev,catalogRevision:catalogRaw.catalogRevision||0,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
         return {started:true,running:desired,meta:{rev:rev,at:now}};
       });
+      requireSyncSession(session);
       markServerOk();
       syncBase.running=normRun(result.running);syncBase.runningVersion=Number(result.meta.rev)||0;syncBase.runningAt=Number(result.meta.at)||0;
       state.running=effectiveRun(result.running);outbox.run=null;
@@ -8233,10 +8323,11 @@ const TG_SYNC_OBSERVATION={
       setStatus("측정 시작 확정 · 데이터 동기화 중…","ok");
       return {ok:true,started:true,running:copy(result.running)};
     }catch(err){
+      if(!currentSyncSession(session))return {ok:false,reason:"session-changed"};
       setStatus("측정 시작 실패 · 동기화 연결을 확인하세요","err");
       if(typeof toast==="function") toast("동기화 확인 실패로 측정을 시작하지 않았습니다");
       return {ok:false,reason:"transaction",error:String(err&&err.message||err)};
-    }finally{setRunLock(false);}
+    }finally{if(currentSyncSession(session))setRunLock(false);}
   }
   async function requestStop(candidate){
     const target=normRun(candidate);if(!target)return {ok:false,reason:"invalid"};
@@ -8257,14 +8348,17 @@ const TG_SYNC_OBSERVATION={
       setStatus("오프라인 종료 · 재연결 시 클라우드에 반영","warn");
       try{return durableLocalStop();}catch(e){toast('종료 기록 저장 공간을 확인하세요.');return {ok:false,reason:'storage'};}
     }
+    const session=captureSyncSession();
     setRunLock(true,"중지 중…");
     try{
       // Stop owns only this session. Unrelated history/settings cannot delay its
       // endpoint or publication; the transaction revalidates current ownership.
       const receipt=prepareFinalization(target,endedAt);
-      const ref=userPaths(user.uid).running;
+      const ref=userPaths(session.uid).running;
       const result=await db.runTransaction(async function(tx){
+        requireSyncSession(session);
         const snap=await tx.get(ref),raw=snap.exists?(snap.data()||{}):{};
+        requireSyncSession(session);
         const remote=normRun(raw.running||null),meta=metaOf(raw);
         if(!remote) return {stopped:false,reason:"already-stopped",running:null,meta:meta};
         if(remote.sessionId!==target.sessionId) return {stopped:false,reason:"different-session",running:remote,meta:meta};
@@ -8272,6 +8366,7 @@ const TG_SYNC_OBSERVATION={
         tx.set(ref,{running:null,finalizations:[...(raw.finalizations||[]).filter(f=>f.id!==receipt.id),receipt],catalogProtocol:2,catalogWriteRev:rev,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
         return {stopped:true,running:remote,endedAt:receipt.endedAt,receipt,meta:{rev:rev,at:now}};
       });
+      requireSyncSession(session);
       markServerOk();
       syncBase.running=result.stopped?null:normRun(result.running);syncBase.runningVersion=Number(result.meta.rev)||0;syncBase.runningAt=Number(result.meta.at)||0;
       outbox.run=null;
@@ -8285,18 +8380,22 @@ const TG_SYNC_OBSERVATION={
       setStatus("측정 종료 확정 · 기록 동기화 중…","ok");
       return {ok:true,stopped:true,running:copy(result.running),endedAt:result.endedAt,receipt:result.receipt};
     }catch(err){
+      if(!currentSyncSession(session))return {ok:false,reason:"session-changed"};
       setStatus("측정 중지 실패 · 다시 시도하세요","err");
       if(typeof toast==="function")toast("클라우드 중지 확인에 실패했습니다");
       return {ok:false,reason:"transaction",error:String(err&&err.message||err)};
-    }finally{setRunLock(false);}
+    }finally{if(currentSyncSession(session))setRunLock(false);}
   }
 
   async function flushRunning(uid){
     const op=outbox.run;if(!op)return;
+    const session=captureSyncSession(uid);requireSyncSession(session);
     const paths=userPaths(uid),ref=paths.running,captured=copy(op);
     const result=await db.runTransaction(async function(tx){
+      requireSyncSession(session);
       const settingsSnap=await tx.get(paths.settings),settingsRaw=settingsSnap.data()||{};validateCatalogRevision(settingsRaw);
       const snap=await tx.get(ref),raw=snap.exists?(snap.data()||{}):{};
+      requireSyncSession(session);
       const remote=normRun(raw.running||null),meta=metaOf(raw),remoteStale=runStale(remote);
       if(captured.type==="set"){
         const desired=normRun(captured.running);
@@ -8319,6 +8418,7 @@ const TG_SYNC_OBSERVATION={
       tx.set(ref,{running:null,finalizations:[...(raw.finalizations||[]).filter(f=>f.id!==receipt.id),receipt],catalogProtocol:2,catalogWriteRev:rev,syncRev:rev,updatedAt:now,updatedAtMs:now,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
       return {applied:true,running:null,receipt,meta:{rev:rev,at:now}};
     });
+    requireSyncSession(session);
     markServerOk();
     if(result.receipt)absorbFinalizations({finalizations:[result.receipt]});
     syncBase.running=normRun(result.running);syncBase.runningVersion=Number(result.meta.rev)||0;syncBase.runningAt=Number(result.meta.at)||0;
@@ -8348,29 +8448,35 @@ const TG_SYNC_OBSERVATION={
     return [...dates].sort();
   }
   async function refreshFinalizations(uid,observedRunning){
+    const session=captureSyncSession(uid);requireSyncSession(session);
     const p=userPaths(uid);
     const raw=observedRunning??(await p.running.get({source:'server'})).data()??{};
-    if(user?.uid!==uid)return raw;
+    if(!currentSyncSession(session))return raw;
     absorbFinalizations(raw);
     const pending=(state.finalizations||[]).filter(f=>f.scope!=='local');
     await Promise.all(pending.map(async receipt=>{
       const ack=await p.finalizationAcks.doc(receipt.id).get({source:'server'});
-      if(ack.exists)applyFinalizationAcks(uid,[receipt.id]);
+      if(currentSyncSession(session)&&ack.exists)applyFinalizationAcks(uid,[receipt.id]);
     }));
-    if(user?.uid===uid)persistCatalogLocal();
+    if(currentSyncSession(session))persistCatalogLocal();
     return raw;
   }
   async function acknowledgeFinalizations(uid){
+    const session=captureSyncSession(uid);requireSyncSession(session);
     const p=userPaths(uid);
     for(const requested of (state.finalizations||[]).slice()){
       if(requested.scope==='local')continue;
       const captured=copy(state.days),capturedBase=copy(syncBase.days),capturedOutbox=copy(outbox.days);
       const result=await db.runTransaction(async tx=>{
+        requireSyncSession(session);
         const ackRef=p.finalizationAcks.doc(requested.id),ack=await tx.get(ackRef);
+        requireSyncSession(session);
         if(ack.exists)return {acknowledged:true,days:{},metas:{}};
         const catalogSnap=await tx.get(p.settings),catalogRaw=catalogSnap.data()||{};
+        requireSyncSession(session);
         validateCatalogRevision(catalogRaw);
         const snap=await tx.get(p.running),raw=snap.data()||{};
+        requireSyncSession(session);
         const guarded=normRun(raw.legacyStopGuard?.running);
         let receipt=(raw.finalizations||[]).find(f=>f.id===requested.id);
         const guardStop=guarded?.sessionId===requested.id&&!raw.running;
@@ -8382,6 +8488,7 @@ const TG_SYNC_OBSERVATION={
           for(const date of dates){
             if(Object.hasOwn(days,date))continue;
             const daySnap=await tx.get(p.days.doc(date)),dayRaw=daySnap.data()||{};
+            requireSyncSession(session);
             metas[date]=metaOf(dayRaw);remoteDays[date]=normDay(dayRaw);
             const base=capturedBase[date]?normDay(capturedBase[date]):emptyDay();
             const local=captured[date]?normDay(captured[date]):base;
@@ -8410,7 +8517,7 @@ const TG_SYNC_OBSERVATION={
         tx.set(p.running,{finalizations:remaining,...(guardStop?{legacyStopGuard:null}:{}),catalogProtocol:2,catalogWriteRev:rev,syncRev:rev,updatedAtMs:at,updatedAt:at,serverUpdatedAt:serverStamp(),deviceId:tgDeviceId()},{merge:true});
         return {acknowledged:true,days:materialized,metas,rev};
       });
-      if(user?.uid!==uid)return;
+      if(!currentSyncSession(session))return;
       for(const [date,day] of Object.entries(result.days)){
         const before=captured[date]?normDay(captured[date]):emptyDay();
         const current=state.days[date]?normDay(state.days[date]):emptyDay();
@@ -8433,6 +8540,7 @@ const TG_SYNC_OBSERVATION={
   }
   function pushNow(){
     if(!user||!db||!ready||DEMO) return Promise.resolve(false);
+    const session=captureSyncSession();
     markDirty();
     if(flushPromise){flushAgain=true;return flushPromise;}
     flushing=true;
@@ -8442,26 +8550,35 @@ const TG_SYNC_OBSERVATION={
         let pass=0;
         do{
           flushAgain=false;pass++;
-          await refreshFinalizations(user.uid);
+          requireSyncSession(session);
+          await refreshFinalizations(session.uid);
+          requireSyncSession(session);
           markDirty();
           const runType=outbox.run&&outbox.run.type;
-          if(runType==="set") await flushRunning(user.uid);
-          if(outbox.run&&outbox.run.type==="clear") await flushRunning(user.uid);
-          await finalizePending(user.uid);
-          if(outbox.settingsAt) await flushSettings(user.uid);
+          if(runType==="set") await flushRunning(session.uid);
+          if(outbox.run&&outbox.run.type==="clear") await flushRunning(session.uid);
+          requireSyncSession(session);
+          await finalizePending(session.uid);
+          requireSyncSession(session);
+          if(outbox.settingsAt) await flushSettings(session.uid);
           const dates=Object.keys(outbox.days||{}).sort();
           for(const date of dates){
-            if(outbox.run&&outbox.run.type==="clear") await flushRunning(user.uid);
-            await finalizePending(user.uid);
-            await flushDay(user.uid,date);
+            if(outbox.run&&outbox.run.type==="clear") await flushRunning(session.uid);
+            requireSyncSession(session);
+            await finalizePending(session.uid);
+            requireSyncSession(session);
+            await flushDay(session.uid,date);
           }
         }while((flushAgain||hasDirty())&&pass<4);
+        requireSyncSession(session);
         if(hasDirty()) schedulePush();
       }catch(err){
+        if(!currentSyncSession(session))return false;
         ok=false;
         setStatus("동기화 재시도 대기 · "+(err&&err.message||err),"warn");
       }finally{
-        flushing=false;persistBase();persistOutbox();persistLocal();
+        flushing=false;
+        if(currentSyncSession(session)){persistBase();persistOutbox();persistLocal();}
       }
       const clean=ok&&!hasDirty();
       if(clean&&lastServerOkAt) setLiveStatus();
@@ -8478,10 +8595,13 @@ const TG_SYNC_OBSERVATION={
   }
   async function syncBarrier(pullFirst){
     if(!user||!ready||navigator.onLine===false) throw new Error("cloud-unavailable");
+    const session=captureSyncSession();
     markDirty();
-    if(pullFirst) await readAndApply(user.uid,true,true);
+    if(pullFirst) await readAndApply(session.uid,true,true);
+    requireSyncSession(session);
     markDirty();
     const clean=await pushNow();
+    requireSyncSession(session);
     if(!clean||hasDirty()) throw new Error("sync-incomplete");
     return true;
   }
@@ -8491,36 +8611,43 @@ const TG_SYNC_OBSERVATION={
       setStatus(kind==="stop"?"오프라인 종료 · 재연결 시 기록 동기화":"오프라인 · 측정 데이터 동기화 대기","warn");
       return false;
     }
+    const session=captureSyncSession();
     try{
       // The timer transaction already confirmed Start/Stop. Only unfinished
       // Stop spans block the next Start; ordinary edits drain independently.
       if(kind==="stop"){
-        if(outbox.run&&outbox.run.type==="clear")await flushRunning(user.uid);
-        await finalizePending(user.uid);
+        if(outbox.run&&outbox.run.type==="clear")await flushRunning(session.uid);
+        requireSyncSession(session);
+        await finalizePending(session.uid);
       }
+      requireSyncSession(session);
       schedulePush();queueRender();
       if(!hasDirty())setLiveStatus();
       return true;
     }catch(err){
+      if(!currentSyncSession(session))return false;
       setStatus((kind==="stop"?"종료 기록":"측정 시작 데이터")+" 동기화 재시도 대기","warn");
       schedulePush();
       return false;
-    }finally{queueRender();}
+    }finally{if(currentSyncSession(session))queueRender();}
   }
   async function heartbeat(){
     if(heartbeatBusy||!user||!ready||navigator.onLine===false||document.visibilityState==="hidden") return false;
+    const session=captureSyncSession();
     heartbeatBusy=true;
     try{
-      const snap=await userPaths(user.uid).running.get({source:"server"});
+      const snap=await userPaths(session.uid).running.get({source:"server"});
+      if(!currentSyncSession(session))return false;
       const d=snap.exists?(snap.data()||{}):{};
       absorbFinalizations(d);
       applyRemoteRunning(d.running||null,metaOf(d),true);
       markRunningServerOk();queueRender();schedulePush();
       return true;
     }catch(err){
+      if(!currentSyncSession(session))return false;
       setStatus("실시간 동기화 연결 재확인 중…","warn");
       return false;
-    }finally{heartbeatBusy=false;}
+    }finally{if(currentSyncSession(session))heartbeatBusy=false;}
   }
   function refreshStatus(){tickLiveStatus();heartbeat();}
 
@@ -8529,21 +8656,24 @@ const TG_SYNC_OBSERVATION={
     unsubSettings=unsubDays=unsubRunning=null;
   }
   function startListeners(uid){
+    const session=captureSyncSession(uid);requireSyncSession(session);
     stopListeners();
     const p=userPaths(uid);
     unsubSettings=p.settings.onSnapshot(async function(snap){
-      if(!snap.exists)return;
+      if(!currentSyncSession(session)||!snap.exists)return;
       const d=snap.data()||{};
       try{
         const rev=Number(d.catalogRevision)||0;
         if(rev!==(Number(state.settings.catalogRevision)||0)){
           if(snap.metadata?.fromCache||snap.metadata?.hasPendingWrites)return;
           await readAndApply(uid,false,true);
+          requireSyncSession(session);
         }else applyRemoteSettings(d,metaOf(d),false);
         if(!snap.metadata||!snap.metadata.fromCache)markServerOk();schedulePush();
-      }catch(e){setStatus('영역·활동 동기화 재확인 대기','warn');}
-    },function(err){setStatus("설정 실시간 수신 오류 · "+(err&&err.message||err),"err");});
+      }catch(e){if(currentSyncSession(session))setStatus('영역·활동 동기화 재확인 대기','warn');}
+    },function(err){if(currentSyncSession(session))setStatus("설정 실시간 수신 오류 · "+(err&&err.message||err),"err");});
     unsubDays=p.days.onSnapshot(function(snap){
+      if(!currentSyncSession(session))return;
       snap.docChanges().forEach(function(ch){
         const date=ch.doc.id;
         if(ch.type==="removed"){
@@ -8556,25 +8686,27 @@ const TG_SYNC_OBSERVATION={
         }
       });
       persistBase();persistOutbox();persistLocal();queueRender();if(!snap.metadata||!snap.metadata.fromCache)markServerOk();schedulePush();
-    },function(err){setStatus("기록 실시간 수신 오류 · "+(err&&err.message||err),"err");});
+    },function(err){if(currentSyncSession(session))setStatus("기록 실시간 수신 오류 · "+(err&&err.message||err),"err");});
     unsubRunning=p.running.onSnapshot({includeMetadataChanges:true},function(snap){
-      if(user?.uid!==uid)return;
+      if(!currentSyncSession(session))return;
       const d=snap.exists?(snap.data()||{}):{};
       absorbFinalizations(d);
       applyRemoteRunning(d.running||null,metaOf(d),false);if(!snap.metadata||(!snap.metadata.fromCache&&!snap.metadata.hasPendingWrites))markRunningServerOk();schedulePush();
       // Observe completion independently of a slow ordinary outbox/finalizer.
       // Missing pending entries alone are not proof: read the immutable ack.
       if((state.finalizations||[]).some(f=>f.scope!=='local')&&!snap.metadata?.fromCache&&!snap.metadata?.hasPendingWrites){
-        refreshFinalizations(uid,d).catch(()=>{if(user?.uid===uid&&(state.finalizations||[]).some(f=>f.scope!=='local'))setStatus('종료 기록 확인 재시도 대기','warn');});
+        refreshFinalizations(uid,d).catch(()=>{if(currentSyncSession(session)&&(state.finalizations||[]).some(f=>f.scope!=='local'))setStatus('종료 기록 확인 재시도 대기','warn');});
       }
-    },function(err){setStatus("측정 상태 실시간 수신 오류 · "+(err&&err.message||err),"err");});
+    },function(err){if(currentSyncSession(session))setStatus("측정 상태 실시간 수신 오류 · "+(err&&err.message||err),"err");});
   }
 
   async function bootstrap(uid){
+    const session=captureSyncSession(uid);requireSyncSession(session);
     if(syncBase.uid&&syncBase.uid!==uid){syncBase=blankBase();outbox=blankOutbox();}
     syncBase.uid=uid;
     markDirty();
     await readAndApply(uid,true,true);
+    requireSyncSession(session);
     markDirty();persistBase();persistOutbox();persistLocal();queueRender();
   }
 
@@ -8593,29 +8725,34 @@ const TG_SYNC_OBSERVATION={
     }
   }
   function onSignedIn(u){
-    if(connectionPromise)return connectionUid===u.uid?connectionPromise:connectionPromise.then(()=>auth.currentUser?.uid===u.uid?onSignedIn(u):undefined);
-    connectionUid=u.uid;
-    connectionPromise=connectSignedIn(u).finally(()=>{connectionPromise=null;connectionUid=null;});
+    if(user?.uid!==u.uid)syncSessionEpoch++;
+    if(connectionPromise)return connectionUid===u.uid&&connectionEpoch===syncSessionEpoch?connectionPromise:connectionPromise.then(()=>auth.currentUser?.uid===u.uid?onSignedIn(u):undefined);
+    connectionUid=u.uid;connectionEpoch=syncSessionEpoch;
+    connectionPromise=connectSignedIn(u).finally(()=>{connectionPromise=null;connectionUid=null;connectionEpoch=-1;});
     return connectionPromise;
   }
   async function connectSignedIn(u){
     authKnown=true;cloudUnavailable=false;
-    user=u;ready=false;
+    user=u;ready=false;runLocking=false;runLockLabel="";heartbeatBusy=false;
+    const session=captureSyncSession(u.uid);
     paintUser();setStatus("계정 권한 확인 중…");queueRender();
     let ownerAccess=null;
     try{
       let token=await u.getIdTokenResult(false);
+      requireSyncSession(session);
       if(token&&token.claims&&token.claims[OWNER_CLAIM]===true) ownerAccess=true;
       else if(navigator.onLine!==false){
         token=await u.getIdTokenResult(true);
+        requireSyncSession(session);
         ownerAccess=!!(token&&token.claims&&token.claims[OWNER_CLAIM]===true);
       }
     }catch(err){
+      if(!currentSyncSession(session))return;
       cloudUnavailable=true;
       setStatus("계정 권한 확인 실패 · 측정 시작 차단","warn");queueRender();
       return;
     }
-    if(auth.currentUser?.uid!==u.uid)return;
+    if(!currentSyncSession(session)||auth.currentUser?.uid!==u.uid)return;
     if(ownerAccess!==true){
       if(navigator.onLine===false){
         cloudUnavailable=true;
@@ -8631,15 +8768,17 @@ const TG_SYNC_OBSERVATION={
     paintUser();setStatus("실시간 동기화 준비 중…");queueRender();
     try{
       await bootstrap(u.uid);
-      if(auth.currentUser?.uid!==u.uid)return;
+      if(!currentSyncSession(session)||auth.currentUser?.uid!==u.uid)return;
       ready=true;
       startListeners(u.uid);
       queueRender();
       await pushNow();
+      requireSyncSession(session);
       if(!hasDirty()&&lastServerOkAt)setLiveStatus();
-    }catch(err){ready=false;queueRender();setStatus("초기 동기화 실패 · 측정 시작 차단 · "+(err&&err.message||err),"err");}
+    }catch(err){if(!currentSyncSession(session))return;ready=false;queueRender();setStatus("초기 동기화 실패 · 측정 시작 차단 · "+(err&&err.message||err),"err");}
   }
   function onSignedOut(){
+    syncSessionEpoch++;runLocking=false;runLockLabel="";heartbeatBusy=false;
     authKnown=true;cloudUnavailable=expectsCloud();ready=false;user=null;lastRunningServerAt=0;stopListeners();
     if(pushTimer){clearTimeout(pushTimer);pushTimer=null;}
     paintUser();paintTrackingSync();queueRender();
@@ -8726,26 +8865,41 @@ const TG_SYNC_OBSERVATION={
   let waitingWorker=null;
   let refreshing=false;
   let applying=false;
+  let controllerChanged=false;
+  let hadController=!!navigator.serviceWorker.controller;
 
   function runningNow(){ try{ return !!(state && state.running); }catch(e){ return false; } }
+  function pendingNow(){ try{ return !!(state && Array.isArray(state.finalizations) && state.finalizations.length); }catch(e){ return false; } }
+  function updateBlocked(){ return runningNow()||pendingNow(); }
+  function blockedMessage(){ return runningNow() ? "측정 종료 후 안전하게 업데이트할 수 있어요." : "중지한 측정 기록 저장 후 업데이트할 수 있어요."; }
+  function readyMessage(){ return controllerChanged ? "업데이트를 눌러 새 버전으로 전환하세요." : "업데이트하면 최신 버전으로 전환됩니다."; }
+  function updateVisible(){ return box.classList.contains("show") && !box.inert && box.getAttribute("aria-hidden")!=="true"; }
+  function revealUpdate(){
+    box.inert=false;
+    box.classList.add("show");
+    box.setAttribute("aria-hidden","false");
+  }
   function hideUpdate(){
     waitingWorker=null;
+    controllerChanged=false;
+    applying=false;
     box.classList.remove("show");
     box.setAttribute("aria-hidden","true");
+    box.inert=true;
     btn.disabled=false;
     msg.textContent="업데이트하면 최신 버전으로 전환됩니다.";
   }
   function paintBusy(){
     if(!box.classList.contains("show") || applying) return;
-    const busy=runningNow();
+    const busy=updateBlocked();
     btn.disabled=busy;
-    msg.textContent=busy ? "측정 종료 후 안전하게 업데이트할 수 있어요." : "업데이트하면 최신 버전으로 전환됩니다.";
+    msg.textContent=busy ? blockedMessage() : readyMessage();
   }
   function showUpdate(worker){
     if(!worker || applying || refreshing) return;
     waitingWorker=worker;
-    box.classList.add("show");
-    box.setAttribute("aria-hidden","false");
+    controllerChanged=false;
+    revealUpdate();
     paintBusy();
   }
   function watch(reg){
@@ -8760,21 +8914,33 @@ const TG_SYNC_OBSERVATION={
     setInterval(()=>reg.update().catch(()=>{}),60*60*1000);
   }
   function applyUpdate(){
-    if(applying || refreshing) return;
-    if(runningNow()){
+    if(applying || refreshing || !updateVisible()) return;
+    if(updateBlocked()){
       btn.disabled=true;
-      msg.textContent="측정 종료 후 안전하게 업데이트할 수 있어요.";
+      msg.textContent=blockedMessage();
+      return;
+    }
+    if(controllerChanged){
+      refreshing=true;
+      location.reload();
       return;
     }
     const w=waitingWorker;
-    if(!w){ hideUpdate(); location.reload(); return; }
+    if(!w) return;
     applying=true;
     btn.disabled=true;
     msg.textContent="업데이트 적용 중…";
-    try{ w.postMessage({type:"SKIP_WAITING"}); }catch(e){}
+    try{ w.postMessage({type:"SKIP_WAITING"}); }
+    catch(e){ applying=false;paintBusy();return; }
     // controllerchange may not fire if already controlling; force reload fallback
     setTimeout(function(){
-      if(refreshing) return;
+      if(refreshing || !applying) return;
+      if(updateBlocked()){
+        applying=false;
+        revealUpdate();
+        paintBusy();
+        return;
+      }
       refreshing=true;
       location.reload();
     }, 900);
@@ -8782,8 +8948,18 @@ const TG_SYNC_OBSERVATION={
   btn.addEventListener("click", applyUpdate);
   navigator.serviceWorker.addEventListener("controllerchange",()=>{
     if(refreshing) return;
-    refreshing=true;
-    location.reload();
+    if(!hadController){hadController=true;return;}
+    const requestedHere=applying;
+    controllerChanged=true;
+    waitingWorker=null;
+    if(requestedHere&&!updateBlocked()){
+      refreshing=true;
+      location.reload();
+      return;
+    }
+    applying=false;
+    revealUpdate();
+    paintBusy();
   });
   window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js",{scope:"./"}).then(watch).catch(()=>{}));
   // only refresh busy lock while banner is visible — never re-open after apply

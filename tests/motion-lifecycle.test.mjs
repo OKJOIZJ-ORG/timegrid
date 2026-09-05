@@ -24,6 +24,18 @@ reduce=true;c.after(el,'transform',100,()=>done++);assert.equal(done,3,'reduced 
 c.after(el,'transform',100,()=>done++);media.matches=true;media.emit('change',{});assert.equal(done,4);media.matches=false
 c.after(el,'transform',100,()=>done++);reduce=true;doc.emit('keydown',{});assert.equal(done,5);reduce=false
 
+// A completed entrance must not restart when keyboard suppression ends on pointerdown.
+// The exact animation promise owns completion, including a superseded cancellation.
+const entrance=element(),completions=[]
+entrance.getAnimations=()=>[{animationName:'viewInL',finished:{then(resolve,reject){completions.push({resolve,reject})}}}]
+c.animateViewEntry(entrance,-1);assert.equal(entrance.classList.contains('view-in-l'),true)
+completions[0].resolve();assert.equal(entrance.classList.contains('view-in-l'),false)
+c.animateViewEntry(entrance,-1);c.animateViewEntry(entrance,1)
+completions[1].reject();assert.equal(entrance.classList.contains('view-in-r'),true,'old cancellation cannot finish the new entrance')
+reduce=true;doc.emit('keydown',{});assert.equal(entrance.classList.contains('view-in-r'),false);reduce=false
+c.animateViewEntry(entrance,1);[...timers.values()].forEach(f=>f());assert.equal(entrance.classList.contains('view-in-r'),false,'missing animation callbacks still clean up')
+reduce=true;c.animateViewEntry(entrance,-1);assert.equal(entrance.classList.contains('view-in-l'),false);reduce=false
+
 // Execute the real render dispatch for A→B→A before either transition settles.
 let desired=['A'];const dispatch=[]
 const w=vm.createContext({weekStripDates:['A'],weekTargetDates:null,weekDaysFor:()=>desired,state:{viewDate:'x'},

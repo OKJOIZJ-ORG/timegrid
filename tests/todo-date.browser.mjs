@@ -10,7 +10,7 @@ try{
   for(const width of [390,1280])for(const noGsap of [false,true]){
     const ctx=await browser.newContext({viewport:{width,height:900},hasTouch:width<600,isMobile:width<600});
     const page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
-    await page.goto('http://127.0.0.1:8765/?todo-date=1'+(noGsap?'&no-gsap=1':''));
+    await page.goto((process.env.TIMEGRID_TEST_URL||'http://127.0.0.1:8765')+'/?todo-date=1'+(noGsap?'&no-gsap=1':''));
     await page.evaluate(async()=>{setTab('planner');await document.fonts.ready;await Promise.all(document.getAnimations().filter(a=>a.effect?.getTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));window.scrollTo(0,0);await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));});
     const before=await page.evaluate(()=>JSON.stringify(state.days[fixtureTodo.source]));
     await page.locator('.todo-more').first().click();

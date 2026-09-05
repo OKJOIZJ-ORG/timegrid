@@ -49,6 +49,14 @@ assert.equal(result.routines[1].id, core.instanceId(date, "rd02"))
 assert.equal(result.report.droppedUnmeasured, 1)
 assert.equal(core.reconcile(settings, date, result.routines, []).changed, false)
 
+// Explicit definition IDs are authoritative; semantic adoption is legacy-only.
+const replacementSettings={routineDefs:[{id:'new-definition',name:'Same',time:'09:00',days:[2]}]};
+const oldInstance={id:'old-instance',routineDefId:'deleted-definition',name:'Same',time:'09:00',done:true};
+const replacement=core.reconcile(replacementSettings,date,[oldInstance],[{id:'measured',routineId:'old-instance'}]);
+assert.equal(replacement.routines.length,2,'new definition must not inherit old completion or measurement');
+assert.equal(replacement.routines.find(r=>r.routineDefId==='new-definition').done,false);
+assert.equal(replacement.routines.find(r=>r.id==='old-instance').routineDefId,'deleted-definition');
+
 const definitionStart = html.indexOf("/* ROUTINE_DEFINITION_MIGRATION_CORE_START */")
 const definitionEnd = html.indexOf("/* ROUTINE_DEFINITION_MIGRATION_CORE_END */")
 assert.ok(definitionStart >= 0 && definitionEnd > definitionStart)

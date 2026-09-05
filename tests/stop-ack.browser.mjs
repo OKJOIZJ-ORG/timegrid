@@ -10,7 +10,7 @@ try{
     const ctx=await browser.newContext({viewport:{width,height:844},isMobile:width<720,hasTouch:width<720});
     const page=await ctx.newPage(),errors=[];
     page.on('pageerror',e=>errors.push(e.message));
-    await page.goto('http://127.0.0.1:8765/?ack-observation=1'+(noGsap?'&no-gsap=1':''));
+    await page.goto((process.env.TIMEGRID_TEST_URL||'http://127.0.0.1:8765')+'/?ack-observation=1'+(noGsap?'&no-gsap=1':''));
     await page.evaluate(()=>setTab('tracker'));
     const button=page.locator('#swBtn');
     assert.equal(await button.isDisabled(),true);

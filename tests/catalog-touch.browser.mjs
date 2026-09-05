@@ -13,7 +13,7 @@ try{
     const context=await browser.newContext({viewport:{width,height:mobile?844:900},hasTouch:mobile,isMobile:mobile});
     const page=await context.newPage(),errors=[];
     page.on('pageerror',e=>errors.push(e.message));
-    await page.goto('http://127.0.0.1:8765/'+(process.argv.includes('--no-gsap')?'?no-gsap=1':''));
+    await page.goto((process.env.TIMEGRID_TEST_URL||'http://127.0.0.1:8765')+'/'+(process.argv.includes('--no-gsap')?'?no-gsap=1':''));
     await page.evaluate(()=>{renderManager();openFsPanel(document.getElementById('actsDlg'));});
     const rows=page.locator('.cm-areas .cm-row');
     await rows.first().waitFor({state:'visible'});

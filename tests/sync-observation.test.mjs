@@ -40,7 +40,8 @@ const calls=[]
 const authCtx=vm.createContext({authKnown:false,cloudUnavailable:false,ready:true,user:{},lastRunningServerAt:99,pushTimer:null,
   expectsCloud:()=>true,stopListeners:()=>calls.push('stop'),paintUser:()=>{},paintTrackingSync:()=>{},queueRender:()=>{},
   localStorage:{removeItem:()=>{throw Error('passive auth loss must preserve account expectation')}}})
-vm.runInContext(authHandler+';onSignedOut()',authCtx)
+const sessionCore=html.slice(html.indexOf('  /* SYNC_SESSION_CORE_START */'),html.indexOf('  /* SYNC_SESSION_CORE_END */'))
+vm.runInContext(sessionCore+authHandler+';onSignedOut()',authCtx)
 assert.equal(authCtx.cloudUnavailable,true)
 assert.equal(authCtx.ready,false)
 assert.equal(authCtx.user,null)

@@ -16,7 +16,7 @@ const ctx={state,TG_CATALOG:C,Date,JSON,Map,Set,Math,copyRun:copy,uid:p=>p+'-new
   syncDayRoutines(){},window:{tgCloud:{startGate:()=>({mode:'local'})}},recoverLocalFinalizations(){},
   resolveActivity:()=>{throw new Error('unexpected-auto-create');}};
 vm.createContext(ctx);
-vm.runInContext(section('function importActivity(','function applyPlan(')+section('function buildBackup(','$("#importApply")')+section('function buildRoutineDefs(','function buildPlanRange('),ctx);
+vm.runInContext(section('/* ROUTINE_DEFINITION_MIGRATION_CORE_START */','/* ROUTINE_DEFINITION_MIGRATION_CORE_END */')+section('function importActivity(','function applyPlan(')+section('function buildBackup(','$("#importApply")')+section('function buildRoutineDefs(','function buildPlanRange('),ctx);
 const plan=ctx.buildPlan('2026-09-03'),defs=ctx.buildRoutineDefs();
 assert.equal(plan.todos[0].actId,'meal');assert.equal(plan.todos[0].areaId,'life');assert.equal(defs.defs[0].actId,'meal');
 assert.equal(ctx.importClassification(plan.todos[0]).actId,'meal');

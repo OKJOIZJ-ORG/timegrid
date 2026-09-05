@@ -1,4 +1,5 @@
-const VERSION = "timegrid-v3.14.4-20260904";
+const VERSION = "timegrid-v3.14.5-20260906";
+const CACHE_PREFIX = "timegrid-";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const APP_SHELL = [
@@ -25,7 +26,7 @@ self.addEventListener("install", event => {
 self.addEventListener("activate", event => {
   event.waitUntil((async () => {
     const names = await caches.keys();
-    await Promise.all(names.filter(name => name !== SHELL_CACHE && name !== RUNTIME_CACHE).map(name => caches.delete(name)));
+    await Promise.all(names.filter(name => name.startsWith(CACHE_PREFIX) && name !== SHELL_CACHE && name !== RUNTIME_CACHE).map(name => caches.delete(name)));
     await self.clients.claim();
   })());
 });
@@ -33,6 +34,24 @@ self.addEventListener("activate", event => {
 self.addEventListener("message", event => {
   if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
+
+async function matchOwned(request) {
+  const shell = await caches.open(SHELL_CACHE);
+  const shellHit = await shell.match(request);
+  if (shellHit) return shellHit;
+  const runtime = await caches.open(RUNTIME_CACHE);
+  return runtime.match(request);
+}
+
+async function cacheRuntime(request, response) {
+  try {
+    const cache = await caches.open(RUNTIME_CACHE);
+    await cache.put(request, response.clone());
+  } catch (_) {
+    // A cache quota/storage failure must not discard a usable network response.
+  }
+  return response;
+}
 
 self.addEventListener("fetch", event => {
   const request = event.request;
@@ -43,11 +62,9 @@ self.addEventListener("fetch", event => {
     event.respondWith((async () => {
       try {
         const fresh = await fetch(request);
-        const cache = await caches.open(RUNTIME_CACHE);
-        cache.put(request, fresh.clone());
-        return fresh;
+        return cacheRuntime(request, fresh);
       } catch (_) {
-        return (await caches.match(request)) || (await caches.match("./index.html"));
+        return (await matchOwned(request)) || (await matchOwned("./index.html"));
       }
     })());
     return;
@@ -55,12 +72,10 @@ self.addEventListener("fetch", event => {
 
   if (url.origin === self.location.origin) {
     event.respondWith((async () => {
-      const cached = await caches.match(request);
+      const cached = await matchOwned(request);
       if (cached) return cached;
       const fresh = await fetch(request);
-      const cache = await caches.open(RUNTIME_CACHE);
-      cache.put(request, fresh.clone());
-      return fresh;
+      return cacheRuntime(request, fresh);
     })());
     return;
   }
@@ -68,11 +83,9 @@ self.addEventListener("fetch", event => {
   event.respondWith((async () => {
     try {
       const fresh = await fetch(request);
-      const cache = await caches.open(RUNTIME_CACHE);
-      cache.put(request, fresh.clone());
-      return fresh;
+      return cacheRuntime(request, fresh);
     } catch (_) {
-      return caches.match(request);
+      return matchOwned(request);
     }
   })());
 });

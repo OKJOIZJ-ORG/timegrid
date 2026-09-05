@@ -4,11 +4,13 @@ import vm from 'node:vm';
 import test from 'node:test';
 const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
 function fn(start,end){const a=html.indexOf(start),b=html.indexOf(end,a+start.length);assert.ok(a>=0&&b>a,start);return html.slice(a,b);}
+const syncCore=fn('  /* SYNC_SESSION_CORE_START */','  /* SYNC_SESSION_CORE_END */');
+function syncContext(globals){const c=vm.createContext(globals);vm.runInContext(syncCore,c);return c;}
 const deferred=()=>{let resolve;const promise=new Promise(r=>{resolve=r;});return {promise,resolve};};
 
 test('confirmed ack removal repaints the timer without waiting for the next heartbeat',async()=>{
   const receipt={id:'saved',scope:'cloud'},state={finalizations:[receipt]};let renders=0;
-  const ctx=vm.createContext({state,Set,copy:x=>JSON.parse(JSON.stringify(x)),user:{uid:'synthetic'},
+  const ctx=syncContext({state,Set,copy:x=>JSON.parse(JSON.stringify(x)),user:{uid:'synthetic'},
     userPaths:()=>({running:{get:async()=>({data:()=>({finalizations:[]})})},finalizationAcks:{doc:()=>({get:async()=>({exists:true})})}}),
     persistCatalogLocal(){},queueRender(){renders++}});
   vm.runInContext(fn('  /* FINALIZATION_OBSERVATION_CORE_START */','  /* FINALIZATION_OBSERVATION_CORE_END */')+fn('  async function refreshFinalizations(uid,','  async function acknowledgeFinalizations(uid){'),ctx);
@@ -19,7 +21,7 @@ test('confirmed ack removal repaints the timer without waiting for the next hear
 
 function observationClient(){
   const state={finalizations:[{id:'saved',scope:'cloud'}],running:null};
-  const ctx=vm.createContext({state,user:{uid:'first'},Set,Map,copy:x=>JSON.parse(JSON.stringify(x)),
+  const ctx=syncContext({state,user:{uid:'first'},Set,Map,copy:x=>JSON.parse(JSON.stringify(x)),
     normRun:r=>r,persistCatalogLocal(){},queueRender(){ctx.renders++},renders:0});
   vm.runInContext(fn('  /* FINALIZATION_OBSERVATION_CORE_START */','  /* FINALIZATION_OBSERVATION_CORE_END */')+fn('  async function refreshFinalizations(uid,','  async function acknowledgeFinalizations(uid){'),ctx);
   return ctx;
@@ -60,7 +62,7 @@ test('independent ack reads apply each completed receipt without waiting for ano
 
 test('timer post-action sync never waits for unrelated history or locks a confirmed running session',async()=>{
   const calls=[],pending=deferred();
-  const ctx=vm.createContext({user:{uid:'synthetic'},ready:true,navigator:{onLine:true},outbox:{run:null},
+  const ctx=syncContext({user:{uid:'synthetic'},ready:true,navigator:{onLine:true},outbox:{run:null},
     syncBarrier:()=>{throw Error('whole-account barrier must not be in timer post-action path');},
     setRunLock:()=>{throw Error('general history must not lock the timer');},
     finalizePending:()=>{calls.push('finalize');return pending.promise;},
@@ -73,7 +75,7 @@ test('timer post-action sync never waits for unrelated history or locks a confir
 
 test('foreground and background share a finalizer; failure releases ownership for retry',async()=>{
   let count=0;const pending=deferred();
-  const ctx=vm.createContext({finalizationPromise:null,acknowledgeFinalizations:()=>{count++;return pending.promise;}});
+  const ctx=syncContext({finalizationPromise:null,acknowledgeFinalizations:()=>{count++;return pending.promise;}});
   vm.runInContext(fn('  function finalizePending(uid){','  function pushNow(){'),ctx);
   const a=ctx.finalizePending('synthetic'),b=ctx.finalizePending('synthetic');assert.equal(a,b);assert.equal(count,1);
   pending.resolve();await a;assert.equal(ctx.finalizationPromise,null);
@@ -83,7 +85,7 @@ test('foreground and background share a finalizer; failure releases ownership fo
 
 test('background drain prioritizes Stop publication and finalization before queued settings/days',async()=>{
   const calls=[],outbox={run:{type:'clear'},settingsAt:1,days:{a:{},b:{}}};
-  const ctx=vm.createContext({user:{uid:'synthetic'},db:{},ready:true,DEMO:false,outbox,flushPromise:null,flushAgain:false,flushing:false,
+  const ctx=syncContext({user:{uid:'synthetic'},db:{},ready:true,DEMO:false,outbox,flushPromise:null,flushAgain:false,flushing:false,
     markDirty(){},refreshFinalizations:async()=>calls.push('refresh'),
     flushRunning:async()=>{calls.push('stop');outbox.run=null;},
     finalizePending:async()=>calls.push('finalize'),flushSettings:async()=>{calls.push('settings');outbox.settingsAt=0;},
@@ -97,7 +99,7 @@ test('background drain prioritizes Stop publication and finalization before queu
 
 test('incomplete bootstrap retries on resume even without cloudUnavailable; duplicate attempts coalesce',async()=>{
   const calls=[],pending=deferred();
-  const ctx=vm.createContext({user:{uid:'synthetic'},ready:false,cloudUnavailable:false,navigator:{onLine:true},
+  const ctx=syncContext({user:{uid:'synthetic'},ready:false,cloudUnavailable:false,navigator:{onLine:true},
     auth:{currentUser:{uid:'synthetic'}},connectionPromise:null,connectionUid:null,
     connectSignedIn:()=>{calls.push('connect');return pending.promise;},
     heartbeat:()=>calls.push('heartbeat'),markDirty:()=>calls.push('dirty'),pushNow:()=>calls.push('push')});

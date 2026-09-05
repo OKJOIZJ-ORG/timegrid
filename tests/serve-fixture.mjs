@@ -90,4 +90,5 @@ const server=http.createServer((req,res)=>{
   const file=path.join(root,route);if(!fs.existsSync(file)){res.writeHead(404);res.end();return}
   res.writeHead(200,{'Content-Type':route.endsWith('.png')?'image/png':route.endsWith('.js')?'text/javascript':route.endsWith('.css')?'text/css':'application/json'});fs.createReadStream(file).pipe(res)
 })
-server.listen(8765,'127.0.0.1',()=>console.log('Synthetic UI: http://127.0.0.1:8765; optional ?no-gsap=1'))
+const port=Number(process.env.PORT)||8765
+server.listen(port,'127.0.0.1',()=>console.log(`Synthetic UI: http://127.0.0.1:${port}; optional ?no-gsap=1`))

@@ -63,7 +63,8 @@ function client(server,{local=false,now=start+20_000}={}){
     normalizeCatalogDays:()=>{for(const k of Object.keys(state.days))state.days[k]=C.normalizeDay(state.settings,state.days[k]);},
     syncBarrier:async()=>{state.settings=C.normalize({...copy(server.data.get('settings')),catalogHistory:[...server.data.entries()].filter(([k])=>k.startsWith('history/')).map(([,v])=>copy(v))});},
     window:{},localStorage:{setItem(){}},LS_KEY:'synthetic-local'};
-  const s=fn('/* CONTINUITY_CORE_START */','/* CONTINUITY_CORE_END */')
+  const s=fn('  /* SYNC_SESSION_CORE_START */','  /* SYNC_SESSION_CORE_END */')
+    +fn('/* CONTINUITY_CORE_START */','/* CONTINUITY_CORE_END */')
     +fn('/* TODO_MUTATIONS_CORE_START */','/* TODO_MUTATIONS_CORE_END */')
     +fn('/* STATUS_MUTATIONS_CORE_START */','/* STATUS_MUTATIONS_CORE_END */')
     +fn('const EXACT_EVENT_KEYS=','function freeRanges(')
