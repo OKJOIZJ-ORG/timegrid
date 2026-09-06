@@ -1302,14 +1302,14 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
   #routineList.rt-list > .rt-row.no-meta > .rt-main,
   #routineList.rt-list > .rt-row.no-meta > .tmr{grid-row:1;}
   #routineList.rt-list > .rt-row.no-meta > .rt-meta{display:none;}
-  /* Restore the pre-v3.13.1 compact Todo composer as one row. The list keeps
-     the corrected optical geometry, but input/category/add no longer occupy
-     two oversized tiers on phones. */
-  .planner-card-todo .add-row{display:flex;align-items:center;gap:var(--plan-space-2);padding:10px 0;}
-  .planner-card-todo .add-row input[type=text]{grid-column:auto;flex:1 1 auto;width:auto;min-width:0;min-height:40px;}
-  .planner-card-todo .add-row select{grid-column:auto;flex:0 1 96px;width:auto;min-width:0;max-width:96px;min-height:40px;}
-  .planner-card-todo .add-row .area-picker{flex:0 1 96px;width:auto;min-width:72px;max-width:96px;min-height:40px;}
-  .planner-card-todo .add-row .btn{grid-column:auto;flex:0 0 auto;min-width:56px;min-height:40px;}
+  /* Keep the compact Todo composer on one row, but let its semantic label own
+     intrinsic width. The title input yields the remaining space; only labels
+     that exceed a genuine phone-width bound are ellipsized. */
+  .planner-card-todo .add-row{display:grid;grid-template-columns:minmax(0,1fr) max-content auto;align-items:center;gap:var(--plan-space-2);padding:10px 0;}
+  .planner-card-todo .add-row input[type=text]{grid-column:1;width:100%;min-width:0;min-height:40px;}
+  .planner-card-todo .add-row select{grid-column:2;width:max-content;min-width:0;max-width:min(48vw,180px);min-height:40px;}
+  .planner-card-todo .add-row .area-picker{grid-column:2;width:max-content;min-width:72px;max-width:min(48vw,180px);min-height:40px;}
+  .planner-card-todo .add-row .btn{grid-column:3;min-width:56px;min-height:40px;}
   .sn-cloud .sc-actions .btn{min-height:44px;}
 }
 </style>
@@ -1517,7 +1517,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.14.9<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.14.10<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -8910,7 +8910,7 @@ const TG_SYNC_OBSERVATION={
 /* ================= PWA service worker / safe update flow ================= */
 (function(){
   if (!("serviceWorker" in navigator) || location.protocol === "file:") return;
-  const BUILD_VERSION="timegrid-v3.14.9-20260906";
+  const BUILD_VERSION="timegrid-v3.14.10-20260906";
   let registration=null, interacted=false, refreshing=false, requestedWorker=null;
   let entryActivation=false, checkEpoch=0;
   const touch=()=>{interacted=true;entryActivation=false;};

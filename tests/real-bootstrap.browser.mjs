@@ -82,6 +82,41 @@ try{
     if(noGsap)assert.equal(initial.gsap,false)
     else assert.equal(initial.gsap,true,'the SRI-verified production GSAP dependency must execute')
 
+    if(width<600){
+      const todoComposer=await page.evaluate(async()=>{
+        const area=state.settings.areas.find(item=>item.name==='공부')
+        const actId='fixture-mobile-composer-activity'
+        state.settings.activities.push({id:actId,name:'정치와 법',area:'공부',areaId:area?.id||null,color:'#E69494'})
+        window._todoPickBtn._setValue({area:'공부',areaId:area?.id||null,actId})
+        setTab('planner')
+        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))
+        const row=document.querySelector('.planner-card-todo .add-row')
+        const input=document.getElementById('todoInput')
+        const picker=window._todoPickBtn
+        const add=document.getElementById('todoAdd')
+        const areaText=picker.querySelector('.ca-ar')
+        const activityText=picker.querySelector('.ca-hl')
+        const box=element=>element.getBoundingClientRect()
+        return {
+          row:box(row),input:box(input),picker:box(picker),add:box(add),
+          pickerText:picker.textContent,
+          areaClipped:areaText.scrollWidth>areaText.clientWidth,
+          activityClipped:activityText.scrollWidth>activityText.clientWidth,
+          contentClipped:picker.scrollWidth>picker.clientWidth,
+          overflow:Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-innerWidth
+        }
+      })
+      assert.match(todoComposer.pickerText,/공부\s*정치와 법/,'the composed area and activity remain present')
+      assert.equal(todoComposer.areaClipped,false,'mobile composer shows the full area name')
+      assert.equal(todoComposer.activityClipped,false,'mobile composer shows the full activity name')
+      assert.equal(todoComposer.contentClipped,false,'mobile picker contains its full composed label and caret')
+      assert.equal(Math.abs(todoComposer.input.y-todoComposer.picker.y)<=1,true,'Todo input and picker stay on one row')
+      assert.equal(Math.abs(todoComposer.picker.y-todoComposer.add.y)<=1,true,'picker and Add stay on one row')
+      assert.equal(todoComposer.overflow<=1,true,'content-sized mobile composer does not overflow the viewport')
+      await page.screenshot({path:path.join(os.tmpdir(),`timegrid-todo-composer-${width}-${noGsap?'no-gsap':'gsap'}.png`),fullPage:false})
+      await page.evaluate(()=>setTab('tracker'))
+    }
+
     await page.selectOption('#areaSelect','공부',{force:true})
     await page.fill('#actInput','수학')
     await page.locator('#actInput').dispatchEvent('change')
