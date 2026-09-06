@@ -337,6 +337,7 @@ main::-webkit-scrollbar, .tl::-webkit-scrollbar, .dlg-body::-webkit-scrollbar, d
 .ac-row.new .nm{color:var(--text2);}
 /* ---------- area picker ---------- */
 .area-picker{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:4px 12px;border:1px solid var(--line2);border-radius:var(--r-round);background:#fff;cursor:pointer;user-select:none;font-size:14px;max-width:140px;transition:border-color .18s ease,box-shadow .18s ease,transform .12s ease;}
+.area-picker.cat-act[data-value-kind="area"]{gap:4px;padding-inline:10px 8px;}
 @media (hover: hover) and (pointer: fine){ .area-picker:hover{border-color:var(--text3);} }
 .area-picker:active{transform:scale(.97);}
 .area-picker.sm{min-height:38px;padding:4px 10px;border-radius:var(--r-md);max-width:120px;}
@@ -1308,7 +1309,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
   .planner-card-todo .add-row{display:grid;grid-template-columns:minmax(0,1fr) max-content auto;align-items:center;gap:var(--plan-space-2);padding:10px 0;}
   .planner-card-todo .add-row input[type=text]{grid-column:1;width:100%;min-width:0;min-height:40px;}
   .planner-card-todo .add-row select{grid-column:2;width:max-content;min-width:0;max-width:min(48vw,180px);min-height:40px;}
-  .planner-card-todo .add-row .area-picker{grid-column:2;width:max-content;min-width:72px;max-width:min(48vw,180px);min-height:40px;}
+  .planner-card-todo .add-row .area-picker{grid-column:2;width:max-content;min-width:0;max-width:min(48vw,180px);min-height:40px;}
   .planner-card-todo .add-row .btn{grid-column:3;min-width:56px;min-height:40px;}
   .sn-cloud .sc-actions .btn{min-height:44px;}
 }
@@ -1517,7 +1518,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.14.10<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.14.11<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -5630,6 +5631,7 @@ function catActBtn(value,onSelect,opts){
     const act=cur.actId? actById(cur.actId):null
     const arName=act? act.area:cur.area
     const ar=arName? areaByName(arName):null
+    btn.dataset.valueKind=act?'activity':ar?'area':'empty'
     if(act){
       btn.innerHTML='<span class="ap-nm">'+(ar?'<span class="ca-ar" style="color:'+safeHexColor(ar.color)+'">'+esc(act.area)+'</span><span class="ca-sep"></span>':'')+'<span class="ca-hl" style="background:'+hexToRgba(act.color,.30)+'">'+esc(act.name)+'</span></span><span class="ap-tri">▾</span>'
     }else if(ar){
@@ -8910,7 +8912,7 @@ const TG_SYNC_OBSERVATION={
 /* ================= PWA service worker / safe update flow ================= */
 (function(){
   if (!("serviceWorker" in navigator) || location.protocol === "file:") return;
-  const BUILD_VERSION="timegrid-v3.14.10-20260906";
+  const BUILD_VERSION="timegrid-v3.14.11-20260906";
   let registration=null, interacted=false, refreshing=false, requestedWorker=null;
   let entryActivation=false, checkEpoch=0;
   const touch=()=>{interacted=true;entryActivation=false;};

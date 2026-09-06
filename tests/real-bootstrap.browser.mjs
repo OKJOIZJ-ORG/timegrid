@@ -82,6 +82,37 @@ try{
     if(noGsap)assert.equal(initial.gsap,false)
     else assert.equal(initial.gsap,true,'the SRI-verified production GSAP dependency must execute')
 
+    const areaOnlyPicker=await page.evaluate(async()=>{
+      const area=state.settings.areas.find(item=>item.name==='공부')
+      window._todoPickBtn._setValue({area:'공부',areaId:area?.id||null,actId:null})
+      setTab('planner')
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))
+      const picker=window._todoPickBtn
+      const areaText=picker.querySelector('.ca-ar')
+      const caret=picker.querySelector('.ap-tri')
+      const pickerBox=picker.getBoundingClientRect()
+      const areaBox=areaText.getBoundingClientRect()
+      const caretBox=caret.getBoundingClientRect()
+      return {
+        width:pickerBox.width,
+        trailingInset:pickerBox.right-caretBox.right,
+        chromeWidth:pickerBox.width-areaBox.width-caretBox.width,
+        areaClipped:areaText.scrollWidth>areaText.clientWidth,
+        contentClipped:picker.scrollWidth>picker.clientWidth
+      }
+    })
+    assert.equal(areaOnlyPicker.areaClipped,false,`${width}px area-only label remains complete`)
+    assert.equal(areaOnlyPicker.contentClipped,false,`${width}px area-only picker contains its label and caret`)
+    assert.equal(areaOnlyPicker.trailingInset<=9,true,`${width}px area-only caret has compact optical trailing space`)
+    assert.equal(areaOnlyPicker.chromeWidth<=25,true,`${width}px area-only picker has no state-independent width floor`)
+    if(width<600)assert.equal(areaOnlyPicker.width<72,true,'mobile area-only picker shrinks below the former generic minimum')
+    if(!noGsap){
+      await page.waitForTimeout(100)
+      await page.evaluate(()=>{_closeAc();_closeAp();document.activeElement?.blur()})
+      await page.screenshot({path:path.join(os.tmpdir(),`timegrid-todo-area-only-${width}.png`),fullPage:false})
+    }
+    await page.evaluate(()=>setTab('tracker'))
+
     if(width<600){
       const todoComposer=await page.evaluate(async()=>{
         const area=state.settings.areas.find(item=>item.name==='공부')
@@ -178,7 +209,7 @@ try{
 
     const screenshot=path.join(os.tmpdir(),`timegrid-real-bootstrap-${width}-${noGsap?'no-gsap':'gsap'}.png`)
     await page.screenshot({path:screenshot,fullPage:false})
-    results.push({width,noGsap,gsapTransport:noGsap?'intentionally-blocked':'SRI-verified-CDN-bytes-route-fulfilled',screenshot,initial,worker,offline,
+    results.push({width,noGsap,gsapTransport:noGsap?'intentionally-blocked':'SRI-verified-CDN-bytes-route-fulfilled',screenshot,initial,areaOnlyPicker,worker,offline,
       externalFailures:failed.filter(item=>!item.url.startsWith(base))})
     await context.setOffline(false)
     await context.close()
