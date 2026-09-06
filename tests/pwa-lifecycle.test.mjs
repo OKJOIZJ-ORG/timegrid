@@ -10,7 +10,7 @@ const shellName=`${version}-shell`,runtimeName=`${version}-runtime`
 function harness({names=[],cacheFor=()=>({match:async()=>undefined,put:async()=>{},addAll:async()=>{}}),fetchImpl=async()=>new Response('network')}={}){
   const handlers=new Map(),deleted=[],opened=[],claims=[]
   const context=vm.createContext({
-    URL,Request,Response,DOMException,
+    URL,Request:class extends Request{constructor(input,options){super(typeof input==='string'?new URL(input,'https://okjoizj-org.github.io/timegrid/'):input,options)}},Response,DOMException,
     fetch:fetchImpl,
     caches:{
       keys:async()=>names,
@@ -92,3 +92,27 @@ async function fetchThrough(h,request){
 }
 
 console.log('PWA cache ownership, offline fallback and event-lifetime regressions passed')
+
+{
+  let networkCalls=0
+  const h=harness({cacheFor:()=>({match:async key=>key==='./index.html'?new Response('installed-release'):undefined}),fetchImpl:async()=>{networkCalls++;return new Response('stale-cdn-html')}})
+  const {response}=await fetchThrough(h,{method:'GET',mode:'navigate',url:'https://okjoizj-org.github.io/timegrid/?launch=pwa'})
+  assert.equal(await (await response()).text(),'installed-release','online reload stays on the activated release rather than stale CDN HTML')
+  assert.equal(networkCalls,0)
+}
+for(const mismatch of [false,true]){
+  let requests=[]
+  const h=harness({cacheFor:()=>({addAll:async rows=>{requests=rows},match:async()=>new Response(`const BUILD_VERSION="${mismatch?'stale-build':version}";`)})})
+  let installed
+  h.handlers.get('install')({waitUntil(value){installed=value}})
+  if(mismatch){await assert.rejects(installed,/shell version mismatch/);assert.deepEqual(h.deleted,[shellName])}
+  else await installed
+  assert.ok(requests.length>5)
+  assert.ok(requests.every(request=>request.cache==='reload'),'installation bypasses an old HTTP cache for the whole shell')
+}
+{
+  const h=harness();let reply
+  h.handlers.get('message')({data:{type:'GET_VERSION'},ports:[{postMessage(value){reply=value}}]})
+  assert.equal(reply.version,version)
+}
+console.log('PWA release-coherent navigation, install version rejection and worker identity tests passed')

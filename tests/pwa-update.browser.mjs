@@ -11,6 +11,7 @@ const marker=source.indexOf('/* ================= PWA service worker / safe upda
 const start=source.indexOf('(function(){',marker)
 const end=source.indexOf('\n})();',start)+6
 const updateSource=source.slice(start,end)
+const pageBuild=updateSource.match(/const BUILD_VERSION="([^"]+)"/)[1]
 assert.ok(style&&banner&&marker>=0&&start>=0&&end>start)
 
 const browser=await chromium.launch({channel:'msedge',headless:true})
@@ -19,11 +20,11 @@ async function openPage({waiting=false,running=false,finalizations=[],controlled
   const setup=`<script>
     window.state={running:${running?'{sessionId:"active"}':'null'},finalizations:${JSON.stringify(finalizations)}};
     window.__posted=[];window.__swListeners={};
-    window.__worker={state:'installed',postMessage(message){window.__posted.push(message)}};
+    window.__worker={state:'installed',version:'test-next-build',postMessage(message,ports){if(message.type==='GET_VERSION'){ports[0].postMessage({version:this.version});return;}window.__posted.push(message)}};
     window.__registration={waiting:${waiting?'window.__worker':'null'},installing:null,addEventListener(){},update(){return Promise.resolve()}};
-    window.__serviceWorker={controller:${controlled?'{}':'null'},register(){return Promise.resolve(window.__registration)},addEventListener(type,listener){window.__swListeners[type]=listener}};
+    window.__serviceWorker={controller:${controlled?`{postMessage(message,ports){ports[0].postMessage({version:'${pageBuild}'})}}`:'null'},register(){return Promise.resolve(window.__registration)},addEventListener(type,listener){window.__swListeners[type]=listener}};
     Object.defineProperty(navigator,'serviceWorker',{configurable:true,value:window.__serviceWorker});
-    window.__emitControllerChange=()=>window.__swListeners.controllerchange&&window.__swListeners.controllerchange();
+    window.__emitControllerChange=()=>{if(!window.__serviceWorker.controller)window.__worker.version='${pageBuild}';window.__worker.state='activated';window.__serviceWorker.controller=window.__worker;window.__registration.waiting=null;window.__swListeners.controllerchange&&window.__swListeners.controllerchange();};
   <\/script>`
   await page.setContent(`<!doctype html><html><head><style>${style}</style></head><body>${banner}${setup}<script>${updateSource}<\/script></body></html>`,{waitUntil:'load'})
   if(waiting)await page.waitForFunction(()=>document.getElementById('pwaUpdate').classList.contains('show'))
@@ -31,6 +32,22 @@ async function openPage({waiting=false,running=false,finalizations=[],controlled
 }
 
 try{
+  {
+    const page=await openPage({waiting:true})
+    await page.click('#pwaUpdateBtn')
+    await new Promise(resolve=>setTimeout(resolve,1600))
+    assert.equal(await page.locator('#pwaUpdate').count(),1,'a slow activation never reloads the old controller after 900ms')
+    assert.equal(await page.locator('#pwaUpdateBtn').isDisabled(),true)
+    assert.deepEqual(await page.evaluate(()=>window.__posted),[{type:'SKIP_WAITING'}])
+    await page.close()
+  }
+  {
+    const page=await openPage()
+    await page.evaluate(version=>{window.__worker.version=version;window.__emitControllerChange()},pageBuild)
+    await new Promise(resolve=>setTimeout(resolve,100))
+    assert.equal(await page.locator('#pwaUpdate').getAttribute('aria-hidden'),'true','claiming the already-rendered build does not invent a new update')
+    await page.close()
+  }
   {
     const page=await openPage()
     const state=await page.evaluate(()=>{

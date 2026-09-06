@@ -1,4 +1,4 @@
-const VERSION = "timegrid-v3.14.6-20260906";
+const VERSION = "timegrid-v3.14.7-20260906";
 const CACHE_PREFIX = "timegrid-";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
@@ -20,7 +20,20 @@ const APP_SHELL = [
 ];
 
 self.addEventListener("install", event => {
-  event.waitUntil(caches.open(SHELL_CACHE).then(cache => cache.addAll(APP_SHELL)));
+  event.waitUntil((async () => {
+    const cache = await caches.open(SHELL_CACHE);
+    await cache.addAll(APP_SHELL.map(url => new Request(url, {cache:"reload"})));
+    // A CDN deployment can expose the new worker before the matching HTML.
+    // Never activate a release whose cached document belongs to another build.
+    for (const url of ["./", "./index.html"]) {
+      const response = await cache.match(url);
+      const html = response && await response.text();
+      if (!html || !html.includes(`const BUILD_VERSION="${VERSION}";`)) {
+        await caches.delete(SHELL_CACHE);
+        throw new Error("TimeGrid shell version mismatch");
+      }
+    }
+  })());
 });
 
 self.addEventListener("activate", event => {
@@ -32,7 +45,10 @@ self.addEventListener("activate", event => {
 });
 
 self.addEventListener("message", event => {
-  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
+  if (event.data && event.data.type === "SKIP_WAITING") event.waitUntil(self.skipWaiting());
+  if (event.data && event.data.type === "GET_VERSION" && event.ports[0]) {
+    event.ports[0].postMessage({version:VERSION});
+  }
 });
 
 async function matchOwned(request) {
@@ -60,8 +76,13 @@ self.addEventListener("fetch", event => {
 
   if (request.mode === "navigate") {
     event.respondWith((async () => {
+      // HTML and shared scripts must belong to the same activated shell.
+      // Network-first HTML can repeatedly reopen an old update banner after reload.
+      const shell = await caches.open(SHELL_CACHE);
+      const installed = await shell.match("./index.html");
+      if (installed) return installed;
       try {
-        const fresh = await fetch(request);
+        const fresh = await fetch(new Request(request, {cache:"reload"}));
         return cacheRuntime(request, fresh);
       } catch (_) {
         return (await matchOwned(request)) || (await matchOwned("./index.html"));

@@ -15,6 +15,7 @@ const root=path.resolve(fileURLToPath(new URL('../',import.meta.url)))
 const prefix='/timegrid/'
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json; charset=utf-8','.png':'image/png','.ico':'image/x-icon'}
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8')
+const expectedShell=fs.readFileSync(path.join(root,'sw.js'),'utf8').match(/const VERSION = "([^"]+)"/)[1]+'-shell'
 const gsapTag=html.match(/<script src="(https:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/gsap\/[^"]+)" integrity="(sha384-[^"]+)"/)
 assert.ok(gsapTag,'production GSAP tag and SRI must exist')
 const [,gsapUrl,gsapIntegrity]=gsapTag
@@ -116,7 +117,7 @@ try{
     assert.equal(worker.scope,base)
     assert.equal(worker.active,'activated')
     assert.equal(worker.controller,true)
-    assert.equal(worker.caches.some(name=>name==='timegrid-v3.14.6-20260906-shell'),true)
+    assert.equal(worker.caches.includes(expectedShell),true)
 
     // One controlled online reload verifies normal local persistence and warms only optional runtime dependencies.
     await page.reload({waitUntil:'load',timeout:30000})

@@ -12,7 +12,8 @@ const cacheVersion = sw.match(/const VERSION = "timegrid-v(\d+\.\d+\.\d+)-\d{8}"
 assert.ok(footerVersion, "the app footer must expose a semantic release version")
 assert.ok(cacheVersion, "the service worker must expose a dated semantic cache version")
 assert.equal(cacheVersion, footerVersion, "footer and service-worker versions must agree")
-assert.equal(footerVersion, "3.14.6", "changed assets require a new service worker cache identity")
+assert.ok(html.includes(`const BUILD_VERSION="${sw.match(/const VERSION = "([^"]+)"/)[1]}";`),"document and worker build identities must agree")
+assert.equal(footerVersion, "3.14.7", "changed assets require a new service worker cache identity")
 for (const asset of ["catalog-core.js", "continuity-core.js", "catalog-manager.js", "catalog-manager.css"]) {
   assert.ok(html.includes(asset), `${asset} must load in the application`)
   assert.ok(sw.includes(`"./${asset}"`), `${asset} must be available offline`)
