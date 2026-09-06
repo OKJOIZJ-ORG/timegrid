@@ -794,8 +794,8 @@ button,.pill,.btn,.icon-btn,.check-item .del,.menu-list button{
 .check-item input[type=checkbox]:active{transform:scale(1.25);}
 .ac{animation:acIn .18s ease;}
 @keyframes acIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
-dialog[open]{animation:dlgIn .34s cubic-bezier(.22,1.2,.36,1);}
-dialog[open]::backdrop{animation:bdIn .28s ease;}
+dialog[open].dialog-entering:not(.closing):not(.bdout){animation:dlgIn .34s cubic-bezier(.22,1.2,.36,1);}
+dialog[open].dialog-entering:not(.closing):not(.bdout)::backdrop{animation:bdIn .28s ease;}
 @keyframes dlgIn{from{opacity:0;transform:translateY(16px) scale(.96);}to{opacity:1;transform:none;}}
 dialog.closing{animation:dlgOut .24s cubic-bezier(.4,0,.9,.5) forwards;}
 dialog.closing::backdrop{animation:bdOut .24s ease forwards;}
@@ -1517,7 +1517,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.14.8<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.14.9<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -3907,7 +3907,7 @@ function openEvDlg(ev){
   _nEl.value=_tagT||ev.note||"";_nEl.readOnly=false;
   $("#evMsg").textContent="";
   window._evOvAck=null;
-  $("#evDlg").showModal();
+  showDialog($("#evDlg"));
   /* Tracker와 동일: 확정 활동이면 영역 잠금 + 형광펜, AC는 해당 영역 활동만 */
   if(window.syncAreaLock) syncAreaLock();
   if(window.paintEvAct) paintEvAct();
@@ -4900,7 +4900,7 @@ function openTodoMove(item,sourceDs,initialDs){
   const guard=todoMoveGuard(state.days[sourceDs],item);
   $("#todoMoveMsg").className="msg";$("#todoMoveMsg").textContent=guard.reason;
   setTodoMoveTargetDate(target);
-  $("#todoMoveDlg").showModal();
+  showDialog($("#todoMoveDlg"));
 }
 function makeTodoActionBtn(item,day){
   const on=!!(state.running&&state.running.todoId===item.id),b=document.createElement("button");
@@ -4977,7 +4977,7 @@ function openLinkDlg(item,kind){
   if(window.refreshAreaPickers) refreshAreaPickers();
   $("#lkAct").value="";
   $("#lkMsg").textContent="";
-  $("#lkDlg").showModal();
+  showDialog($("#lkDlg"));
 }
 function renderTodos(){
   const day=ensureDay(state.viewDate);
@@ -5176,7 +5176,7 @@ function openRtTimeDlg(cur,onPick){
   _rttVal.end=(cur&&cur.end)||"";
   rwBuild();
   rttRenderField("start"); rttRenderField("end");
-  $("#rtTimeDlg").showModal();
+  showDialog($("#rtTimeDlg"));
   rttSetMode(cur&&cur.end? "range":"point",true);
   requestAnimationFrame(()=>{if(session===_rttSession&&$("#rtTimeDlg").open)rwScrollTo(_rttVal[_rttField]||"07:00",false);});
   if(GS&&!rmPref()) GS.fromTo("#rttWheel",{opacity:0,y:12},{opacity:1,y:0,duration:.4,ease:"power3.out",delay:.06,clearProps:"transform,opacity"});
@@ -5461,6 +5461,20 @@ function placeApList(btn,list){
   const _dx=Math.round(_got.left)-Math.round(left), _dy=Math.round(_got.top)-Math.round(top);
   if(_dx||_dy){ list.style.left=(Math.round(left)-_dx)+'px'; list.style.top=(Math.round(top)-_dy)+'px'; }
   if(list._updateThumb) list._updateThumb();
+  // A dialog/panel transform can change the fixed containing block while opening.
+  // Follow that finite motion, including its final transform:none frame; a single
+  // coordinate correction otherwise leaves the visible candidate away from input.
+  let moving=false;
+  for(let host=list;host&&!moving;host=host.parentElement){
+    moving=!!host.getAnimations?.().some(animation=>animation.playState==="running" &&
+      Number.isFinite(animation.effect?.getComputedTiming().endTime));
+  }
+  if(moving && !list._placeFrame){
+    list._placeFrame=requestAnimationFrame(()=>{
+      list._placeFrame=null;
+      if(btn.isConnected && list.isConnected && list.style.display!=="none")placeApList(btn,list);
+    });
+  }
 }
 function areaBtn(value,onSelect,opts){
   opts=opts||{}
@@ -6640,7 +6654,7 @@ function openEcalForDate(targetDs,callback){
   const mRow=$("#expCalDlg").querySelector(".ecal-modes");
   if(mRow){ mRow.hidden=true; mRow.style.display="none"; }
   ecalBuild(ecalY,ecalM); ecalPaint();
-  $("#expCalDlg").showModal();
+  showDialog($("#expCalDlg"));
   ecalFitHeight(ecalY,ecalM);
   ecalScrollTo(ecalY,ecalM,false);
   const mEl=ecalMonthEl(ecalY,ecalM);
@@ -6681,7 +6695,7 @@ $("#expDateBtn").addEventListener("click",()=>{
   ecalClosing=false;
   $("#expCalDlg").classList.remove("closing","bdout");
   ecalBuild(ecalY,ecalM); ecalPaint();
-  $("#expCalDlg").showModal();
+  showDialog($("#expCalDlg"));
   ecalFitHeight(ecalY,ecalM);
   ecalScrollTo(ecalY,ecalM,false);
   const mEl=ecalMonthEl(ecalY,ecalM);
@@ -6729,7 +6743,21 @@ $("#lnkCopyCmd").addEventListener("click",async()=>{
 });
 
 /* ================= dialogs / tabs / header ================= */
+function showDialog(dlg){
+  if(dlg.open)return;
+  // Entrance belongs to this open operation, not every later :active/focus restyle.
+  dlg.classList.add("dialog-entering");
+  try{dlg.showModal();}catch(error){dlg.classList.remove("dialog-entering");throw error;}
+}
 for(const dlg of document.querySelectorAll("dialog")){
+  dlg.addEventListener("animationend",e=>{
+    if(e.target!==dlg||e.animationName!=="dlgIn")return;
+    // Ignore an older completion if a new entrance is already running.
+    if(dlg.getAnimations?.().some(a=>a.animationName==="dlgIn"&&a.playState==="running"))return;
+    dlg.classList.remove("dialog-entering");
+    _acReposition();_apReposition();
+  });
+  dlg.addEventListener("close",()=>{if(!dlg.open)dlg.classList.remove("dialog-entering");});
   dlg.addEventListener("click",e=>{if(e.target===dlg) dlg.close();});
   dlg.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",()=>dlg.close()));
 }
@@ -7189,7 +7217,7 @@ function renderCal(){
 }
 function openCalDlg(){
   const dt=dateOf(state.viewDate); calY=dt.getFullYear(); calM=dt.getMonth();
-  renderCal(); $("#calDlg").showModal();
+  renderCal(); showDialog($("#calDlg"));
 }
 $("#calPrev").addEventListener("click",()=>{ calM--; if(calM<0){calM=11;calY--;} renderCal(); });
 $("#calNext").addEventListener("click",()=>{ calM++; if(calM>11){calM=0;calY++;} renderCal(); });
@@ -8882,7 +8910,7 @@ const TG_SYNC_OBSERVATION={
 /* ================= PWA service worker / safe update flow ================= */
 (function(){
   if (!("serviceWorker" in navigator) || location.protocol === "file:") return;
-  const BUILD_VERSION="timegrid-v3.14.8-20260906";
+  const BUILD_VERSION="timegrid-v3.14.9-20260906";
   let registration=null, interacted=false, refreshing=false, requestedWorker=null;
   let entryActivation=false, checkEpoch=0;
   const touch=()=>{interacted=true;entryActivation=false;};
