@@ -18,7 +18,7 @@ Apply patches via host UTF-8 tooling. String replacements must normalize CRLF/LF
 
 Verification pipeline: U+FFFD=0 → extract scripts and `node --check` → Chromium headless render → scoped diff and behavioral checks → reconcile changed CSS selectors against generated DOM. Missing selectors fail even if syntax passes. Documentation-only edits require content, link, and contract checks, not runtime releases.
 
-Bump application footer version and Service Worker `VERSION` in unison; never reuse cache keys for changed assets. Deployments require explicit user authorization. Notion embed replacement remains outside task authority. Never leak credentials or raw UIDs.
+Bump application footer version and Service Worker `VERSION` in unison; never reuse cache keys for changed assets. Under D-027, verified user-requested TimeGrid implementation changes deploy automatically through `main` and Pages without a second approval; read-only work does not. Notion embed replacement remains outside task authority. Never leak credentials or raw UIDs.
 
 ## Product contract and change history
 

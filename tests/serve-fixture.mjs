@@ -47,6 +47,28 @@ const server=http.createServer((req,res)=>{
         window.fixtureTodo={source:state.viewDate,target:nextDateStr(state.viewDate),id:'fixture-measured-todo'};
       `)
     }
+    if(url.searchParams.has('event-linking')){
+      html=html.replace('if(DEMO) return;','').replace('  if(document.body.dataset.pastel) autoColorAll();',`
+        state.days={};state.running=null;state.finalizations=[];
+        const fixtureToday=ymd(new Date()),fixtureEventDate=shiftDateStr(fixtureToday,-1);
+        state.viewDate=fixtureEventDate;
+        const fixtureEventDay=ensureDay(fixtureEventDate),fixtureCurrentDay=ensureDay(fixtureToday),fixtureEventAct=state.settings.activities[0];
+        fixtureEventDay.todos=[{id:'fixture-past-todo',title:'과거 날짜 할일',actId:fixtureEventAct.id,area:fixtureEventAct.area}];
+        fixtureEventDay.routines=[{id:'fixture-past-routine',routineDefId:'fixture-past-def',name:'독서실 이동',actId:fixtureEventAct.id,area:fixtureEventAct.area,time:'09:00',done:false}];
+        fixtureCurrentDay.todos=[{id:'fixture-today-todo',title:'오늘 날짜 할일',actId:fixtureEventAct.id,area:fixtureEventAct.area}];
+        fixtureCurrentDay.routines=[{id:'fixture-today-routine',routineDefId:'fixture-today-def',name:'오늘 날짜 루틴',actId:fixtureEventAct.id,area:fixtureEventAct.area,time:'09:00',done:false}];
+        const fixtureEventStart=dateOf(fixtureEventDate).getTime()+9*3600000;
+        materializeExactSpan({sessionId:'fixture-event',actId:fixtureEventAct.id,startTs:fixtureEventStart,note:'기존 자유 메모'},fixtureEventStart+20*60000);
+        const fixtureEvent=fixtureEventDay.events[0],fixtureEventBefore=JSON.stringify(fixtureEvent);
+        save();
+        window.fixtureEventLink={
+          date:fixtureEventDate,eventId:fixtureEvent.id,routineId:'fixture-past-routine',before:fixtureEventBefore,
+          open:()=>openEvDlg(fixtureEventDay.events.find(event=>event.id===fixtureEvent.id)),
+          read:()=>JSON.parse(JSON.stringify(fixtureEventDay.events.find(event=>event.id===fixtureEvent.id))),
+          persisted:()=>JSON.parse(localStorage.getItem(LS_KEY)).days[fixtureEventDate].events.find(event=>event.id===fixtureEvent.id)
+        };
+      `)
+    }
     if(url.searchParams.has('no-gsap'))html=html.replace(/<script src="https:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/gsap\/[^>]+><\/script>/g,'')
     if(url.searchParams.has('ack-observation')){
       html=html.replace('if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();',`

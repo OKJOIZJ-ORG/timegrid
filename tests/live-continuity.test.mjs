@@ -22,7 +22,7 @@ function fixture(){
     cut('const EXACT_EVENT_KEYS=','function freeRanges(')+
     cut('function prepareFinalization(','async function swStop(')+
     cut('function totalSec(){','function renderTotal(')+
-    cut('let editingEvId=null;','function openEvDlg(')+
+    cut('let editingEvId=null,editingEvDate=null,editingEvTag=null;','function openEvDlg(')+
     cut('$("#evSave").addEventListener','$("#evEnd").addEventListener'),ctx)
   return {ctx,state,node,at:value=>now=value,events:()=>Object.values(state.days).flatMap(d=>d.events),
     record:(start,end,note='',extra={})=>ctx.materializeExactSpan({actId:'a',sessionId:'s'+(++n),startTs:start,note,...extra},end),

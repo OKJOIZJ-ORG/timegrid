@@ -1527,7 +1527,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.14.5<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.14.6<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -2800,12 +2800,16 @@ function measurementSpans(){
     return [{...group,event:group.parts[0].ev,startTs:group.parts[0].startTs,endTs:group.parts.at(-1).endTs}];
   }).sort((a,b)=>a.startTs-b.startTs);
 }
-function editMeasurementMetadata(ev,actId,note){
+function editMeasurementMetadata(ev,actId,tags){
+  tags=(tags&&typeof tags==="object")?tags:{note:String(tags||"").trim()};
   const id=String(ev.continuityId||ev.id);
   for(const day of Object.values(state.days))for(const part of day.events||[]){
     if(String(part.continuityId||part.id)!==id)continue;
     part.actId=actId;
-    if(!part.todoId&&!part.routineId){if(note)part.note=note;else delete part.note;}
+    delete part.todoId;delete part.routineId;delete part.note;
+    if(tags.todoId)part.todoId=tags.todoId;
+    else if(tags.routineId)part.routineId=tags.routineId;
+    else if(tags.note)part.note=tags.note;
   }
   let selected=id;
   // Reconcile only the edited logical span and its newly eligible neighbors.
@@ -3049,8 +3053,8 @@ $("#noteTgl").addEventListener("click",()=>{
 $("#noteChipX").addEventListener("click",()=>{ if(state.running) return; noteClear(); $("#noteInput").focus(); });
 $("#noteInput").addEventListener("input",function(){ sizeNoteInput(); if(window.paintSwReady) paintSwReady(); });
 $("#noteInput").addEventListener("change",function(){ sizeNoteInput(true); if(window.paintSwReady) paintSwReady(); });
-function noteCandidates(q){
-  const d=ensureDay(ymd(new Date()));
+function noteCandidates(q,dateStr){
+  const d=ensureDay(dateStr||ymd(new Date()));
   const kws=(q||"").toLowerCase().split(/\s+/).filter(Boolean);
   const hit=s2=>{ const t=(s2||"").toLowerCase(); return kws.every(k=>t.includes(k)); };
   const pre=s2=>kws.length? (s2||"").toLowerCase().startsWith(kws[0]):false;
@@ -3060,7 +3064,8 @@ function noteCandidates(q){
   items.sort((a,b)=>(a.done-b.done)||(b.pre-a.pre)||((a.kind==="routine")-(b.kind==="routine")));
   return items.slice(0,8);
 }
-function attachNoteAC(input, container){
+function attachNoteAC(input, container, options){
+  options=options||{};
   const list=document.createElement("div");
   list.className="ac note-ac";
   list.style.display="none";
@@ -3076,14 +3081,16 @@ function attachNoteAC(input, container){
     if(input._acLock||input.readOnly)return;
     if(_openAc.input&&_openAc.input!==input)_closeAc();
     _openAc.input=input;
-    const items=noteCandidates(input.value.trim());
+    const dateStr=typeof options.date==="function"?options.date():options.date;
+    const query=typeof options.query==="function"?options.query(input.value):input.value.trim();
+    const items=noteCandidates(query,dateStr);
     scroll.innerHTML="";
     list.dataset.selIdx='0';
     for(const it of items){
       const row=document.createElement("div"); row.className="ac-row";
       const a=it.actId? actById(it.actId):null;
       row.innerHTML='<span class="k">'+(it.kind==="todo"? "할일":"루틴")+'</span><span class="nm">'+esc(it.name)+'</span>'+(a? '<span class="ar">'+esc(a.name)+'</span>':'')+(it.min? '<span class="tm">'+fmtDur(it.min)+'</span>':'');
-      row.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();acPickAnim(input,list,row,function(){noteApplyItem(it);});});
+      row.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();acPickAnim(input,list,row,function(){if(typeof options.apply==="function")options.apply(it);else noteApplyItem(it);});});
       row.addEventListener("pointerdown",function(ev){ev.stopPropagation()});
       row.addEventListener("pointerenter",function(){scroll.querySelectorAll('.ac-row').forEach(function(x){x.classList.remove('selected')});row.classList.add('selected');list.dataset.selIdx=Array.from(scroll.children).indexOf(row)});
       scroll.appendChild(row);
@@ -3847,7 +3854,39 @@ tlContent.addEventListener("pointercancel",e=>{
 });
 
 /* ================= event edit dialog ================= */
-let editingEvId=null;
+let editingEvId=null,editingEvDate=null,editingEvTag=null;
+function eventTagItem(tag,dateStr){
+  if(!tag||!dateStr)return null;
+  const day=ensureDay(dateStr);
+  return tag.kind==="todo"?(day.todos||[]).find(x=>x.id===tag.id)||null:(day.routines||[]).find(x=>x.id===tag.id)||null;
+}
+function eventTagLabel(tag,dateStr){
+  const item=eventTagItem(tag,dateStr);if(!item)return "";
+  return (tag.kind==="todo"?"할일 · ":"루틴 · ")+(tag.kind==="todo"?item.title:item.name);
+}
+function eventEditTags(){
+  const tags={};
+  if(editingEvTag&&editingEvTag.id){
+    if(editingEvTag.kind==="todo")tags.todoId=editingEvTag.id;
+    else tags.routineId=editingEvTag.id;
+    return tags;
+  }
+  const note=$("#evNote").value.trim();if(note)tags.note=note;
+  return tags;
+}
+function eventApplyItem(candidate){
+  if(!candidate)return;
+  editingEvTag={kind:candidate.kind,id:candidate.id};
+  const input=$("#evNote"),item=eventTagItem(editingEvTag,editingEvDate)||candidate;
+  input.value=(candidate.kind==="todo"?"할일 · ":"루틴 · ")+candidate.name;input.readOnly=false;
+  const act=item.actId?actById(item.actId):null;
+  if(act){
+    $("#evAct").value=act.name;$("#evAct").dataset.selectedActId=act.id;
+    if(areaByName(act.area)){ $("#evArea").value=act.area;if(window.refreshAreaPickers)refreshAreaPickers(); }
+    if(window.syncAreaLock)syncAreaLock();if(window.paintEvAct)paintEvAct();
+  }
+}
+function eventNoteQuery(value){return editingEvTag?"":String(value||"").replace(/^(?:할일|루틴)\s*·\s*/,"").trim();}
 function pendingEventEdit(date,event,start,end){
   const pending=(measurementDay(date)?.events||[]).filter(ev=>ev.pendingFinalization||ev.runningProjection);
   const bounds=event&&exactEventBounds(date,event);
@@ -3861,7 +3900,7 @@ function pendingEventEdit(date,event,start,end){
 }
 function openEvDlg(ev){
   if(ev.pendingFinalization||ev.runningProjection){toast('측정을 정지하고 기록이 저장된 뒤 수정할 수 있습니다.');return;}
-  editingEvId=ev.id;
+  editingEvId=ev.id;editingEvDate=state.viewDate;
   const act=recordedActById(ev.actId);
   const sel=$("#evArea"); sel.innerHTML="";
   for(const a of state.settings.areas){
@@ -3877,12 +3916,9 @@ function openEvDlg(ev){
   $("#evEnd").value=_eod? "23:59":ev.end;
   $("#evEnd").dataset.eod=_eod? "1":"";
   const _nEl=$("#evNote");
-  const _dEv=ensureDay(state.viewDate);
-  let _tagT="";
-  if(ev.todoId){ const _t=_dEv.todos.find(x=>x.id===ev.todoId); if(_t) _tagT="할일 · "+_t.title; }
-  if(ev.routineId){ const _r=_dEv.routines.find(x=>x.id===ev.routineId); if(_r) _tagT="루틴 · "+_r.name; }
-  if(_tagT){ _nEl.value=_tagT; _nEl.readOnly=true; }
-  else{ _nEl.value=ev.note||""; _nEl.readOnly=false; }
+  editingEvTag=ev.todoId?{kind:"todo",id:ev.todoId}:ev.routineId?{kind:"routine",id:ev.routineId}:null;
+  const _tagT=eventTagLabel(editingEvTag,editingEvDate);
+  _nEl.value=_tagT||ev.note||"";_nEl.readOnly=false;
   $("#evMsg").textContent="";
   window._evOvAck=null;
   $("#evDlg").showModal();
@@ -3891,11 +3927,11 @@ function openEvDlg(ev){
   if(window.paintEvAct) paintEvAct();
 }
 $("#evSave").addEventListener("click",()=>{
-  const day=ensureDay(state.viewDate);
+  const dateStr=editingEvDate||state.viewDate,day=ensureDay(dateStr);
   const ev=day.events.find(x=>x.id===editingEvId);
   const msg=$("#evMsg");
   if(!ev){ $("#evDlg").close(); return; }
-  if(pendingEventEdit(state.viewDate,ev)){msg.textContent="종료 기록 동기화 후 수정할 수 있습니다.";msg.className="msg err";return;}
+  if(pendingEventEdit(dateStr,ev)){msg.textContent="종료 기록 동기화 후 수정할 수 있습니다.";msg.className="msg err";return;}
   const name=$("#evAct").value.trim();
   if(!name){ msg.textContent="활동 이름을 입력하세요."; msg.className="msg err"; return; }
   const sv=$("#evStart").value, evv=$("#evEnd").value;
@@ -3914,10 +3950,10 @@ $("#evSave").addEventListener("click",()=>{
   // Unchanged time controls are a metadata edit, not a minute-precision rewrite.
   const previousEnd=(ev.end==='24:00'||ev.end==='00:00'&&toMin(ev.start)>0)?1440:toMin(ev.end);
   if(s===toMin(ev.start)&&e===previousEnd){
-    editMeasurementMetadata(ev,act.id,$("#evNote").value.trim());
+    editMeasurementMetadata(ev,act.id,eventEditTags());
     save();renderAll();$("#evDlg").close();return;
   }
-  if(pendingEventEdit(state.viewDate,ev,s,e)){msg.textContent="측정을 정지하고 기록이 저장된 뒤 수정할 수 있습니다.";msg.className="msg err";return;}
+  if(pendingEventEdit(dateStr,ev,s,e)){msg.textContent="측정을 정지하고 기록이 저장된 뒤 수정할 수 있습니다.";msg.className="msg err";return;}
   /* 수정 구간이 다른 기록을 침범하면 확인 후에만 잠식한다 */
   const _ov=day.events.filter(x=>{ if(x.id===editingEvId) return false; const xs=toMin(x.start); let xe=toMin(x.end); if(xe===0&&xs>0) xe=1440; return xs<e && xe>s; });
   if(_ov.length){
@@ -3931,8 +3967,7 @@ $("#evSave").addEventListener("click",()=>{
     }
   }
   window._evOvAck=null;
-  const _tags={todoId:ev.todoId||null,routineId:ev.routineId||null};
-  if(!_tags.todoId&&!_tags.routineId){ const _nv=$("#evNote").value.trim(); if(_nv) _tags.note=_nv; }
+  const _tags=eventEditTags();
   detachContinuityLineage(ev);
   day.events=day.events.filter(x=>x.id!==editingEvId);
   addInterval(day,act.id,s,e,_tags);
@@ -3940,9 +3975,11 @@ $("#evSave").addEventListener("click",()=>{
   $("#evDlg").close();
 });
 $("#evEnd").addEventListener("input",()=>{ $("#evEnd").dataset.eod=""; });
+$("#evNote").addEventListener("input",function(){
+  if(editingEvTag&&this.value!==eventTagLabel(editingEvTag,editingEvDate))editingEvTag=null;
+});
 $("#evDelete").addEventListener("click",()=>{
-  const day=ensureDay(state.viewDate);
-  const _ds=state.viewDate;
+  const _ds=editingEvDate||state.viewDate,day=ensureDay(_ds);
   const _removed=day.events.find(x=>x.id===editingEvId);
   if(pendingEventEdit(_ds,_removed)){const msg=$("#evMsg");msg.textContent="종료 기록 동기화 후 삭제할 수 있습니다.";msg.className="msg err";return;}
   if(_removed)detachContinuityLineage(_removed);
@@ -7611,7 +7648,7 @@ function onMainAreaChange(){
 attachAC($("#actInput"), $("#areaSelect"), document.body);
 attachAC($("#evAct"), $("#evArea"), $("#evDlg"));
 attachNoteAC($("#noteInput"), document.body);
-attachNoteAC($("#evNote"), $("#evDlg"));
+attachNoteAC($("#evNote"), $("#evDlg"),{date:()=>editingEvDate||state.viewDate,query:eventNoteQuery,apply:eventApplyItem});
 sizeNoteInput();
 linkAreaPicker("#areaSelect");
 $("#areaSelect").addEventListener("change",function(){ onMainAreaChange(); });
