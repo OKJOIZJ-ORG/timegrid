@@ -20,6 +20,7 @@ function harness({names=[],cacheFor=()=>({match:async()=>undefined,put:async()=>
     },
     self:{
       location:{origin:'https://okjoizj-org.github.io'},
+      registration:{scope:'https://okjoizj-org.github.io/timegrid/'},
       clients:{claim:async()=>{claims.push(true)}},
       skipWaiting(){},
       addEventListener(type,listener){handlers.set(type,listener)}
@@ -116,3 +117,17 @@ for(const mismatch of [false,true]){
   assert.equal(reply.version,version)
 }
 console.log('PWA release-coherent navigation, install version rejection and worker identity tests passed')
+
+for(const url of [
+  'https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel?test=synthetic',
+  'https://identitytoolkit.googleapis.com/v1/accounts:lookup',
+  'https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js',
+  'https://okjoizj-org.github.io/drive-original/index.html',
+  'https://okjoizj-org.github.io/timegrid/live-api'
+]){
+  const h=harness({fetchImpl:()=>{throw Error('non-shell traffic must bypass the worker')}})
+  const {promise}=await fetchThrough(h,new Request(url))
+  assert.equal(promise,undefined,'no respondWith/cache lifetime for non-shell traffic: '+url)
+  assert.deepEqual(h.opened,[])
+}
+console.log('PWA static-only boundary excludes live data, authentication, SDKs and sibling apps')

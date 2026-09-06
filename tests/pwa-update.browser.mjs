@@ -1,114 +1,69 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import {createRequire} from 'node:module'
-
 const require=createRequire(import.meta.url)
 const {chromium}=require(process.env.PLAYWRIGHT_PATH||'playwright')
 const source=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8')
-const style=source.match(/<style>([\s\S]*?)<\/style>/)?.[1]
-const banner=source.match(/<div class="pwa-update"[\s\S]*?<\/div>\s*<\/div>/)?.[0]
 const marker=source.indexOf('/* ================= PWA service worker / safe update flow ================= */')
-const start=source.indexOf('(function(){',marker)
-const end=source.indexOf('\n})();',start)+6
-const updateSource=source.slice(start,end)
-const pageBuild=updateSource.match(/const BUILD_VERSION="([^"]+)"/)[1]
-assert.ok(style&&banner&&marker>=0&&start>=0&&end>start)
-
+const start=source.indexOf('(function(){',marker),end=source.indexOf('\n})();',start)+6
+const updateSource=source.slice(start,end),build=updateSource.match(/const BUILD_VERSION="([^"]+)"/)[1]
+assert.ok(!/pwaUpdate|pwa-update|새 버전이 준비됐어요/.test(source),'remove the complete retry control surface')
 const browser=await chromium.launch({channel:'msedge',headless:true})
-async function openPage({waiting=false,running=false,finalizations=[],controlled=true}={}){
+async function openPage({waiting=true,running=false,pending=false}={}){
   const page=await browser.newPage()
-  const setup=`<script>
-    window.state={running:${running?'{sessionId:"active"}':'null'},finalizations:${JSON.stringify(finalizations)}};
-    window.__posted=[];window.__swListeners={};
-    window.__worker={state:'installed',version:'test-next-build',postMessage(message,ports){if(message.type==='GET_VERSION'){ports[0].postMessage({version:this.version});return;}window.__posted.push(message)}};
-    window.__registration={waiting:${waiting?'window.__worker':'null'},installing:null,addEventListener(){},update(){return Promise.resolve()}};
-    window.__serviceWorker={controller:${controlled?`{postMessage(message,ports){ports[0].postMessage({version:'${pageBuild}'})}}`:'null'},register(){return Promise.resolve(window.__registration)},addEventListener(type,listener){window.__swListeners[type]=listener}};
-    Object.defineProperty(navigator,'serviceWorker',{configurable:true,value:window.__serviceWorker});
-    window.__emitControllerChange=()=>{if(!window.__serviceWorker.controller)window.__worker.version='${pageBuild}';window.__worker.state='activated';window.__serviceWorker.controller=window.__worker;window.__registration.waiting=null;window.__swListeners.controllerchange&&window.__swListeners.controllerchange();};
-  <\/script>`
-  await page.setContent(`<!doctype html><html><head><style>${style}</style></head><body>${banner}${setup}<script>${updateSource}<\/script></body></html>`,{waitUntil:'load'})
-  if(waiting)await page.waitForFunction(()=>document.getElementById('pwaUpdate').classList.contains('show'))
+  await page.setContent(`<body><input id="draft"><div id="alive"></div><script>
+    window.state={running:${running?'{}':'null'},finalizations:${pending?'[{}]':'[]'}};
+    window.__posted=[];window.__events={};window.__hidden=false;
+    Object.defineProperty(document,'hidden',{get:()=>window.__hidden});
+    Object.defineProperty(window,'sessionStorage',{value:{getItem:()=>null,setItem:()=>{}}});
+    window.__worker={state:'installed',postMessage(m,p){if(m.type==='GET_VERSION')p[0].postMessage({version:'test-next'});else window.__posted.push(m)}};
+    window.__reg={waiting:${waiting?'window.__worker':'null'},addEventListener(){},update:async()=>{}};
+    window.__sw={controller:{postMessage(m,p){p[0].postMessage({version:'${build}'})}},register:async()=>window.__reg,addEventListener:(t,f)=>window.__events[t]=f};
+    Object.defineProperty(navigator,'serviceWorker',{value:window.__sw});
+    window.__claim=()=>{window.__worker.state='activated';window.__reg.waiting=null;window.__sw.controller=window.__worker;window.__events.controllerchange()};
+    window.__visibility=h=>{window.__hidden=h;document.dispatchEvent(new Event('visibilitychange'))};
+  </script><script>${updateSource}</script></body>`,{waitUntil:'load'})
   return page
 }
-
 try{
   {
-    const page=await openPage({waiting:true})
-    await page.click('#pwaUpdateBtn')
-    await new Promise(resolve=>setTimeout(resolve,1600))
-    assert.equal(await page.locator('#pwaUpdate').count(),1,'a slow activation never reloads the old controller after 900ms')
-    assert.equal(await page.locator('#pwaUpdateBtn').isDisabled(),true)
-    assert.deepEqual(await page.evaluate(()=>window.__posted),[{type:'SKIP_WAITING'}])
+    const page=await openPage()
+    await page.evaluate(()=>__claim())
+    await page.waitForFunction(()=>!document.getElementById('alive'),undefined,{timeout:3000})
+    assert.equal(await page.locator('#alive').count(),0,'an untouched entry reloads an identified different build')
     await page.close()
   }
   {
     const page=await openPage()
-    await page.evaluate(version=>{window.__worker.version=version;window.__emitControllerChange()},pageBuild)
-    await new Promise(resolve=>setTimeout(resolve,100))
-    assert.equal(await page.locator('#pwaUpdate').getAttribute('aria-hidden'),'true','claiming the already-rendered build does not invent a new update')
+    assert.equal(await page.evaluate(()=>__posted.length),1,'untouched entry activates an already prepared worker')
+    await page.waitForTimeout(1700)
+    assert.equal(await page.locator('#alive').count(),1,'waiting never causes a timer reload or retry prompt')
+    await page.locator('#draft').fill('unsaved note')
+    await page.evaluate(()=>__claim())
+    await page.waitForTimeout(100)
+    assert.equal(await page.locator('#draft').evaluate(el=>el.value),'unsaved note','input during activation cancels entry reload')
+    await page.close()
+  }
+  for(const options of [{running:true},{pending:true}]){
+    const page=await openPage(options)
+    assert.equal(await page.evaluate(()=>__posted.length),0,'running and pending Stop prohibit activation')
+    await page.evaluate(()=>{state.running=null;state.finalizations=[]})
+    await page.waitForTimeout(100)
+    assert.equal(await page.evaluate(()=>__posted.length),0,'becoming idle never interrupts the current screen')
+    await page.evaluate(()=>__visibility(true))
+    assert.equal(await page.evaluate(()=>__posted.length),1,'safe hidden transition prepares next entry')
+    await page.evaluate(()=>__claim())
+    assert.equal(await page.locator('#alive').count(),1,'hidden transition does not reload')
     await page.close()
   }
   {
-    const page=await openPage()
-    const state=await page.evaluate(()=>{
-      const box=document.getElementById('pwaUpdate'),button=document.getElementById('pwaUpdateBtn')
-      button.focus();button.click()
-      return {inert:box.inert,ariaHidden:box.getAttribute('aria-hidden'),focused:document.activeElement===button,posted:window.__posted.length}
-    })
-    assert.deepEqual(state,{inert:true,ariaHidden:'true',focused:false,posted:0},'a hidden update cannot receive focus or act on a click')
-    await new Promise(resolve=>setTimeout(resolve,1500))
-    assert.equal(await page.locator('#pwaUpdate').count(),1,'hidden click never reloads')
+    const page=await openPage({waiting:false})
+    await page.evaluate(()=>{__reg.waiting=__worker})
+    assert.equal(await page.evaluate(()=>__posted.length),0,'background discovery is quiet during foreground use')
+    await page.locator('#draft').fill('keep editor')
+    await page.evaluate(()=>__visibility(true))
+    assert.equal(await page.evaluate(()=>__posted.length),0,'an open editor defers background activation')
     await page.close()
   }
-
-  {
-    const page=await openPage({waiting:true})
-    const shown=await page.evaluate(()=>{
-      const box=document.getElementById('pwaUpdate'),button=document.getElementById('pwaUpdateBtn')
-      button.focus()
-      return {inert:box.inert,ariaHidden:box.getAttribute('aria-hidden'),focused:document.activeElement===button,disabled:button.disabled}
-    })
-    assert.deepEqual(shown,{inert:false,ariaHidden:'false',focused:true,disabled:false})
-    await page.click('#pwaUpdateBtn')
-    assert.deepEqual(await page.evaluate(()=>window.__posted),[{type:'SKIP_WAITING'}])
-    // A measurement can start in the interval between the explicit click and fallback.
-    await page.evaluate(()=>{state.running={sessionId:'raced-start'}})
-    await new Promise(resolve=>setTimeout(resolve,1550))
-    assert.equal(await page.locator('#pwaUpdate').count(),1,'the fallback does not reload a newly active measurement')
-    assert.equal(await page.locator('#pwaUpdateBtn').isDisabled(),true)
-    await page.evaluate(()=>{state.running=null})
-    await new Promise(resolve=>setTimeout(resolve,1100))
-    assert.equal(await page.locator('#pwaUpdateBtn').isEnabled(),true,'ending the measurement restores an explicit update action')
-    assert.equal(await page.locator('#pwaUpdate').count(),1,'becoming safe does not auto-reload')
-    await page.close()
-  }
-
-  {
-    const page=await openPage({waiting:true,running:true})
-    await page.evaluate(()=>window.__emitControllerChange())
-    await new Promise(resolve=>setTimeout(resolve,1500))
-    assert.equal(await page.locator('#pwaUpdate').count(),1,'controllerchange does not reload an active measurement')
-    assert.equal(await page.locator('#pwaUpdateBtn').isDisabled(),true)
-    await page.evaluate(()=>{state.running=null;state.finalizations=[{id:'pending-stop'}]})
-    await new Promise(resolve=>setTimeout(resolve,1100))
-    assert.equal(await page.locator('#pwaUpdateBtn').isDisabled(),true,'pending Stop finalization also blocks reload')
-    await page.evaluate(()=>{state.finalizations=[]})
-    await new Promise(resolve=>setTimeout(resolve,1100))
-    assert.equal(await page.locator('#pwaUpdateBtn').isEnabled(),true)
-    assert.match(await page.locator('#pwaUpdateMsg').textContent(),/업데이트를 눌러/)
-    assert.equal(await page.locator('#pwaUpdate').count(),1,'completion leaves the explicit update prompt in place')
-    await page.close()
-  }
-
-  {
-    const page=await openPage({controlled:false})
-    await page.evaluate(()=>window.__emitControllerChange())
-    await new Promise(resolve=>setTimeout(resolve,100))
-    assert.equal(await page.locator('#pwaUpdate').getAttribute('aria-hidden'),'true','first installation claim is not presented as an update')
-    await page.close()
-  }
-
-  console.log('Chromium PWA update focus, fallback, controller and pending-Stop lifecycle PASS')
-}finally{
-  await browser.close()
-}
+  console.log('Passive PWA entry, delayed activation, editing, running and pending-Stop guards PASS')
+}finally{await browser.close()}

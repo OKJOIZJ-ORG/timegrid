@@ -142,46 +142,28 @@ try{
   },undefined,{timeout:15000})
   assert.equal(await controllerVersion(),null,'the committed baseline controller has no candidate version handshake')
   assert.deepEqual(await registrationState(),{controlled:true,installing:null,waiting:'installed',active:'activated'})
-  await page.waitForFunction(()=>{
-    const box=document.getElementById('pwaUpdate')
-    return box?.classList.contains('show')&&!box.inert&&box.getAttribute('aria-hidden')!=='true'
-  },undefined,{timeout:5000})
-  assert.equal((await bannerState()).shown,true,'the waiting candidate is offered once')
+  assert.equal((await bannerState()).shown,false,'prepared update has no retry banner')
 
-  // From this point the origin deliberately serves stale HTML to navigations.
-  // The delayed candidate activation proves there is no blind 900ms reload, and
-  // the activated worker must then load its own precached candidate page.
+  // A normal, untouched entry activates the prepared worker without a button.
+  // The old network-first controller supplies candidate HTML for this entry;
+  // after it loads, the origin becomes stale for the automatic second navigation.
+  await page.reload({waitUntil:'load',timeout:15000})
   staleNavigation=true
-  const navigationsBeforeClick=requests.filter(item=>item.isNavigation).length
-  const browserNavigationsBeforeClick=mainFrameNavigations
+  const navigationsBeforeActivation=requests.filter(item=>item.isNavigation).length
+  const browserNavigationsBeforeActivation=mainFrameNavigations
   await page.evaluate(()=>{window.__upgradeDocumentIdentity=crypto.randomUUID()})
   const documentIdentity=await page.evaluate(()=>window.__upgradeDocumentIdentity)
-  assert.equal(await page.evaluate(()=>{
-    const button=document.getElementById('pwaUpdateBtn'),rect=button.getBoundingClientRect()
-    const hit=document.elementFromPoint(rect.left+rect.width/2,rect.top+rect.height/2)
-    return hit===button||button.contains(hit)
-  }),true,'the real update button must own its pointer hit area')
-  const updateButtonBox=await page.locator('#pwaUpdateBtn').boundingBox()
-  assert.ok(updateButtonBox,'the visible update button must have a pointer target')
-  const reloadAfterControllerChange=page.waitForEvent('framenavigated',{predicate:frame=>frame===page.mainFrame(),timeout:15000})
-  await page.mouse.click(updateButtonBox.x+updateButtonBox.width/2,updateButtonBox.y+updateButtonBox.height/2)
-  await page.waitForFunction(()=>document.getElementById('pwaUpdateMsg')?.textContent.includes('적용 중'),undefined,{timeout:1000})
   await new Promise(resolve=>setTimeout(resolve,1100))
-  assert.equal(mainFrameNavigations,browserNavigationsBeforeClick,'a delayed activation must not trigger the removed 900ms fallback reload')
-  assert.equal(requests.filter(item=>item.isNavigation).length,navigationsBeforeClick,'no navigation starts before the actual controller change')
+  assert.equal(mainFrameNavigations,browserNavigationsBeforeActivation,'entry waits for actual worker takeover, not a reload timer')
+  assert.equal(requests.filter(item=>item.isNavigation).length,navigationsBeforeActivation,'no early origin navigation')
 
-  try{
-    await reloadAfterControllerChange
-  }catch(error){
-    const diagnostic={registration:await registrationState(),controllerVersion:await controllerVersion(2000),banner:await bannerState(),identity:await page.evaluate(()=>window.__upgradeDocumentIdentity||null),tracking:await page.evaluate(()=>({running:!!state?.running,finalizations:(state?.finalizations||[]).length})),requests:requests.slice(-12),browserLogs}
-    console.error('upgrade diagnostic:',JSON.stringify(diagnostic,null,2))
-    throw error
-  }
-  await page.waitForLoadState('load')
-  await page.waitForFunction(expected=>navigator.serviceWorker.controller&&Array.from(document.scripts).some(script=>script.textContent.includes(`const BUILD_VERSION="${expected}";`)),candidateVersion,{timeout:15000})
-  assert.notEqual(await page.evaluate(()=>window.__upgradeDocumentIdentity||null),documentIdentity,'the controller-confirmed update replaces the old document')
-  assert.equal(await controllerVersion(2000),candidateVersion,'the clicked update reloads only after the candidate controls the page')
-  assert.equal(requests.filter(item=>item.isNavigation).length,navigationsBeforeClick,'the activated worker serves its precached candidate shell despite stale network HTML')
+  await page.waitForFunction(async()=>{
+    const reg=await navigator.serviceWorker.getRegistration('./')
+    return !reg.waiting && reg.active?.state==='activated' && navigator.serviceWorker.controller===reg.active
+  },undefined,{timeout:15000})
+  assert.equal(await page.evaluate(()=>window.__upgradeDocumentIdentity),documentIdentity,'matching displayed build does not need another reload')
+  assert.equal(await controllerVersion(2000),candidateVersion,'the prepared worker takes control without a button or redundant reload')
+  assert.equal(requests.filter(item=>item.isNavigation).length,navigationsBeforeActivation,'the activated worker serves its precached candidate shell despite stale network HTML')
   assert.equal((await bannerState()).shown,false,'the activated matching build hides the update banner')
   assert.equal((await registrationState()).waiting,null)
 
@@ -189,13 +171,13 @@ try{
   await page.waitForFunction(expected=>Array.from(document.scripts).some(script=>script.textContent.includes(`const BUILD_VERSION="${expected}";`)),candidateVersion)
   await page.waitForTimeout(1200)
   assert.equal(await controllerVersion(2000),candidateVersion)
-  assert.equal(requests.filter(item=>item.isNavigation).length,navigationsBeforeClick,'repeated reloads stay on the activated release shell')
+  assert.equal(requests.filter(item=>item.isNavigation).length,navigationsBeforeActivation,'repeated reloads stay on the activated release shell')
   assert.equal((await bannerState()).shown,false,'the same activated release never reopens a phantom update banner')
   assert.equal((await registrationState()).waiting,null)
   assert.deepEqual(pageErrors,[])
 
-  console.log(JSON.stringify({base,baselineCommit,baselineVersion,candidateVersion,activationDelayMs,navigationsBeforeClick,finalRegistration:await registrationState(),finalBanner:await bannerState()},null,2))
-  console.log('Actual delayed Service Worker upgrade, activated-shell navigation and no-repeat banner PASS')
+  console.log(JSON.stringify({base,baselineCommit,baselineVersion,candidateVersion,activationDelayMs,navigationsBeforeActivation,finalRegistration:await registrationState(),finalBanner:await bannerState()},null,2))
+  console.log('Actual passive entry upgrade, delayed activation and repeated reload PASS')
 }finally{
   await context.close()
   await browser.close()

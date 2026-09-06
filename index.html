@@ -1027,16 +1027,6 @@ button.dow-pill::after{content:""; position:absolute; inset:-4px; border-radius:
 .cloud-banner .cb-actions{display:flex;flex-direction:column;gap:6px;flex:none;}
 .cloud-banner .btn{min-height:34px;padding:6px 12px;font-size:12px;}
 
-/* ---------- PWA update prompt ---------- */
-.pwa-update{position:fixed;left:50%;bottom:calc(78px + env(safe-area-inset-bottom));transform:translate(-50%,12px);z-index:360;width:min(440px,calc(100vw - 28px));display:flex;align-items:center;gap:12px;padding:12px 12px 12px 15px;background:#202124;color:#fff;border-radius:var(--r-xl);box-shadow:var(--sh-3);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;}
-.pwa-update.show{opacity:1;transform:translate(-50%,0);pointer-events:auto;}
-.pwa-update-copy{flex:1;min-width:0;}
-.pwa-update-copy b{display:block;font-size:14px;}
-.pwa-update-copy small{display:block;padding-top:1px;color:rgba(255,255,255,.68);font-size:12px;}
-.pwa-update .btn{min-height:36px;padding:7px 13px;border-color:rgba(255,255,255,.25);background:#fff;color:#202124;flex:none;font-size:13px;font-weight:700;}
-.pwa-update .btn[disabled]{opacity:.45;cursor:not-allowed;}
-@media (prefers-reduced-motion:reduce){.pwa-update{transition:none;}}
-
 /* ---------- wide screen (v3.12.42) ----------
    Phone + tablet: always full viewport width (no phone-shell gutters).
    Desktop ultra-wide with mouse only: soft content max for readability. */
@@ -1527,7 +1517,7 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
       <span class="sn-chev" aria-hidden="true">›</span>
     </button>
   </div>
-  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.14.7<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
+  <div class="sidenav-foot" id="sidenavFoot">TimeGrid v3.14.8<br>로그인 시 Firestore 동기화 · 미로그인 시 이 기기만</div>
 </aside>
 
 <div class="cloud-banner" id="cloudBanner" role="dialog" aria-label="클라우드 동기화">
@@ -1549,10 +1539,6 @@ section.block h2,.cal-head h3,.dlg-head h3,.sn-brand-t h3,.fs-head h3,.onb-card 
   </div>
 </div>
 
-<div class="pwa-update" id="pwaUpdate" role="status" aria-live="polite" aria-hidden="true" inert>
-  <div class="pwa-update-copy"><b>새 버전이 준비됐어요</b><small id="pwaUpdateMsg">업데이트하면 최신 버전으로 전환됩니다.</small></div>
-  <button class="btn" id="pwaUpdateBtn" type="button">업데이트</button>
-</div>
 
 <div class="fs-panel" id="actsDlg">
   <div class="fs-head"><button class="fs-back" data-close aria-label="뒤로">‹</button><h3>영역 · 활동 관리</h3></div>
@@ -8896,104 +8882,69 @@ const TG_SYNC_OBSERVATION={
 /* ================= PWA service worker / safe update flow ================= */
 (function(){
   if (!("serviceWorker" in navigator) || location.protocol === "file:") return;
-  const BUILD_VERSION="timegrid-v3.14.7-20260906";
-  const box=document.getElementById("pwaUpdate");
-  const btn=document.getElementById("pwaUpdateBtn");
-  const msg=document.getElementById("pwaUpdateMsg");
-  let registration=null, waitingWorker=null, refreshing=false, applying=false;
-  let controllerChanged=false, hadController=!!navigator.serviceWorker.controller;
-  let controllerEpoch=0, applyTimer=null, failureMessage="";
-
-  function updateBlocked(){ try{return !!(state.running || (state.finalizations||[]).length);}catch(e){return false;} }
-  function blockedMessage(){ return state.running ? "측정 종료 후 안전하게 업데이트할 수 있어요." : "중지한 측정 기록 저장 후 업데이트할 수 있어요."; }
-  function revealUpdate(){box.inert=false;box.classList.add("show");box.setAttribute("aria-hidden","false");}
-  function stopApplying(){applying=false;clearTimeout(applyTimer);applyTimer=null;}
-  function hideUpdate(){
-    stopApplying();waitingWorker=null;controllerChanged=false;failureMessage="";
-    box.classList.remove("show");box.setAttribute("aria-hidden","true");box.inert=true;btn.disabled=false;
-  }
-  function paintBusy(){
-    if(!box.classList.contains("show"))return;
-    const blocked=updateBlocked();
-    if(applying && blocked)stopApplying();
-    btn.disabled=blocked||applying;
-    msg.textContent=blocked ? blockedMessage() : applying ? "업데이트 적용 중…" : failureMessage || (controllerChanged ? "업데이트를 눌러 새 버전으로 전환하세요." : "업데이트하면 최신 버전으로 전환됩니다.");
+  const BUILD_VERSION="timegrid-v3.14.8-20260906";
+  let registration=null, interacted=false, refreshing=false, requestedWorker=null;
+  let entryActivation=false, checkEpoch=0;
+  const touch=()=>{interacted=true;entryActivation=false;};
+  for(const event of ["pointerdown","keydown","input"])document.addEventListener(event,touch,{capture:true,passive:true});
+  function blocked(){try{return !!(state.running || (state.finalizations||[]).length);}catch(_){return true;}}
+  function editing(){
+    const el=document.activeElement;
+    return !!(el && (el.matches("input,textarea,select") || el.isContentEditable)) ||
+      !!document.querySelector("dialog[open],.fs-panel.open,.sidenav.open");
   }
   function workerVersion(worker){
     return new Promise(resolve=>{
-      if(!worker || !worker.postMessage){resolve(null);return;}
+      if(!worker){resolve(null);return;}
       const channel=new MessageChannel();let finished=false;
       const done=value=>{if(finished)return;finished=true;clearTimeout(timer);channel.port1.close();resolve(value);};
       const timer=setTimeout(()=>done(null),1500);
       channel.port1.onmessage=event=>done(typeof event.data?.version==="string" ? event.data.version : null);
-      try{worker.postMessage({type:"GET_VERSION"},[channel.port2]);}catch(e){done(null);}
+      try{worker.postMessage({type:"GET_VERSION"},[channel.port2]);}catch(_){done(null);}
     });
   }
-  async function showUpdate(worker){
-    if(!worker || applying || refreshing || worker.state==="redundant")return;
-    waitingWorker=worker;
-    const controller=navigator.serviceWorker.controller;
-    const [next,current]=await Promise.all([workerVersion(worker),workerVersion(controller)]);
-    if(waitingWorker!==worker || controller!==navigator.serviceWorker.controller || applying || refreshing)return;
-    if(next && next===current && current===BUILD_VERSION){hideUpdate();return;}
-    controllerChanged=false;failureMessage="";revealUpdate();paintBusy();
-  }
-  function reloadWhenSafe(){
-    if(refreshing || updateBlocked())return false;
-    refreshing=true;stopApplying();location.reload();return true;
-  }
-  async function inspectController(requested, firstClaim=false){
-    const epoch=++controllerEpoch, controller=navigator.serviceWorker.controller;
+  async function reconcileEntry(){
+    if(refreshing || interacted || blocked() || editing() || document.hidden)return;
+    const epoch=++checkEpoch,controller=navigator.serviceWorker.controller;
     const version=await workerVersion(controller);
-    if(epoch!==controllerEpoch || controller!==navigator.serviceWorker.controller || refreshing)return;
-    if(requested && reloadWhenSafe())return;
-    if(!requested && registration?.waiting){showUpdate(registration.waiting);return;}
-    stopApplying();waitingWorker=null;
-    if(version===BUILD_VERSION || (firstClaim && !version)){
-      hideUpdate();
-      if(registration?.waiting)showUpdate(registration.waiting);
-      return;
-    }
-    if(version || !firstClaim){controllerChanged=true;revealUpdate();paintBusy();}
+    if(epoch!==checkEpoch || controller!==navigator.serviceWorker.controller || !version ||
+      version===BUILD_VERSION || interacted || blocked() || editing() || document.hidden)return;
+    // Only an untouched entry may reload, and at most once for a target build.
+    // Unknown/late responses never turn into a retry banner or a reload timer.
+    try{
+      if(sessionStorage.getItem("timegrid-entry-reload")===version)return;
+      sessionStorage.setItem("timegrid-entry-reload",version);
+    }catch(_){return;}
+    refreshing=true;location.reload();
   }
-  function watch(reg){
-    registration=reg;
-    if(reg.waiting)showUpdate(reg.waiting);
-    else inspectController(false,true);
-    reg.addEventListener("updatefound",()=>{
-      const worker=reg.installing;if(!worker)return;
-      worker.addEventListener("statechange",()=>{
-        if(worker.state==="installed" && navigator.serviceWorker.controller)showUpdate(reg.waiting||worker);
-        if(worker.state==="redundant" && waitingWorker===worker){hideUpdate();if(reg.waiting)showUpdate(reg.waiting);}
-      });
-    });
-    setInterval(()=>reg.update().catch(()=>{}),60*60*1000);
+  function activatePrepared(atEntry=false){
+    const worker=registration?.waiting;
+    if(!worker || worker.state!=="installed" || blocked() || editing() || (atEntry && interacted))return;
+    requestedWorker=worker;entryActivation=atEntry;
+    try{worker.postMessage({type:"SKIP_WAITING"});}catch(_){requestedWorker=null;entryActivation=false;}
   }
-  async function applyUpdate(){
-    if(applying || refreshing || !box.classList.contains("show") || box.inert)return;
-    if(updateBlocked()){paintBusy();return;}
-    if(controllerChanged){reloadWhenSafe();return;}
-    const worker=registration?.waiting || waitingWorker;
-    if(!worker)return;
-    if(worker===navigator.serviceWorker.controller){inspectController(true);return;}
-    if(worker.state==="redundant"){hideUpdate();registration?.update().catch(()=>{});return;}
-    applying=true;failureMessage="";paintBusy();
-    try{worker.postMessage({type:"SKIP_WAITING"});}
-    catch(e){stopApplying();failureMessage="업데이트를 시작하지 못했어요. 다시 시도해 주세요.";paintBusy();return;}
-    // A timeout is failure/retry evidence, never permission to reload the old controller.
-    applyTimer=setTimeout(()=>{
-      if(!applying || refreshing)return;
-      if(navigator.serviceWorker.controller===worker){inspectController(true);return;}
-      stopApplying();failureMessage="업데이트 적용을 확인하지 못했어요. 다시 시도해 주세요.";paintBusy();
-    },10000);
-  }
-  btn.addEventListener("click",applyUpdate);
   navigator.serviceWorker.addEventListener("controllerchange",()=>{
-    const firstClaim=!hadController;hadController=true;
-    inspectController(applying,firstClaim);
+    if(entryActivation && navigator.serviceWorker.controller===requestedWorker)reconcileEntry();
+    requestedWorker=null;entryActivation=false;
   });
-  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js",{scope:"./",updateViaCache:"none"}).then(watch).catch(()=>{}));
-  setInterval(paintBusy,1000);
+  document.addEventListener("visibilitychange",()=>{
+    if(document.hidden)activatePrepared();
+    else if(!interacted)reconcileEntry();
+  });
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("./sw.js",{scope:"./",updateViaCache:"none"}).then(reg=>{
+      registration=reg;
+      if(reg.waiting)activatePrepared(true);
+      else reconcileEntry();
+      reg.addEventListener("updatefound",()=>{
+        const worker=reg.installing;if(!worker)return;
+        worker.addEventListener("statechange",()=>{
+          if(worker.state==="installed" && document.hidden)activatePrepared();
+        });
+      });
+      setInterval(()=>reg.update().catch(()=>{}),60*60*1000);
+    }).catch(()=>{});
+  });
 })();
 
 </script>

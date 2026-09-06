@@ -1,4 +1,4 @@
-const VERSION = "timegrid-v3.14.7-20260906";
+const VERSION = "timegrid-v3.14.8-20260906";
 const CACHE_PREFIX = "timegrid-";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
@@ -74,6 +74,14 @@ self.addEventListener("fetch", event => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
 
+  // The worker owns static app files, never authentication or live data traffic.
+  // Caching a streaming response waits for its body and keeps the old worker's
+  // fetch event pending, preventing even skipWaiting from activating an update.
+  if (url.origin !== self.location.origin) return;
+  const scopePath = new URL(self.registration.scope).pathname;
+  if (!url.pathname.startsWith(scopePath)) return;
+  if (request.mode !== "navigate" && !APP_SHELL.some(asset => new URL(asset, self.registration.scope).pathname === url.pathname)) return;
+
   if (request.mode === "navigate") {
     event.respondWith((async () => {
       // HTML and shared scripts must belong to the same activated shell.
@@ -101,12 +109,4 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  event.respondWith((async () => {
-    try {
-      const fresh = await fetch(request);
-      return cacheRuntime(request, fresh);
-    } catch (_) {
-      return matchOwned(request);
-    }
-  })());
 });
