@@ -37,12 +37,14 @@ True minute-time edits detach lineage; missing imported fragments are not rebuil
 Run `tests/live-continuity.test.mjs`, transactions and time-display tests too.
 Release/activation evidence: `../TimeGridAutomation/memory/knowledge/live-continuity-coaching-20260903.md`.
 
-## Verified local repair candidate — 2026-09-06
+## Deployed adversarial-audit repair — 2026-09-06
 
-v3.14.5 is Verified-local on `codex/adversarial-audit-20260906`, repair commit
-`d7a84136eb0db31999b78d6b15d3312d45859b47`; it is not deployed. See
-[audit and recovery evidence](AUDIT-2026-09-06.md). The production baseline below
-remains v3.14.4. Preserve exact log/linked-ID roundtrips, additive backup identity
+v3.14.5 is deployed from repair commit
+`d7a84136eb0db31999b78d6b15d3312d45859b47`, first published on `main` at
+`843099d9773dc1c1fc6c94bbaac5208260025929`; Pages run `34012665760`
+succeeded and all six public runtime assets matched Git bytes. See
+[audit and recovery evidence](AUDIT-2026-09-06.md). Preserve exact
+log/linked-ID roundtrips, additive backup identity
 and mutation preservation with overlap rejection, ID-based routine editing and
 legacy migration, UID+auth-generation sync fences, owned SW caches, guarded
 updates and completed view-animation cleanup. New regressions are in
@@ -51,8 +53,8 @@ updates and completed view-animation cleanup. New regressions are in
 
 ## Current contracts
 
-Verified production baseline (2026-09-04): v3.14.4 (release commit `d78746325926534f4ded4dbf51ede8ae03b423fb`).
-- Public index blob `262f6945f18d881c5766b78872ac5a70f87cefae`; SW blob `6ea381628507d0c9624ab8e217ed74e94c2d0d6a`; cache `timegrid-v3.14.4-20260904`. All six runtime assets match public bytes; Pages33873202679 succeeded.23 app programs,13 date-action cases and four Chromium scenarios (390px/1280px with/without GSAP) passed; independent zero-context rehearsal passed. Native iPhone/WebKit and authenticated multi-device E2E were not executed. Evidence: `../TimeGridAutomation/memory/knowledge/todo-date-continuation-20260904.md`. Existing protocol-2 rules/migration and Automation0.15.1 runtime remain unchanged; earlier Stop acknowledgment, gesture and continuity evidence remains in `stop-ack-lifecycle-20260904.md`, `mobile-sync-catalog-20260904.md` and `live-continuity-coaching-20260903.md`.
+Verified production baseline (2026-09-06): v3.14.5 (runtime repair commit `d7a84136eb0db31999b78d6b15d3312d45859b47`; first published main `843099d9773dc1c1fc6c94bbaac5208260025929`).
+- Public index blob `0a58bd30f57b28915a971739024a1b68050d73e7`; SW blob `62c959a237e88aee7c39bc670a3367ecc9018b4e`; cache `timegrid-v3.14.5-20260906`. All six runtime assets returned HTTP200 and matched Git bytes; Pages run34012665760 succeeded. All129 Node checks across27 programs, scoped Chromium acceptance and the deployment-session release-contract recheck passed. Native iPhone/WebKit and authenticated multi-device E2E were not executed. Evidence: `AUDIT-2026-09-06.md`. Existing protocol-2 rules/migration and Automation0.19.2 runtime remain unchanged by this PWA deployment; earlier Todo, Stop acknowledgment, gesture and continuity evidence remains in `todo-date-continuation-20260904.md`, `stop-ack-lifecycle-20260904.md`, `mobile-sync-catalog-20260904.md` and `live-continuity-coaching-20260903.md`.
 - C-TODO-01 (D-021): Existing date actions move unmeasured unfinished Todos with stable IDs. Any linked recorded event requires preserving the source Todo, events and completion while creating a fresh unchecked target with allowlisted planning fields and scalar `continuationOf`. Reuse observed target lineage without overwriting edits; independent offline-device dedup is not guaranteed. Running/pending finalization stays guarded; completed unmeasured behavior is unchanged. No Copy menu or standing explanatory banner. Undo revalidates current target content, measurements and lifecycle mutations; new mutation timestamps advance beyond the latest observed stamp. Existing Firestore/Notion creation owns the new ID; no new writer, mutation kind or migration. Tests: `tests/todo-date.test.mjs` and isolated `tests/todo-date.browser.mjs`.
 - C-SYNC-01: Measurement and sync scope are independent. Tracker shows actionable warnings only; healthy/pending prose stays hidden, with detail in the account panel. Connection wait uses the existing timer control, not a duplicate badge. Failed initial bootstrap retries on resume/online/interval and coalesces concurrent attempts. Keep account expectation across passive auth loss; explicit logout selects local mode. Preserve local sessions and outbox. Confirm receipt only from a matching running server read/transaction with no pending timer operation, never a cached/pending-write callback. Automation cloud absence cannot establish device inactivity; acquisition and mutation timestamps remain separate. Run `node tests/sync-observation.test.mjs` and `tests/timer-sync.test.mjs` for auth/sync changes.
 - C-CATALOG-01 (D-016/D-017): Settings arrays own live area/activity order and stable IDs; lastUsed never reorders. Delete removes live entries; immutable catalogHistory receipts retain minimal historical identity. Current Todo/routine assignment keeps the parent after activity deletion or clears both fields after area deletion; blank remains the initial empty control. Events and completion logs survive. Rename/move/recolor keep dynamic historical projection. Same-name recreation has new IDs. No archive/restore UI or automatic reassignment. Fresh seeds never replace an existing or deliberately emptied catalog. Tests: catalog-lifecycle, catalog-import, catalog-transactions, catalog-manager, and Automation catalogAdapter/catalogLifecycleMigration.
