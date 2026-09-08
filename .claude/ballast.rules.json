@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "id": "web-gpt-full-operator",
+      "title": "웹 GPT 전체 운영 권한",
+      "when": {
+        "keywords": [
+          "웹 GPT",
+          "ChatGPT 프로젝트",
+          "LIFE OS",
+          "TimeGrid",
+          "revision",
+          "소통창구"
+        ]
+      },
+      "body": "Chat on Steroids가 연결된 LIFE OS 프로젝트의 웹 GPT는 읽기 전용 창구가 아니라 주 대화형 운영자다. 사용자의 명시적 요청과 이를 완결하는 데 필요한 범위에서 분석, 계획 revision, TimeGrid·Notion 실행 데이터 변경, 코드·문서 패치, 테스트와 검증까지 직접 완료한다. 정본 API·CLI·executor와 안전 절차를 사용하며 SQLite·런타임 상태 파일 직접 수정과 경쟁 writer 생성은 금지한다."
+    }
+  ]
+}
